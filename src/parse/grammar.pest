@@ -1,0 +1,59 @@
+program = { SOI ~ stmt* ~ EOI }
+
+stmt = { expr ~ ";" }
+expr = {
+    match_expr
+  | for_expr
+  | func_def_expr
+  | assign_expr
+  | alias_expr
+  | func_expr
+  | grouping
+  | value
+}
+
+alias_expr = { "alias" ~ func_sigil_and_name ~ "=" ~ func_sigil_and_name }
+
+func_sigil_and_name = ${ "@" ~ ident }
+
+func_def_expr = { "let" ~ func_sigil_and_name ~ "(" ~ func_def_args? ~ ")" ~ "=" ~ grouping }
+
+func_def_args = { func_arg ~ ("," ~ func_arg)* }
+
+func_arg = { ident ~ ":" ~ type_name }
+
+grouping = { "{" ~ stmt* ~ expr? ~ "}" ~ redirect? }
+
+func_expr = { func_sigil_and_name ~ "(" ~ func_call_args? ~ ")" ~ result_unwrap? }
+
+func_call_args = { expr ~ ("," ~ expr)* }
+
+type_name = { "[" ~ type_name ~ "]" | "stream" | "string" | "file" }
+
+value = { ident | integer | string_lit | array_lit }
+
+string_lit = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+array_lit = { "[" ~ func_call_args? ~ "]" }
+
+assign_expr = { "let" ~ ident ~ "=" ~ expr }
+
+match_expr = { "match" ~ "(" ~ expr ~ ")" ~ "{" ~ match_arm ~ ("," ~ match_arm)* ~ ","? ~ "}" }
+
+match_arm = { result_branch ~ ident ~ "=" ~ expr }
+
+result_branch = { "ok" | "err" }
+
+result_unwrap = { "!" }
+
+for_expr = { "for" ~ "(" ~ for_inner ~ ")" ~ grouping }
+
+for_inner = { ident ~ "in" ~ expr }
+
+redirect = { "<" ~ expr }
+
+ident   = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+integer = @{ ASCII_DIGIT+ }
+
+COMMENT    = _{ "#" ~ (!NEWLINE ~ ANY)* }
+WHITESPACE = _{ " " | "\t" | "\n" | "\r\n" }
