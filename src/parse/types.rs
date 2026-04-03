@@ -32,7 +32,7 @@ impl<'a, T> Spanned<'a, T> {
         }
     }
 
-    pub const fn span(&'a self) -> pest::Span<'a> {
+    pub const fn span(&self) -> pest::Span<'a> {
         self.span
     }
 
@@ -94,7 +94,7 @@ pub enum PAtomic<'a> {
 }
 
 impl<'a> PAtomic<'a> {
-    pub fn span(&'a self) -> pest::Span<'a> {
+    pub fn span(&self) -> pest::Span<'a> {
         match self {
             Self::Array(a) => a.span,
             Self::Ident(i) => i.span,

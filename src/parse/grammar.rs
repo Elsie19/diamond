@@ -52,7 +52,6 @@ impl DIParser {
     }
 
     fn type_name(input: Node) -> DResult<PType> {
-        let span = input.as_span();
         Ok(match_nodes!(input.into_children();
             [type_array(arr)] => arr,
             [atomic_type(ty)] => ty,
