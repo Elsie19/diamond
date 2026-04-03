@@ -31,6 +31,16 @@ impl<'a, T> Spanned<'a, T> {
             span: self.span,
         }
     }
+
+    pub const fn span(&'a self) -> pest::Span<'a> {
+        self.span
+    }
+
+    pub fn as_miette_span(&self) -> miette::SourceSpan {
+        let start = self.span().start();
+        let end = self.span().end();
+        (start, end - start).into()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -84,7 +94,7 @@ pub enum PAtomic<'a> {
 }
 
 impl<'a> PAtomic<'a> {
-    pub fn span(&self) -> pest::Span<'a> {
+    pub fn span(&'a self) -> pest::Span<'a> {
         match self {
             Self::Array(a) => a.span,
             Self::Ident(i) => i.span,
@@ -99,4 +109,12 @@ impl<'a> PAtomic<'a> {
             _ => unreachable!("not `PAtomic::Ident`"),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum PType<'a> {
+    Array(Spanned<'a, Box<Self>>),
+    Stream(Spanned<'a, &'a str>),
+    String(Spanned<'a, &'a str>),
+    File(Spanned<'a, &'a str>),
 }

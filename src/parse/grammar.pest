@@ -28,7 +28,10 @@ func_expr = { func_sigil_and_name ~ "(" ~ func_call_args? ~ ")" ~ result_unwrap?
 
 func_call_args = { expr ~ ("," ~ expr)* }
 
-type_name = { "[" ~ type_name ~ "]" | "stream" | "string" | "file" }
+type_name = { type_array | atomic_type }
+
+type_array = { "[" ~ type_name ~ "]" }
+atomic_type = { "stream" | "string" | "file" }
 
 value = { ident | integer | string_lit | array_lit }
 

@@ -51,6 +51,31 @@ impl DIParser {
         )))
     }
 
+    fn type_name(input: Node) -> DResult<PType> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [type_array(arr)] => arr,
+            [atomic_type(ty)] => ty,
+        ))
+    }
+
+    fn type_array(input: Node) -> DResult<PType> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [type_name(arr)] => PType::Array(Spanned::new(Box::new(arr), span)),
+        ))
+    }
+
+    fn atomic_type(input: Node) -> DResult<PType> {
+        let span = input.as_span();
+        match input.as_str() {
+            txt @ "stream" => Ok(PType::Stream(Spanned::new(txt, span))),
+            txt @ "string" => Ok(PType::String(Spanned::new(txt, span))),
+            txt @ "file" => Ok(PType::File(Spanned::new(txt, span))),
+            err => Err(input.error(err)),
+        }
+    }
+
     /*
      *  alias @foo = @bar;
      *        ^^^^ is for `func_sigil_and_name`
