@@ -1,8 +1,7 @@
 use std::ops::Deref;
 
 pub type BPVal<'a> = Spanned<'a, Box<PVal<'a>>>;
-pub type BPArr<'a> = Box<[Spanned<'a, PVal<'a>>]>;
-pub type SpannedStr<'a> = Spanned<'a, &'a str>;
+pub type BPArr<'a> = Spanned<'a, Box<[Spanned<'a, PVal<'a>>]>>;
 
 pub type SpannedPVal<'a> = Spanned<'a, PVal<'a>>;
 
@@ -23,6 +22,10 @@ impl<'a, T> Deref for Spanned<'a, T> {
 impl<'a, T> Spanned<'a, T> {
     pub fn new(node: T, span: pest::Span<'a>) -> Self {
         Self { node, span }
+    }
+
+    pub fn into_inner(self) -> T {
+        self.node
     }
 
     pub fn into_boxed(self) -> Spanned<'a, Box<T>> {
@@ -47,8 +50,9 @@ impl<'a, T> Spanned<'a, T> {
 pub enum PVal<'a> {
     Atomic(Spanned<'a, PAtomic<'a>>),
     FuncCall {
-        name: SpannedStr<'a>,
-        args: BPArr<'a>,
+        name: BPVal<'a>,
+        args: Option<BPArr<'a>>,
+        unwrap: bool,
     },
     Grouping {
         stmts: BPArr<'a>,
@@ -60,13 +64,13 @@ pub enum PVal<'a> {
         arms: (),
     },
     For {
-        var: SpannedStr<'a>,
+        var: BPVal<'a>,
         iter: BPVal<'a>,
         body: BPArr<'a>,
         return_expr: Option<BPVal<'a>>,
     },
     Let {
-        name: SpannedStr<'a>,
+        name: BPVal<'a>,
         expr: BPVal<'a>,
     },
     Alias {

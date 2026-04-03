@@ -15,7 +15,18 @@ impl DIParser {
         Ok(())
     }
 
-    pub fn alias_expr(input: Node) -> DResult<SpannedPVal> {
+    // EXPRESSIONS //
+
+    fn expr(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [alias_expr(expr)] => expr,
+            [func_expr(expr)] => expr,
+            [value(expr)] => Spanned::new(expr, span),
+        ))
+    }
+
+    fn alias_expr(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
             [func_sigil_and_name(name), func_sigil_and_name(alias)] =>
@@ -23,6 +34,43 @@ impl DIParser {
                     name: name.into_boxed(),
                     alias: alias.into_boxed()
                 }, span)
+        ))
+    }
+
+    fn func_expr(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [func_sigil_and_name(name), func_call_args(args), result_unwrap(unwrap)] =>
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap }, span),
+            [func_sigil_and_name(name), func_call_args(args)] =>
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap: false }, span),
+            [func_sigil_and_name(name), result_unwrap(unwrap)] =>
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap }, span),
+            [func_sigil_and_name(name)] =>
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap: false }, span)
+        ))
+    }
+
+    fn func_call_args(input: Node) -> DResult<BPArr> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [expr(single)] => Spanned::new(Box::new([single]), span),
+            [expr(single), expr(rest)..] => {
+                let mut v = vec![];
+                v.push(single);
+                v.extend(rest);
+                Spanned::new(v.into_boxed_slice(), span)
+            }
+        ))
+    }
+
+    fn value(input: Node) -> DResult<PVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [ident(ident)] => PVal::Atomic(Spanned::new(ident, span)),
+            [integer(integer)] => PVal::Atomic(Spanned::new(integer, span)),
+            [string_lit(string)] => PVal::Atomic(Spanned::new(string, span)),
+            [array_lit(array)] => PVal::Atomic(Spanned::new(array, span)),
         ))
     }
 
@@ -49,6 +97,20 @@ impl DIParser {
             input.as_str(),
             input.as_span(),
         )))
+    }
+
+    fn array_lit(input: Node) -> DResult<PAtomic> {
+        let span = input.as_span();
+
+        Ok(match_nodes!(input.into_children();
+            [] => {
+                PAtomic::Array(Spanned::new(
+                    Spanned::new(Box::new([]), span),
+                    span
+                ))
+            },
+            [func_call_args(args)] => PAtomic::Array(Spanned::new(args, span)),
+        ))
     }
 
     fn type_name(input: Node) -> DResult<PType> {
@@ -124,5 +186,32 @@ mod test {
 
         assert_eq!(name, "foo");
         assert_eq!(alias, "bar");
+    }
+
+    #[test]
+    fn func_call() {
+        let string = r###"@super_func(ident, ["string", 0], @output())"###;
+        let inputs =
+            DIParser::parse(Rule::func_expr, string).expect("failed to parse alias expression");
+        let input = inputs.single().expect("expected only one root node");
+        let func = DIParser::func_expr(input).expect("failed to parse `alias_expr`");
+
+        let (name, args, unwrap) = match func.into_inner() {
+            PVal::FuncCall { name, args, unwrap } => (name, args, unwrap),
+            _ => unreachable!("not `PVal::FuncCall`"),
+        };
+
+        let name = unsafe { *name.node.atomic_unchecked().node.ident_unchecked() };
+
+        assert_eq!(name, "super_func");
+
+        assert!(!unwrap);
+
+        let Some(args) = args else {
+            unreachable!("args are not empty!");
+        };
+
+        // ident, array, func_call
+        assert_eq!(args.len(), 3);
     }
 }
