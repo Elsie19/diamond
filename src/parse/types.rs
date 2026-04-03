@@ -72,7 +72,7 @@ pub enum PVal<'a> {
         body: BPVal<'a>,
     },
     Grouping {
-        stmts: BPArr<'a>,
+        stmts: Box<[Spanned<'a, PVal<'a>>]>,
         return_expr: Option<BPVal<'a>>,
         redirect: Option<BPVal<'a>>,
     },

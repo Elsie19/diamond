@@ -22,6 +22,8 @@ impl DIParser {
         Ok(match_nodes!(input.into_children();
             [alias_expr(expr)] => expr,
             [func_expr(expr)] => expr,
+            [func_def_expr(expr)] => expr,
+            [assign_expr(expr)] => expr,
             [value(expr)] => Spanned::new(expr, span),
         ))
     }
@@ -83,6 +85,16 @@ impl DIParser {
                     span,
                 )
             }
+        ))
+    }
+
+    fn grouping(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [stmts(stmts)..] => (),
+            [stmts(stmts).., expr(ret)] => (),
+            [stmts(stmts).., redirect(redir)] => (),
+            [stmts(stmts).., expr(ret), redirect(redir)] => (),
         ))
     }
 
