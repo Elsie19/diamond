@@ -37,6 +37,14 @@ impl DIParser {
         ))
     }
 
+    fn assign_expr(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            // SAFETY: `ident` returns a [`PAtomic`] but underneath we know it's a string.
+            [ident(name), expr(expr)] => Spanned::new(PVal::Let { name: unsafe { name.into_ident_unchecked() }, expr: expr.into_boxed() }, span),
+        ))
+    }
+
     fn func_expr(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
@@ -108,6 +116,7 @@ impl DIParser {
     fn func_arg(input: Node) -> DResult<FuncArg> {
         Ok(match_nodes!(input.into_children();
             [ident(name), type_name(ty)] => {
+                // SAFETY: We know that `ident` returns an [`ident`].
                 let name = unsafe { name.into_ident_unchecked() };
                 FuncArg { name, ty }
             }
@@ -283,6 +292,27 @@ mod simple_parsing {
 
         // ident, array, func_call
         assert_eq!(args.len(), 3);
+    }
+
+    #[test]
+    fn assign() {
+        let string = "let a = 0";
+        let inputs =
+            DIParser::parse(Rule::assign_expr, string).expect("failed to parse assign expression");
+        let input = inputs.single().expect("expected only one root node");
+        let assign = DIParser::assign_expr(input).expect("failed to parse `assign_expr`");
+
+        let (ident, expr) = unsafe { assign.node.into_let_unchecked() };
+
+        let expr = unsafe {
+            expr.node
+                .into_atomic_unchecked()
+                .node
+                .into_integer_unchecked()
+        };
+
+        assert_eq!(ident, "a");
+        assert_eq!(expr, 0);
     }
 }
 

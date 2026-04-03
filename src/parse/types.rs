@@ -22,7 +22,7 @@ impl<T> Deref for Spanned<'_, T> {
     }
 }
 
-impl<'a, T> PartialEq<T> for Spanned<'a, T>
+impl<T> PartialEq<T> for Spanned<'_, T>
 where
     T: PartialEq<T>,
 {
@@ -87,7 +87,7 @@ pub enum PVal<'a> {
         return_expr: Option<BPVal<'a>>,
     },
     Let {
-        name: BPVal<'a>,
+        name: SpannedStr<'a>,
         expr: BPVal<'a>,
     },
     Alias {
