@@ -16,7 +16,7 @@ alias_expr = { "alias" ~ func_sigil_and_name ~ "=" ~ func_sigil_and_name }
 
 func_sigil_and_name = ${ "@" ~ ident }
 
-func_def_expr = { "let" ~ func_sigil_and_name ~ "(" ~ func_def_args? ~ ")" ~ "=" ~ grouping }
+func_def_expr = { "let" ~ func_sigil_and_name ~ "(" ~ func_def_args? ~ ")" ~ "=" ~ expr }
 
 func_def_args = { func_arg ~ ("," ~ func_arg)* }
 
@@ -31,13 +31,15 @@ func_call_args = { expr ~ ("," ~ expr)* }
 type_name = { type_array | atomic_type }
 
 type_array = { "[" ~ type_name ~ "]" }
-atomic_type = { "stream" | "string" | "file" }
+atomic_type = { "stream" | "string" | "file" | "()" }
 
-value = { ident | integer | string_lit | array_lit }
+value = { ident | integer | string_lit | array_lit | unit_lit }
 
 string_lit = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
 array_lit = { "[" ~ func_call_args? ~ "]" }
+
+unit_lit = { "()" }
 
 assign_expr = { "let" ~ ident ~ "=" ~ expr }
 

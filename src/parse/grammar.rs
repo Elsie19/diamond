@@ -51,15 +51,65 @@ impl DIParser {
         ))
     }
 
+    fn func_def_expr(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+
+        Ok(match_nodes!(input.into_children();
+            [func_sigil_and_name(name), expr(body)] => {
+                Spanned::new(
+                    PVal::FuncLet {
+                        name: name.into_boxed(),
+                        args: Spanned::new(Box::new([]), span),
+                        body: body.into_boxed(),
+                    },
+                    span,
+                )
+            },
+            [func_sigil_and_name(name), func_def_args(args), expr(body)] => {
+                Spanned::new(
+                    PVal::FuncLet {
+                        name: name.into_boxed(),
+                        args,
+                        body: body.into_boxed(),
+                    },
+                    span,
+                )
+            }
+        ))
+    }
+
     fn func_call_args(input: Node) -> DResult<BPArr> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
             [expr(single)] => Spanned::new(Box::new([single]), span),
             [expr(single), expr(rest)..] => {
-                let mut v = vec![];
-                v.push(single);
+                let mut v = vec![single];
                 v.extend(rest);
                 Spanned::new(v.into_boxed_slice(), span)
+            }
+        ))
+    }
+
+    fn func_def_args(input: Node) -> DResult<Spanned<Box<[FuncArg]>>> {
+        let span = input.as_span();
+
+        Ok(match_nodes!(input.into_children();
+            [func_arg(single)] => {
+                Spanned::new(Box::new([single]), span)
+            },
+            [func_arg(first), func_arg(rest)..] => {
+                let mut v = vec![first];
+                v.extend(rest);
+                Spanned::new(v.into_boxed_slice(), span)
+            }
+        ))
+    }
+
+    fn func_arg(input: Node) -> DResult<FuncArg> {
+        Ok(match_nodes!(input.into_children();
+            [ident(name), type_name(ty)] => {
+                let name = unsafe { name.into_ident_unchecked() };
+                FuncArg { name, ty }
             }
         ))
     }
@@ -71,6 +121,7 @@ impl DIParser {
             [integer(integer)] => PVal::Atomic(Spanned::new(integer, span)),
             [string_lit(string)] => PVal::Atomic(Spanned::new(string, span)),
             [array_lit(array)] => PVal::Atomic(Spanned::new(array, span)),
+            [unit_lit(unit)] => PVal::Atomic(Spanned::new(unit, span)),
         ))
     }
 
@@ -113,6 +164,10 @@ impl DIParser {
         ))
     }
 
+    fn unit_lit(input: Node) -> DResult<PAtomic> {
+        Ok(PAtomic::Unit(Spanned::new(input.as_str(), input.as_span())))
+    }
+
     fn type_name(input: Node) -> DResult<PType> {
         Ok(match_nodes!(input.into_children();
             [type_array(arr)] => arr,
@@ -133,6 +188,7 @@ impl DIParser {
             txt @ "stream" => Ok(PType::Stream(Spanned::new(txt, span))),
             txt @ "string" => Ok(PType::String(Spanned::new(txt, span))),
             txt @ "file" => Ok(PType::File(Spanned::new(txt, span))),
+            txt @ "()" => Ok(PType::Unit(Spanned::new(txt, span))),
             err => Err(input.error(err)),
         }
     }
@@ -164,7 +220,7 @@ impl DIParser {
 }
 
 #[cfg(test)]
-mod test {
+mod simple_parsing {
     use super::*;
 
     #[test]
@@ -177,8 +233,16 @@ mod test {
         let (name, alias) = match alias.node {
             PVal::Alias { name, alias } => unsafe {
                 (
-                    *name.node.atomic_unchecked().node.ident_unchecked(),
-                    *alias.node.atomic_unchecked().node.ident_unchecked(),
+                    *name
+                        .node
+                        .into_atomic_unchecked()
+                        .node
+                        .into_ident_unchecked(),
+                    *alias
+                        .node
+                        .into_atomic_unchecked()
+                        .node
+                        .into_ident_unchecked(),
                 )
             },
             _ => unreachable!("not `PVal::Alias`"),
@@ -192,16 +256,22 @@ mod test {
     fn func_call() {
         let string = r###"@super_func(ident, ["string", 0], @output())"###;
         let inputs =
-            DIParser::parse(Rule::func_expr, string).expect("failed to parse alias expression");
+            DIParser::parse(Rule::func_expr, string).expect("failed to parse func expression");
         let input = inputs.single().expect("expected only one root node");
-        let func = DIParser::func_expr(input).expect("failed to parse `alias_expr`");
+        let func = DIParser::func_expr(input).expect("failed to parse `func_expr`");
 
         let (name, args, unwrap) = match func.into_inner() {
             PVal::FuncCall { name, args, unwrap } => (name, args, unwrap),
             _ => unreachable!("not `PVal::FuncCall`"),
         };
 
-        let name = unsafe { *name.node.atomic_unchecked().node.ident_unchecked() };
+        let name = unsafe {
+            *name
+                .node
+                .into_atomic_unchecked()
+                .node
+                .into_ident_unchecked()
+        };
 
         assert_eq!(name, "super_func");
 
@@ -213,5 +283,67 @@ mod test {
 
         // ident, array, func_call
         assert_eq!(args.len(), 3);
+    }
+}
+
+#[cfg(test)]
+mod complex_parsing {
+    use super::*;
+
+    #[test]
+    fn func_def_to_another_func() {
+        let string = "let @foo(x: string) = @bar(x)!";
+        let inputs = DIParser::parse(Rule::func_def_expr, string)
+            .expect("failed to parse func_def_expr expression");
+        let input = inputs.single().expect("expected only one root node");
+        let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
+
+        let (name, args, _) = unsafe { func.node.into_func_let_unchecked() };
+        let args = args.node;
+
+        let name = unsafe {
+            *name
+                .node
+                .into_atomic_unchecked()
+                .node
+                .into_ident_unchecked()
+        };
+
+        assert_eq!(name, "foo");
+
+        assert_eq!(args.len(), 1);
+
+        let arg = &args[0];
+
+        assert_eq!(arg.name, "x");
+    }
+
+    #[test]
+    fn func_def_to_type() {
+        let string = "let @f() = ()";
+        let inputs = DIParser::parse(Rule::func_def_expr, string)
+            .expect("failed to parse func_def_expr expression");
+        let input = inputs.single().expect("expected only one root node");
+        let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
+
+        let (name, args, body) = unsafe { func.node.into_func_let_unchecked() };
+        let args = args.node;
+
+        let name = unsafe {
+            *name
+                .node
+                .into_atomic_unchecked()
+                .node
+                .into_ident_unchecked()
+        };
+
+        assert_eq!(name, "f");
+
+        assert_eq!(args.len(), 0);
+
+        assert!(matches!(
+            unsafe { body.node.into_atomic_unchecked() }.node,
+            PAtomic::Unit(_)
+        ))
     }
 }
