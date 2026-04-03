@@ -78,7 +78,7 @@ pub enum PVal<'a> {
     },
     Match {
         expr: BPVal<'a>,
-        arms: (),
+        arms: Box<[Spanned<'a, PMatchArm<'a>>]>,
     },
     For {
         var: BPVal<'a>,
@@ -132,4 +132,30 @@ pub enum PType<'a> {
 pub struct FuncArg<'a> {
     pub name: SpannedStr<'a>,
     pub ty: PType<'a>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PMatchArm<'a> {
+    /// The literal text `ok` or `err`.
+    pub res: PMatchCase<'a>,
+    /// The value associated with the branch.
+    pub inner: SpannedStr<'a>,
+    /// The code that executes if matched.
+    pub expr: BPVal<'a>,
+}
+
+impl PMatchArm<'_> {
+    pub const fn ok(&self) -> bool {
+        matches!(self.res, PMatchCase::Ok(_))
+    }
+
+    pub const fn err(&self) -> bool {
+        matches!(self.res, PMatchCase::Err(_))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum PMatchCase<'a> {
+    Ok(SpannedStr<'a>),
+    Err(SpannedStr<'a>),
 }

@@ -15,6 +15,12 @@ impl DIParser {
         Ok(())
     }
 
+    fn program(input: Node) -> DResult<Vec<SpannedPVal>> {
+        Ok(match_nodes!(input.into_children();
+            [stmt(stmts).., EOI(_)] => stmts.collect(),
+        ))
+    }
+
     fn stmt(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
@@ -32,6 +38,8 @@ impl DIParser {
             [func_def_expr(expr)] => expr,
             [assign_expr(expr)] => expr,
             [grouping(expr)] => expr,
+            [match_expr(expr)] => expr,
+            [for_expr(expr)] => expr,
             [value(expr)] => Spanned::new(expr, span),
         ))
     }
@@ -115,6 +123,36 @@ impl DIParser {
         ))
     }
 
+    fn match_expr(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        let arms = match_nodes!(input.into_children();
+            [expr(expr), match_arm(arm), match_arm(rest)..] => PVal::Match { expr: expr.into_boxed(), arms: {
+                let mut v = vec![arm];
+                v.extend(rest);
+                v.into_boxed_slice()
+            } },
+            [expr(expr), match_arm(arm)] => PVal::Match { expr: expr.into_boxed(), arms: Box::new([arm]) },
+        );
+
+        Ok(Spanned::new(arms, span))
+    }
+
+    fn match_arm(input: Node) -> DResult<Spanned<PMatchArm>> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [result_branch(res), ident(inner), expr(expr)] => Spanned::new(PMatchArm { res, inner: unsafe { inner.into_ident_unchecked() }, expr: expr.into_boxed() }, span)
+        ))
+    }
+
+    fn result_branch(input: Node) -> DResult<PMatchCase> {
+        let span = input.as_span();
+        match input.as_str() {
+            txt @ "ok" => Ok(PMatchCase::Ok(Spanned::new(txt, span))),
+            txt @ "err" => Ok(PMatchCase::Err(Spanned::new(txt, span))),
+            _ => unreachable!("add result_branch new fields"),
+        }
+    }
+
     fn func_call_args(input: Node) -> DResult<BPArr> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
@@ -182,10 +220,14 @@ impl DIParser {
     }
 
     fn string_lit(input: Node) -> DResult<PAtomic> {
-        Ok(PAtomic::String(Spanned::new(
-            input.as_str(),
-            input.as_span(),
-        )))
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [inner_string(str)] => PAtomic::String(Spanned::new(str, span)),
+        ))
+    }
+
+    fn inner_string(input: Node<'_>) -> DResult<&str> {
+        Ok(input.as_str())
     }
 
     fn array_lit(input: Node) -> DResult<PAtomic> {
@@ -410,5 +452,86 @@ mod complex_parsing {
             unsafe { body.node.into_atomic_unchecked() }.node,
             PAtomic::Unit(_)
         ))
+    }
+
+    #[test]
+    fn func_def_to_grouping() {
+        let string = r###"let @tee(file: stream, txt: [string]) = {
+                            @printf("%s", txt);
+                            @dump(file, txt);
+        };"###;
+
+        let inputs = DIParser::parse(Rule::func_def_expr, string)
+            .expect("failed to parse func_def_expr expression");
+        let input = inputs.single().expect("expected only one root node");
+        let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
+
+        let (name, args, body) = unsafe { func.node.into_func_let_unchecked() };
+        let args = args.node;
+
+        let name = unsafe {
+            *name
+                .node
+                .into_atomic_unchecked()
+                .node
+                .into_ident_unchecked()
+        };
+
+        assert_eq!(name, "tee");
+
+        assert_eq!(args.len(), 2);
+
+        assert!(matches!(*body.node, PVal::Grouping { .. }))
+    }
+
+    #[test]
+    fn match_() {
+        let string = r###"match (@nth(ARGV, 0)) {
+                ok o = o,
+                err e = @panic("expected file to be passed"),
+             } # ty : file"###;
+
+        let inputs = DIParser::parse(Rule::match_expr, string)
+            .expect("failed to parse match_expr expression");
+        let input = inputs.single().expect("expected only one root node");
+        let match_ = DIParser::match_expr(input).expect("failed to parse `match_expr`");
+
+        let (expr, arms) = unsafe { match_.node.into_match_unchecked() };
+
+        assert!(matches!(**expr, PVal::FuncCall { .. }));
+
+        assert_eq!(arms.len(), 2);
+
+        let (ok, err) = (&arms[0], &arms[1]);
+
+        assert!(ok.ok());
+        assert!(err.err());
+
+        let ok_expr = unsafe { ok.expr.node.as_atomic_unchecked().node.as_ident_unchecked() };
+        let (func_name, func_args, func_unwrap) = unsafe { err.expr.node.as_func_call_unchecked() };
+
+        let func_name = unsafe {
+            &func_name
+                .node
+                .as_atomic_unchecked()
+                .node
+                .as_ident_unchecked()
+        };
+
+        let func_args = &func_args.as_ref().expect("argument count should be 1").node;
+        assert_eq!(func_args.len(), 1);
+        let func_arg = unsafe {
+            func_args[0]
+                .node
+                .as_atomic_unchecked()
+                .node
+                .as_string_unchecked()
+                .node
+        };
+
+        assert_eq!(*ok_expr, "o");
+        assert_eq!(**func_name, "panic");
+        assert_eq!(func_arg, "expected file to be passed");
+        assert!(!func_unwrap);
     }
 }

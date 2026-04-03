@@ -30,12 +30,13 @@ func_call_args = { expr ~ ("," ~ expr)* }
 
 type_name = { type_array | atomic_type }
 
-type_array = { "[" ~ type_name ~ "]" }
+type_array  = { "[" ~ type_name ~ "]" }
 atomic_type = { "stream" | "string" | "file" | "()" }
 
 value = { ident | integer | string_lit | array_lit | unit_lit }
 
-string_lit = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+string_lit   = @{ "\"" ~ inner_string ~ "\"" }
+inner_string = !{ (!"\"" ~ ANY)* }
 
 array_lit = { "[" ~ func_call_args? ~ "]" }
 
