@@ -95,6 +95,7 @@ pub enum PVal<'a> {
         alias: BPVal<'a>,
     },
     Expr(BPVal<'a>),
+    Stmt(BPVal<'a>),
 }
 
 #[derive(Debug, Clone, EnumAsInner)]

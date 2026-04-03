@@ -15,6 +15,13 @@ impl DIParser {
         Ok(())
     }
 
+    fn stmt(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [expr(expr)] => Spanned::new(PVal::Stmt(expr.into_boxed()), span),
+        ))
+    }
+
     // EXPRESSIONS //
 
     fn expr(input: Node) -> DResult<SpannedPVal> {
@@ -24,6 +31,7 @@ impl DIParser {
             [func_expr(expr)] => expr,
             [func_def_expr(expr)] => expr,
             [assign_expr(expr)] => expr,
+            [grouping(expr)] => expr,
             [value(expr)] => Spanned::new(expr, span),
         ))
     }
@@ -90,11 +98,20 @@ impl DIParser {
 
     fn grouping(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
-        Ok(match_nodes!(input.into_children();
-            [stmts(stmts)..] => (),
-            [stmts(stmts).., expr(ret)] => (),
-            [stmts(stmts).., redirect(redir)] => (),
-            [stmts(stmts).., expr(ret), redirect(redir)] => (),
+        let (stmts, return_expr, redirect) = match_nodes!(input.into_children();
+            [stmt(stmts)..] => (stmts.collect(), None, None),
+            [stmt(stmts).., expr(ret)] => (stmts.collect(), Some(ret.into_boxed()), None),
+            [stmt(stmts).., redirect(redirect)] => (stmts.collect(), None, Some(redirect.into_boxed())),
+            [stmt(stmts).., expr(ret), redirect(redirect)] => (stmts.collect(), Some(ret.into_boxed()), Some(redirect.into_boxed())),
+        );
+
+        Ok(Spanned::new(
+            PVal::Grouping {
+                stmts,
+                return_expr,
+                redirect,
+            },
+            span,
         ))
     }
 
@@ -200,6 +217,12 @@ impl DIParser {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
             [type_name(arr)] => PType::Array(Spanned::new(Box::new(arr), span)),
+        ))
+    }
+
+    fn redirect(input: Node) -> DResult<SpannedPVal> {
+        Ok(match_nodes!(input.into_children();
+            [expr(expr)] => expr,
         ))
     }
 
