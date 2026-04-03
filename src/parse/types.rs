@@ -81,10 +81,8 @@ pub enum PVal<'a> {
         arms: Box<[Spanned<'a, PMatchArm<'a>>]>,
     },
     For {
-        var: BPVal<'a>,
-        iter: BPVal<'a>,
+        loop_: Spanned<'a, PForInner<'a>>,
         body: BPVal<'a>,
-        return_expr: Option<BPVal<'a>>,
     },
     Let {
         name: SpannedStr<'a>,
@@ -158,4 +156,10 @@ impl PMatchArm<'_> {
 pub enum PMatchCase<'a> {
     Ok(SpannedStr<'a>),
     Err(SpannedStr<'a>),
+}
+
+#[derive(Debug, Clone)]
+pub struct PForInner<'a> {
+    pub bind: SpannedStr<'a>,
+    pub expr: BPVal<'a>,
 }

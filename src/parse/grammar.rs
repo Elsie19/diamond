@@ -17,7 +17,7 @@ impl DIParser {
 
     fn program(input: Node) -> DResult<Vec<SpannedPVal>> {
         Ok(match_nodes!(input.into_children();
-            [stmt(stmts).., EOI(_)] => stmts.collect(),
+            [stmt(stmts).., EOI(())] => stmts.collect(),
         ))
     }
 
@@ -120,6 +120,20 @@ impl DIParser {
                 redirect,
             },
             span,
+        ))
+    }
+
+    fn for_expr(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [for_inner(loop_), expr(body)] => Spanned::new(PVal::For { loop_, body: body.into_boxed() }, span),
+        ))
+    }
+
+    fn for_inner(input: Node) -> DResult<Spanned<PForInner>> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [ident(bind), expr(expr)] => Spanned::new(PForInner { bind: unsafe { bind.into_ident_unchecked() }, expr: expr.into_boxed() }, span),
         ))
     }
 
@@ -533,5 +547,25 @@ mod complex_parsing {
         assert_eq!(**func_name, "panic");
         assert_eq!(func_arg, "expected file to be passed");
         assert!(!func_unwrap);
+    }
+
+    #[test]
+    fn for_() {
+        let string = r###"for (a in @range(0, 50)) {
+            @printf("%d\n", a);
+        }"###;
+
+        let inputs =
+            DIParser::parse(Rule::for_expr, string).expect("failed to parse for_expr expression");
+        let input = inputs.single().expect("expected only one root node");
+        let for_ = DIParser::for_expr(input).expect("failed to parse `for_expr`");
+
+        let (loop_, body) = unsafe { for_.as_for_unchecked() };
+
+        let bind = &loop_.bind;
+
+        assert_eq!(*bind, "a");
+
+        assert!(matches!(***body, PVal::Grouping { .. }))
     }
 }

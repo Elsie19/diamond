@@ -52,7 +52,7 @@ result_branch = { "ok" | "err" }
 
 result_unwrap = { "!" }
 
-for_expr = { "for" ~ "(" ~ for_inner ~ ")" ~ grouping }
+for_expr = { "for" ~ "(" ~ for_inner ~ ")" ~ expr }
 
 for_inner = { ident ~ "in" ~ expr }
 
