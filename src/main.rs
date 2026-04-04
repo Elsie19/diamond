@@ -7,14 +7,26 @@ pub mod parse;
 /// Type checker.
 pub mod typing;
 
-/*
-* Steps are:
-*
-* 1. Parsing
-* 1.1 Aliasing
-* 2. Type Checking
-*/
+use std::path::PathBuf;
 
-fn main() {
-    println!("Hello, world!");
+use clap::Parser;
+use miette::{IntoDiagnostic, Result};
+
+use parse::grammar::parse_di;
+
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Args {
+    input: PathBuf,
+}
+
+fn main() -> Result<()> {
+    let args = Args::parse();
+
+    let string = std::fs::read_to_string(&args.input).into_diagnostic()?;
+
+    let program =
+        parse_di(&string.clone(), &args.input.to_string_lossy()).map_err(|_| std::process::exit(1));
+
+    Ok(())
 }

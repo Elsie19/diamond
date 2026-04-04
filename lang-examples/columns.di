@@ -1,18 +1,17 @@
-# this is done before type-checking.
-alias @f = @file;
-
 # returns unit type.
 let @tee(file: stream, txt: string) = {
     @printf("%s", txt);
     @dump(file, txt);
 };
 
+let @bar() = 5;
+
 # set file to the first file inputted.
-let file = @f(match (@nth(ARGV, 0)) {
+let file = @file(match (@nth(ARGV, 0)) {
                 ok o = o,
                 err e = @panic("expected file to be passed"),
              }); # ty : file
-let output = @open(@create(@f("kvs.txt"))!)!; # ty : stream
+let output = @open(@create(@file("kvs.txt"))!)!; # ty : stream
 
 {
     let first_line = @nth(STREAM, 0)!; # ty : string
@@ -22,7 +21,7 @@ let output = @open(@create(@f("kvs.txt"))!)!; # ty : stream
     @tee(output, header);
 
     # main loop.
-    for (line in @skip(STREAM, 0)) {
+    fo (line in @skip(STREAM, 0)) {
         let line_split = @split(line, ",");
         @assert_eq(@length(line_split), csv_length);
         let txt = @sprintf("%s\n", @join_str(line_split, ","));

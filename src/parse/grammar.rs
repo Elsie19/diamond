@@ -2,12 +2,40 @@ use pest_consume::{Error, Parser, match_nodes};
 
 use super::types::*;
 
+pub type UntypedAst<'a> = Vec<SpannedPVal<'a>>;
+
 type DResult<T> = std::result::Result<T, Error<Rule>>;
 type Node<'i> = pest_consume::Node<'i, Rule, ()>;
 
 #[derive(Parser)]
 #[grammar = "src/parse/grammar.pest"]
-struct DIParser;
+pub struct DIParser;
+
+pub fn parse_di<'a>(input_str: &'a str, file: &'a str) -> Result<UntypedAst<'a>, ()> {
+    let inputs = DIParser::parse(Rule::program, input_str).map_err(|e| {
+        let e = e.with_path(file).renamed_rules(|rule| match *rule {
+            Rule::EOI => "end of file".to_string(),
+            Rule::stmt => "statement".to_string(),
+            Rule::type_name => "type".to_string(),
+            Rule::func_sigil_and_name => "function call".to_string(),
+            Rule::func_def_expr => "function definition".to_string(),
+            Rule::assign_expr => "assignment".to_string(),
+            Rule::match_expr => "match".to_string(),
+            Rule::for_expr => "for loop".to_string(),
+            bla => format!("{:?}", bla),
+        });
+
+        eprintln!("{}", e);
+    })?;
+
+    let input = inputs.single().map_err(|e| {
+        eprintln!("{e}");
+    })?;
+
+    DIParser::program(input).map_err(|e| {
+        eprintln!("{e}");
+    })
+}
 
 #[pest_consume::parser]
 impl DIParser {
@@ -33,7 +61,6 @@ impl DIParser {
     fn expr(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
-            [alias_expr(expr)] => expr,
             [func_expr(expr)] => expr,
             [func_def_expr(expr)] => expr,
             [assign_expr(expr)] => expr,
@@ -41,17 +68,6 @@ impl DIParser {
             [match_expr(expr)] => expr,
             [for_expr(expr)] => expr,
             [value(expr)] => Spanned::new(expr, span),
-        ))
-    }
-
-    fn alias_expr(input: Node) -> DResult<SpannedPVal> {
-        let span = input.as_span();
-        Ok(match_nodes!(input.into_children();
-            [func_sigil_and_name(name), func_sigil_and_name(alias)] =>
-                Spanned::new(PVal::Alias {
-                    name: name.into_boxed(),
-                    alias: alias.into_boxed()
-                }, span)
         ))
     }
 
@@ -293,12 +309,6 @@ impl DIParser {
         }
     }
 
-    /*
-     *  alias @foo = @bar;
-     *        ^^^^ is for `func_sigil_and_name`
-     *         ^^^ is for underlying ident
-     *
-     */
     fn func_sigil_and_name(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
@@ -322,35 +332,6 @@ impl DIParser {
 #[cfg(test)]
 mod simple_parsing {
     use super::*;
-
-    #[test]
-    fn alias() {
-        let string = "alias @foo = @bar";
-        let inputs =
-            DIParser::parse(Rule::alias_expr, string).expect("failed to parse alias expression");
-        let input = inputs.single().expect("expected only one root node");
-        let alias = DIParser::alias_expr(input).expect("failed to parse `alias_expr`");
-        let (name, alias) = match alias.node {
-            PVal::Alias { name, alias } => unsafe {
-                (
-                    *name
-                        .node
-                        .into_atomic_unchecked()
-                        .node
-                        .into_ident_unchecked(),
-                    *alias
-                        .node
-                        .into_atomic_unchecked()
-                        .node
-                        .into_ident_unchecked(),
-                )
-            },
-            _ => unreachable!("not `PVal::Alias`"),
-        };
-
-        assert_eq!(name, "foo");
-        assert_eq!(alias, "bar");
-    }
 
     #[test]
     fn func_call() {
@@ -571,14 +552,13 @@ mod complex_parsing {
 
     #[test]
     fn program() {
-        let string = r###"# this is done before type-checking.
-alias @f = @file;
-
-# returns unit type.
+        let string = r###"# returns unit type.
 let @tee(file: stream, txt: string) = {
     @printf("%s", txt);
     @dump(file, txt);
 };
+
+let @bar() = { 5 };
 
 # set file to the first file inputted.
 let file = @f(match (@nth(ARGV, 0)) {

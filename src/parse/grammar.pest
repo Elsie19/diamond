@@ -6,13 +6,10 @@ expr = {
   | for_expr
   | func_def_expr
   | assign_expr
-  | alias_expr
   | func_expr
   | grouping
   | value
 }
-
-alias_expr = { "alias" ~ func_sigil_and_name ~ "=" ~ func_sigil_and_name }
 
 func_sigil_and_name = ${ "@" ~ ident }
 
