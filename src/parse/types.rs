@@ -2,15 +2,29 @@ use std::ops::Deref;
 
 use enum_as_inner::EnumAsInner;
 
+/// A [`PVal`] with a span.
 pub type BPVal<'a> = Spanned<'a, Box<PVal<'a>>>;
+/// A [`Spanned`] array of [`PVal`]s.
 pub type BPArr<'a> = Spanned<'a, Box<[Spanned<'a, PVal<'a>>]>>;
 
+/// A [`Spanned<Pval>`].
 pub type SpannedPVal<'a> = Spanned<'a, PVal<'a>>;
+
+/// A [`Spanned`] string.
 pub type SpannedStr<'a> = Spanned<'a, &'a str>;
 
+/// A wrapped around a `T` with a span for error messages and diagnostics.
+///
+/// ```text
+/// "foobar"
+/// ^~~~~~~^ = Spanned::new("foobar", Span::new(r#""foobar""#, 1, 9).unwrap());
+/// 12345678
+/// ```
 #[derive(Debug, Clone)]
 pub struct Spanned<'a, T> {
+    /// The `T` value.
     pub node: T,
+    /// A span.
     pub span: pest::Span<'a>,
 }
 
@@ -31,15 +45,30 @@ where
     }
 }
 
+impl<T> IntoIterator for Spanned<'_, T>
+where
+    T: IntoIterator,
+{
+    type Item = T::Item;
+    type IntoIter = T::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.node.into_iter()
+    }
+}
+
 impl<'a, T> Spanned<'a, T> {
+    /// Create a new spanned object.
     pub fn new(node: T, span: pest::Span<'a>) -> Self {
         Self { node, span }
     }
 
+    /// Consume the span and get the inner `T`.
     pub fn into_inner(self) -> T {
         self.node
     }
 
+    /// [`Box`] the inner `T`.
     pub fn into_boxed(self) -> Spanned<'a, Box<T>> {
         Spanned {
             node: Box::new(self.node),
@@ -47,6 +76,7 @@ impl<'a, T> Spanned<'a, T> {
         }
     }
 
+    /// Get the span of the object.
     pub const fn span(&self) -> pest::Span<'a> {
         self.span
     }

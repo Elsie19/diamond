@@ -58,7 +58,10 @@ for_inner = { ident ~ "in" ~ expr }
 
 redirect = { "<" ~ expr }
 
-ident   = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+/// Identifiers like variables and function names.
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+/// Duh, integers.
 integer = @{ ASCII_DIGIT+ }
 
 COMMENT    = _{ "#" ~ (!NEWLINE ~ ANY)* }
