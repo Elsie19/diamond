@@ -13,7 +13,9 @@ expr = {
 
 func_sigil_and_name = ${ "@" ~ ident }
 
-func_def_expr = { "let" ~ func_sigil_and_name ~ "(" ~ func_def_args? ~ ")" ~ "=" ~ expr }
+func_def_expr = { "let" ~ func_sigil_and_name ~ "(" ~ func_def_args? ~ ")" ~ func_def_ret? ~ "=" ~ expr }
+
+func_def_ret = { ":" ~ type_name }
 
 func_def_args = { func_arg ~ ("," ~ func_arg)* }
 
@@ -28,7 +30,7 @@ func_call_args = { expr ~ ("," ~ expr)* }
 type_name = { type_array | atomic_type }
 
 type_array  = { "[" ~ type_name ~ "]" }
-atomic_type = { "stream" | "string" | "file" | "()" }
+atomic_type = { "stream" | "string" | "file" | "unit" }
 
 value = { ident | integer | string_lit | array_lit | unit_lit }
 

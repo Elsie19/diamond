@@ -99,6 +99,7 @@ pub enum PVal<'a> {
     FuncLet {
         name: BPVal<'a>,
         args: Spanned<'a, Box<[FuncArg<'a>]>>,
+        ret: Option<PType<'a>>,
         body: BPVal<'a>,
     },
     Grouping {
