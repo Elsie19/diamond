@@ -25,8 +25,11 @@ fn main() -> Result<()> {
 
     let string = std::fs::read_to_string(&args.input).into_diagnostic()?;
 
-    let program =
-        parse_di(&string.clone(), &args.input.to_string_lossy()).map_err(|_| std::process::exit(1));
+    let file = args.input.to_string_lossy();
+
+    let program = parse_di(&string, &file).map_err(|_| std::process::exit(1));
+
+    dbg!(program).into_diagnostic()?;
 
     Ok(())
 }

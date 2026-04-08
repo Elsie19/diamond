@@ -21,7 +21,7 @@ let output = @open(@create(@file("kvs.txt"))!)!; # ty : stream
     @tee(output, header);
 
     # main loop.
-    fo (line in @skip(STREAM, 0)) {
+    for (line in @skip(STREAM, 0)) {
         let line_split = @split(line, ",");
         @assert_eq(@length(line_split), csv_length);
         let txt = @sprintf("%s\n", @join_str(line_split, ","));
