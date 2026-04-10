@@ -7,6 +7,9 @@ pub mod parse;
 /// Type checker.
 pub mod typing;
 
+/// Standard library.
+pub mod stdlib;
+
 use std::path::PathBuf;
 
 use clap::Parser;

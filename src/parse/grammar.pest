@@ -7,6 +7,7 @@ expr = {
   | func_def_expr
   | assign_expr
   | func_expr
+  | rust_expr
   | grouping
   | value
 }
@@ -27,10 +28,11 @@ func_expr = { func_sigil_and_name ~ "(" ~ func_call_args? ~ ")" ~ result_unwrap?
 
 func_call_args = { expr ~ ("," ~ expr)* }
 
-type_name = { type_array | atomic_type }
+type_name = { type_array | result_type | atomic_type }
 
 type_array  = { "[" ~ type_name ~ "]" }
 atomic_type = { "stream" | "string" | "file" | "unit" }
+result_type = { "result" ~ "(" ~ type_name ~ "," ~ type_name ~ ")" }
 
 value = { ident | integer | string_lit | array_lit | unit_lit }
 
@@ -54,6 +56,8 @@ result_unwrap = { "!" }
 for_expr = { "for" ~ "(" ~ for_inner ~ ")" ~ expr }
 
 for_inner = { ident ~ "in" ~ expr }
+
+rust_expr = { "rust" ~ "{" ~ (stmt | expr) ~ "}" }
 
 redirect = { "<" ~ expr }
 

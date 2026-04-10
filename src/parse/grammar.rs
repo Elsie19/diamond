@@ -67,7 +67,15 @@ impl DIParser {
             [grouping(expr)] => expr,
             [match_expr(expr)] => expr,
             [for_expr(expr)] => expr,
+            [rust_expr(expr)] => expr,
             [value(expr)] => Spanned::new(expr, span),
+        ))
+    }
+
+    fn rust_expr(input: Node) -> DResult<SpannedPVal> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [expr(expr)] | [stmt(expr)] => Spanned::new(PVal::Rust { inner: expr.into_boxed() }, span),
         ))
     }
 
@@ -311,7 +319,15 @@ impl DIParser {
     fn type_name(input: Node) -> DResult<PType> {
         Ok(match_nodes!(input.into_children();
             [type_array(arr)] => arr,
+            [result_type(res)] => res,
             [atomic_type(ty)] => ty,
+        ))
+    }
+
+    fn result_type(input: Node) -> DResult<PType> {
+        let span = input.as_span();
+        Ok(match_nodes!(input.into_children();
+            [type_name(ok), type_name(err)] => PType::Result(Spanned::new((Box::new(ok), Box::new(err)), span)),
         ))
     }
 

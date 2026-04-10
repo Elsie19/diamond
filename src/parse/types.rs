@@ -119,12 +119,28 @@ pub enum PVal<'a> {
         name: SpannedStr<'a>,
         expr: BPVal<'a>,
     },
-    Alias {
-        name: BPVal<'a>,
-        alias: BPVal<'a>,
+    Rust {
+        inner: BPVal<'a>,
     },
     Expr(BPVal<'a>),
     Stmt(BPVal<'a>),
+}
+
+impl<'a> PVal<'a> {
+    pub fn into_name(self) -> &'static str {
+        match self {
+            Self::For { .. } => "For",
+            Self::Let { .. } => "Let",
+            Self::Expr(_) => "Expr",
+            Self::Stmt(_) => "Stmt",
+            Self::Atomic(_) => "Atomic",
+            Self::Match { .. } => "Match",
+            Self::FuncLet { .. } => "FuncLet",
+            Self::FuncCall { .. } => "FuncCall",
+            Self::Grouping { .. } => "Grouping",
+            Self::Rust { .. } => "Rust",
+        }
+    }
 }
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -134,6 +150,7 @@ pub enum PAtomic<'a> {
     Array(Spanned<'a, BPArr<'a>>),
     Ident(Spanned<'a, &'a str>),
     Unit(Spanned<'a, &'a str>),
+    Result(Spanned<'a, (Box<Self>, Box<Self>)>),
 }
 
 impl<'a> PAtomic<'a> {
@@ -144,6 +161,7 @@ impl<'a> PAtomic<'a> {
             Self::String(s) => s.span,
             Self::Integer(i) => i.span,
             Self::Unit(u) => u.span,
+            Self::Result(r) => r.span,
         }
     }
 }
@@ -155,6 +173,7 @@ pub enum PType<'a> {
     String(Spanned<'a, &'a str>),
     File(Spanned<'a, &'a str>),
     Unit(Spanned<'a, &'a str>),
+    Result(Spanned<'a, (Box<Self>, Box<Self>)>),
 }
 
 #[derive(Debug, Clone)]

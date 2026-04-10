@@ -4,6 +4,10 @@ let @tee(file: stream, txt: string) = {
     @dump(file, txt);
 };
 
+let @bla(): result(string, string) = {
+    @ok("ha")
+};
+
 let @bar() = 5;
 
 # set file to the first file inputted.
