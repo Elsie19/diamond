@@ -277,7 +277,7 @@ impl<'a> TypeChecker<'a> {
 
                 let mut result_ty = None;
 
-                for arm in arms.iter() {
+                for arm in arms {
                     self.scopes.push();
 
                     match arm.res {
