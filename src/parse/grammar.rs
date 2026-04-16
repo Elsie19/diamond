@@ -112,6 +112,7 @@ impl DIParser {
                         args: Spanned::new(Box::new([]), span),
                         ret: None,
                         body: body.into_boxed(),
+                        internal: false,
                     },
                     span,
                 )
@@ -123,6 +124,7 @@ impl DIParser {
                         args,
                         ret: None,
                         body: body.into_boxed(),
+                        internal: false,
                     },
                     span,
                 )
@@ -134,6 +136,7 @@ impl DIParser {
                         args: Spanned::new(Box::new([]), span),
                         ret: Some(ret),
                         body: body.into_boxed(),
+                        internal: false,
                     },
                     span,
                 )
@@ -145,11 +148,64 @@ impl DIParser {
                         args,
                         ret: Some(ret),
                         body: body.into_boxed(),
+                        internal: false,
+                    },
+                    span,
+                )
+            },
+            [internal(internal), func_sigil_and_name(name), expr(body)] => {
+                Spanned::new(
+                    PVal::FuncLet {
+                        name: name.into_boxed(),
+                        args: Spanned::new(Box::new([]), span),
+                        ret: None,
+                        body: body.into_boxed(),
+                        internal,
+                    },
+                    span,
+                )
+            },
+            [internal(internal), func_sigil_and_name(name), func_def_args(args), expr(body)] => {
+                Spanned::new(
+                    PVal::FuncLet {
+                        name: name.into_boxed(),
+                        args,
+                        ret: None,
+                        body: body.into_boxed(),
+                        internal,
+                    },
+                    span,
+                )
+            },
+            [internal(internal), func_sigil_and_name(name), func_def_ret(ret), expr(body)] => {
+                Spanned::new(
+                    PVal::FuncLet {
+                        name: name.into_boxed(),
+                        args: Spanned::new(Box::new([]), span),
+                        ret: Some(ret),
+                        body: body.into_boxed(),
+                        internal,
+                    },
+                    span,
+                )
+            },
+            [internal(internal), func_sigil_and_name(name), func_def_args(args), func_def_ret(ret), expr(body)] => {
+                Spanned::new(
+                    PVal::FuncLet {
+                        name: name.into_boxed(),
+                        args,
+                        ret: Some(ret),
+                        body: body.into_boxed(),
+                        internal,
                     },
                     span,
                 )
             }
         ))
+    }
+
+    fn internal(input: Node) -> DResult<bool> {
+        Ok(true)
     }
 
     fn func_def_ret(input: Node) -> DResult<PType> {
@@ -352,6 +408,7 @@ impl DIParser {
             txt @ "file" => Ok(PType::File(Spanned::new(txt, span))),
             txt @ "unit" => Ok(PType::Unit(Spanned::new(txt, span))),
             txt @ "integer" => Ok(PType::Integer(Spanned::new(txt, span))),
+            txt @ "unret" => Ok(PType::Unret(Spanned::new(txt, span))),
             err => Err(input.error(err)),
         }
     }
@@ -374,6 +431,10 @@ impl DIParser {
     fn result_unwrap(input: Node) -> DResult<bool> {
         Ok(true)
     }
+}
+
+pub fn spest_to_smiette(span: pest::Span<'_>) -> miette::SourceSpan {
+    miette::SourceSpan::from(span.start()..span.end())
 }
 
 #[cfg(test)]
@@ -447,7 +508,7 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
 
-        let (name, args, _, _) = unsafe { func.node.into_func_let_unchecked() };
+        let (name, args, _, _, _) = unsafe { func.node.into_func_let_unchecked() };
         let args = args.node;
 
         let name = unsafe {
@@ -475,7 +536,7 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
 
-        let (name, args, ret, body) = unsafe { func.node.into_func_let_unchecked() };
+        let (name, args, ret, body, internal) = unsafe { func.node.into_func_let_unchecked() };
         let args = args.node;
 
         let name = unsafe {
@@ -508,7 +569,7 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
 
-        let (name, args, ret, body) = unsafe { func.node.into_func_let_unchecked() };
+        let (name, args, ret, body, internal) = unsafe { func.node.into_func_let_unchecked() };
         let args = args.node;
 
         let name = unsafe {

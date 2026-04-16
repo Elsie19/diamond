@@ -1,5 +1,8 @@
-# TEST: Stuff
-let @printf(fmt: string, txt: unit): unit = ();
+let [internal] @file(path: string): result(file, string) = ();
+let [internal] @printf(format: string, txt: string): unit = ();
+let [internal] @dump(stream: stream, txt: string): unit = ();
+let [internal] @nth(arr: [string], nth: integer): result(string, string) = ();
+let [internal] @panic(fmt: string): unret = ();
 
 # returns unit type.
 let @tee(file: stream, txt: string) = {
@@ -7,11 +10,10 @@ let @tee(file: stream, txt: string) = {
     @dump(file, txt);
 };
 
-let @bla(): result(string, string) = {
-    @ok("ha")
-};
-
 let @bar(): integer = 5;
+
+# TODO: Remove
+let ARGV = ["one", "two", "three"];
 
 # set file to the first file inputted.
 let file = @file(match (@nth(ARGV, 0)) {

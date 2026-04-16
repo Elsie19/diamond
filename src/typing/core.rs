@@ -34,6 +34,7 @@ impl<'a> AstWalker<'a> {
                 args: _,
                 ret: _,
                 body: _,
+                internal: _,
             } => {
                 let func = FuncDef::try_from(func.clone());
                 if let Ok(func) = func {

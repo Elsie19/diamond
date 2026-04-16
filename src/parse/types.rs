@@ -101,6 +101,7 @@ pub enum PVal<'a> {
         args: Spanned<'a, Box<[FuncArg<'a>]>>,
         ret: Option<PType<'a>>,
         body: BPVal<'a>,
+        internal: bool,
     },
     Grouping {
         stmts: Box<[Spanned<'a, PVal<'a>>]>,
@@ -173,6 +174,7 @@ pub enum PType<'a> {
     String(Spanned<'a, &'a str>),
     File(Spanned<'a, &'a str>),
     Unit(Spanned<'a, &'a str>),
+    Unret(Spanned<'a, &'a str>),
     Integer(Spanned<'a, &'a str>),
     Result(Spanned<'a, (Box<Self>, Box<Self>)>),
 }

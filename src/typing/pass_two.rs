@@ -1,10 +1,10 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
 use crate::{
     parse::{
-        grammar::UntypedAst,
-        types::{PAtomic, PVal, SpannedPVal},
+        grammar::{UntypedAst, spest_to_smiette},
+        types::{PAtomic, PMatchCase, PVal, SpannedPVal},
     },
     typing::{
         core::ScopeStack,
@@ -16,25 +16,40 @@ use crate::{
 pub struct TypeChecker<'a> {
     funcs: &'a FuncTable<'a>,
     scopes: ScopeStack<'a>,
+    file_name: &'a str,
+    prog_text: &'a str,
 }
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum TypeCheckError {
     #[error(transparent)]
+    #[diagnostic(transparent)]
     VerifyError(pass_one::VerifyError),
 
-    #[error("unknown function `{0}`")]
-    UnknownFunction(String),
+    #[error("unknown function `{name}`")]
+    #[diagnostic(code(type_checking::function::verify_exists))]
+    #[diagnostic(help("ensure that the function exists"))]
+    UnknownFunction {
+        name: String,
+
+        #[source_code]
+        src: NamedSource<String>,
+
+        #[label("invoked here")]
+        bad_bit: SourceSpan,
+    },
 
     #[error("unknown variable `{0}`")]
     UnknownVariable(String),
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(funcs: &'a FuncTable<'a>) -> Self {
+    pub fn new(funcs: &'a FuncTable<'a>, file_name: &'a str, prog_text: &'a str) -> Self {
         Self {
             funcs,
             scopes: ScopeStack::new(),
+            file_name,
+            prog_text,
         }
     }
 
@@ -57,11 +72,16 @@ impl<'a> TypeChecker<'a> {
     ) -> Result<Type, TypeCheckError> {
         match &node {
             PVal::FuncLet {
-                name,
+                name: _,
                 args,
                 ret,
                 body,
+                internal,
             } => {
+                if *internal {
+                    return Ok(Type::Unit);
+                }
+
                 self.scopes.push();
 
                 for arg in &args.node {
@@ -89,7 +109,37 @@ impl<'a> TypeChecker<'a> {
             PVal::Atomic(spanned) => match &spanned.node {
                 PAtomic::Integer(_) => Ok(Type::Integer),
                 PAtomic::String(_) => Ok(Type::String),
-                PAtomic::Array(spanned) => Ok(Type::Array(todo!("infer type"))),
+                PAtomic::Array(spanned) => {
+                    let elems = &spanned.node.node;
+
+                    if elems.is_empty() {
+                        return Err(TypeCheckError::VerifyError(
+                            pass_one::VerifyError::EmptyArrayInfer,
+                        ));
+                    }
+
+                    let first_ty = self.check_node(&elems[0])?;
+
+                    for elem in elems.iter().skip(1) {
+                        let ty = self.check_node(elem)?;
+
+                        if ty != first_ty {
+                            return Err(TypeCheckError::VerifyError(
+                                pass_one::VerifyError::MismatchedArrayElements {
+                                    expected: first_ty,
+                                    got: ty,
+                                    src: NamedSource::new(
+                                        self.file_name,
+                                        self.prog_text.to_string(),
+                                    ),
+                                    bad_bit: spest_to_smiette(elem.span()),
+                                },
+                            ));
+                        }
+                    }
+
+                    Ok(Type::Array(Box::new(first_ty)))
+                }
                 PAtomic::Ident(spanned) => {
                     let name = spanned.node;
                     self.scopes
@@ -98,16 +148,19 @@ impl<'a> TypeChecker<'a> {
                         .ok_or_else(|| TypeCheckError::UnknownVariable(name.to_string()))
                 }
                 PAtomic::Unit(_) => Ok(Type::Unit),
-                PAtomic::Result(spanned) => todo!(),
+                PAtomic::Result(spanned) => Ok(Type::Result(todo!(), todo!())),
             },
             PVal::FuncCall { name, args, unwrap } => {
                 let func_name =
                     unsafe { name.node.as_atomic_unchecked().node.as_ident_unchecked() };
 
-                let def = self
-                    .funcs
-                    .lookup(func_name)
-                    .ok_or_else(|| TypeCheckError::UnknownFunction(func_name.to_string()))?;
+                let def = self.funcs.lookup(func_name).ok_or_else(|| {
+                    TypeCheckError::UnknownFunction {
+                        name: func_name.to_string(),
+                        src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                        bad_bit: spest_to_smiette(span),
+                    }
+                })?;
 
                 if let Some(args) = args {
                     if args.node.len() != def.args.len() {
@@ -115,6 +168,8 @@ impl<'a> TypeChecker<'a> {
                             pass_one::VerifyError::ArgumentLengthMismatch {
                                 expected: def.args.len(),
                                 got: args.node.len(),
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                                bad_bit: spest_to_smiette(span),
                             },
                         ));
                     }
@@ -128,6 +183,11 @@ impl<'a> TypeChecker<'a> {
                                     slot,
                                     expected: expected.clone(),
                                     got,
+                                    src: NamedSource::new(
+                                        self.file_name,
+                                        self.prog_text.to_string(),
+                                    ),
+                                    bad_bit: spest_to_smiette(arg_expr.span()),
                                 },
                             ));
                         }
@@ -174,8 +234,71 @@ impl<'a> TypeChecker<'a> {
 
                 Ok(Type::Unit)
             }
-            PVal::Match { expr, arms } => todo!(),
-            PVal::For { loop_, body } => todo!(),
+            PVal::Match { expr, arms } => {
+                let expr_ty = self.check_inner(expr, expr.span())?;
+
+                let (ok_ty, err_ty) = match expr_ty {
+                    Type::Result(ok, err) => (*ok, *err),
+                    _ => {
+                        return Err(TypeCheckError::VerifyError(
+                            pass_one::VerifyError::UnwrapNonResult,
+                        ));
+                    }
+                };
+
+                let mut result_ty = None;
+
+                for arm in arms.iter() {
+                    self.scopes.push();
+
+                    match arm.res {
+                        PMatchCase::Ok(_) => {
+                            self.scopes.insert(&arm.inner, ok_ty.clone());
+                        }
+                        PMatchCase::Err(_) => {
+                            self.scopes.insert(&arm.inner, err_ty.clone());
+                        }
+                    }
+
+                    let arm_ty = self.check_inner(&arm.expr.node, arm.expr.span())?;
+
+                    self.scopes.pop();
+
+                    if let Some(prev) = &result_ty {
+                        if *prev != arm_ty {
+                            return Err(TypeCheckError::VerifyError(
+                                pass_one::VerifyError::MismatchedMatchArms,
+                            ));
+                        }
+                    } else {
+                        result_ty = Some(arm_ty);
+                    }
+                }
+
+                Ok(result_ty.unwrap_or_default())
+            }
+            PVal::For { loop_, body } => {
+                let iter_ty = self.check_inner(&loop_.expr.node, loop_.expr.span())?;
+
+                let elem_ty = match iter_ty {
+                    Type::Array(inner) => *inner,
+                    _ => {
+                        return Err(TypeCheckError::VerifyError(
+                            pass_one::VerifyError::NonIterable,
+                        ));
+                    }
+                };
+
+                self.scopes.push();
+
+                self.scopes.insert(&loop_.bind, elem_ty);
+
+                self.check_inner(&body.node, body.span())?;
+
+                self.scopes.pop();
+
+                Ok(Type::Unit)
+            }
             PVal::Let { name, expr } => {
                 let ty = self.check_inner(expr, expr.span())?;
                 self.scopes.insert(name, ty.clone());
