@@ -91,13 +91,13 @@ impl DIParser {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
             [func_sigil_and_name(name), func_call_args(args), result_unwrap(unwrap)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap }, span),
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap: Some(unwrap) }, span),
             [func_sigil_and_name(name), func_call_args(args)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap: false }, span),
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap: None }, span),
             [func_sigil_and_name(name), result_unwrap(unwrap)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap }, span),
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap: Some(unwrap) }, span),
             [func_sigil_and_name(name)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap: false }, span)
+                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap: None }, span)
         ))
     }
 
@@ -428,8 +428,8 @@ impl DIParser {
         ))
     }
 
-    fn result_unwrap(input: Node) -> DResult<bool> {
-        Ok(true)
+    fn result_unwrap(input: Node) -> DResult<Spanned<bool>> {
+        Ok(Spanned::new(true, input.as_span()))
     }
 }
 
@@ -464,7 +464,7 @@ mod simple_parsing {
 
         assert_eq!(name, "super_func");
 
-        assert!(!unwrap);
+        assert!(unwrap.is_none());
 
         let Some(args) = args else {
             unreachable!("args are not empty!");
@@ -635,7 +635,7 @@ mod complex_parsing {
         assert_eq!(*ok_expr, "o");
         assert_eq!(**func_name, "panic");
         assert_eq!(func_arg, "expected file to be passed");
-        assert!(!func_unwrap);
+        assert!(func_unwrap.is_none());
     }
 
     #[test]

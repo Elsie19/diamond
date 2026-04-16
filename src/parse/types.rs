@@ -94,7 +94,7 @@ pub enum PVal<'a> {
     FuncCall {
         name: BPVal<'a>,
         args: Option<BPArr<'a>>,
-        unwrap: bool,
+        unwrap: Option<Spanned<'a, bool>>,
     },
     FuncLet {
         name: BPVal<'a>,

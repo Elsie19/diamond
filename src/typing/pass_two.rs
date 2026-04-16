@@ -196,14 +196,20 @@ impl<'a> TypeChecker<'a> {
 
                 let mut ret_ty = def.ret.clone();
 
-                if *unwrap {
+                if let Some(unwrap) = unwrap {
                     match ret_ty {
                         Type::Result(ok, _) => {
                             ret_ty = *ok;
                         }
                         _ => {
                             return Err(TypeCheckError::VerifyError(
-                                pass_one::VerifyError::UnwrapNonResult,
+                                pass_one::VerifyError::UnwrapNonResult {
+                                    src: NamedSource::new(
+                                        self.file_name,
+                                        self.prog_text.to_string(),
+                                    ),
+                                    bad_bit: spest_to_smiette(unwrap.span()),
+                                },
                             ));
                         }
                     }
@@ -241,7 +247,10 @@ impl<'a> TypeChecker<'a> {
                     Type::Result(ok, err) => (*ok, *err),
                     _ => {
                         return Err(TypeCheckError::VerifyError(
-                            pass_one::VerifyError::UnwrapNonResult,
+                            pass_one::VerifyError::UnwrapNonResult {
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                                bad_bit: spest_to_smiette(expr.span()),
+                            },
                         ));
                     }
                 };
@@ -284,7 +293,10 @@ impl<'a> TypeChecker<'a> {
                     Type::Array(inner) => *inner,
                     _ => {
                         return Err(TypeCheckError::VerifyError(
-                            pass_one::VerifyError::NonIterable,
+                            pass_one::VerifyError::NonIterable {
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                                bad_bit: spest_to_smiette(loop_.expr.span()),
+                            },
                         ));
                     }
                 };

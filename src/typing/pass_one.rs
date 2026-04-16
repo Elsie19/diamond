@@ -21,13 +21,29 @@ pub enum VerifyError {
     InvalidReturnType { expected: Type, got: Type },
 
     #[error("cannot unwrap non-result type")]
-    UnwrapNonResult,
+    #[diagnostic(code(type_checking::result::is_result::verify))]
+    #[diagnostic(help("remove unwrap"))]
+    UnwrapNonResult {
+        #[source_code]
+        src: NamedSource<String>,
+
+        #[label("erroneous unwrap found here")]
+        bad_bit: SourceSpan,
+    },
 
     #[error("ruh")]
     MismatchedMatchArms,
 
-    #[error("ruh roh")]
-    NonIterable,
+    #[error("non-iterable expression used in iterable context")]
+    #[diagnostic(code(type_checking::iter::iterable::verify))]
+    #[diagnostic(help("ensure that expressions passed to loops are iterable"))]
+    NonIterable {
+        #[source_code]
+        src: NamedSource<String>,
+
+        #[label("non-iterable expression found here")]
+        bad_bit: SourceSpan,
+    },
 
     #[error("cannot infer type from empty array")]
     EmptyArrayInfer,
