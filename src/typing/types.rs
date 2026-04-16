@@ -16,6 +16,7 @@ impl From<PType<'_>> for Type {
     fn from(value: PType<'_>) -> Self {
         match value {
             PType::Unit(_) => Self::Unit,
+            PType::Integer(_) => Self::Integer,
             PType::File(_) => Self::File,
             PType::Array(ty) => Self::Array(Box::new(Self::from(*ty.into_inner()))),
             PType::Stream(_) => Self::Stream,

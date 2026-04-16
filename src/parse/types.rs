@@ -126,7 +126,7 @@ pub enum PVal<'a> {
     Stmt(BPVal<'a>),
 }
 
-impl<'a> PVal<'a> {
+impl PVal<'_> {
     pub fn into_name(self) -> &'static str {
         match self {
             Self::For { .. } => "For",
@@ -154,7 +154,7 @@ pub enum PAtomic<'a> {
 }
 
 impl<'a> PAtomic<'a> {
-    pub fn span(&self) -> pest::Span<'a> {
+    pub const fn span(&self) -> pest::Span<'a> {
         match self {
             Self::Array(a) => a.span,
             Self::Ident(i) => i.span,
@@ -173,6 +173,7 @@ pub enum PType<'a> {
     String(Spanned<'a, &'a str>),
     File(Spanned<'a, &'a str>),
     Unit(Spanned<'a, &'a str>),
+    Integer(Spanned<'a, &'a str>),
     Result(Spanned<'a, (Box<Self>, Box<Self>)>),
 }
 

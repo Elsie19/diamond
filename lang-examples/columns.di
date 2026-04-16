@@ -8,7 +8,7 @@ let @bla(): result(string, string) = {
     @ok("ha")
 };
 
-let @bar() = 5;
+let @bar(): integer = 5;
 
 # set file to the first file inputted.
 let file = @file(match (@nth(ARGV, 0)) {

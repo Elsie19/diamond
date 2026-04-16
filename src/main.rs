@@ -17,6 +17,8 @@ use miette::{IntoDiagnostic, Result};
 
 use parse::grammar::parse_di;
 
+use crate::typing::core::AstWalker;
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -30,9 +32,16 @@ fn main() -> Result<()> {
 
     let file = args.input.to_string_lossy();
 
-    let program = parse_di(&string, &file).map_err(|_| std::process::exit(1));
+    let program = parse_di(&string, &file).map_err(|_| miette::miette!("parse failed"))?;
 
-    dbg!(program).into_diagnostic()?;
+    let walker = AstWalker::new(&program);
+
+    let funcs = walker.collect_function_defs();
+
+    let mut checker = TypeChecker::new(&funcs);
+    checker.check_program(&program)?;
+
+    dbg!(funcs);
 
     Ok(())
 }

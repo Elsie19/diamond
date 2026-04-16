@@ -351,6 +351,7 @@ impl DIParser {
             txt @ "string" => Ok(PType::String(Spanned::new(txt, span))),
             txt @ "file" => Ok(PType::File(Spanned::new(txt, span))),
             txt @ "unit" => Ok(PType::Unit(Spanned::new(txt, span))),
+            txt @ "integer" => Ok(PType::Integer(Spanned::new(txt, span))),
             err => Err(input.error(err)),
         }
     }
