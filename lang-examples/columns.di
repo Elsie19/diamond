@@ -1,3 +1,6 @@
+# TEST: Stuff
+let @printf(fmt: string, txt: unit): unit = ();
+
 # returns unit type.
 let @tee(file: stream, txt: string) = {
     @printf("%s", txt);

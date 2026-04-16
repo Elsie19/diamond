@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+
 use crate::{
     parse::{grammar::UntypedAst, types::PVal},
-    typing::pass_one::{FuncDef, FuncTable},
+    typing::{
+        pass_one::{FuncDef, FuncTable},
+        types::Type,
+    },
 };
 
 pub struct AstWalker<'a> {
@@ -92,5 +97,48 @@ impl<'a> AstWalker<'a> {
         }
 
         table
+    }
+}
+
+pub struct ScopeStack<'a> {
+    scopes: Vec<HashMap<&'a str, Type>>,
+}
+
+impl<'a> ScopeStack<'a> {
+    pub fn new() -> Self {
+        Self {
+            scopes: vec![HashMap::new()],
+        }
+    }
+
+    pub fn push(&mut self) {
+        self.scopes.push(HashMap::new());
+    }
+
+    pub fn pop(&mut self) {
+        self.scopes
+            .pop()
+            .expect("global scope popped. you're fucked");
+    }
+
+    pub fn insert(&mut self, name: &'a str, ty: Type) {
+        let scope = self.scopes.last_mut().unwrap();
+        scope.insert(name, ty);
+    }
+
+    pub fn get(&self, name: &str) -> Option<&Type> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(ty) = scope.get(name) {
+                return Some(ty);
+            }
+        }
+        None
+    }
+
+    pub fn with_scope<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        self.push();
+        let result = f(self);
+        self.pop();
+        result
     }
 }

@@ -7,10 +7,7 @@ use std::collections::HashMap;
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::{
-    parse::types::{PType, PVal},
-    typing::types::Type,
-};
+use crate::{parse::types::PVal, typing::types::Type};
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum FuncDefConversionError {
@@ -18,10 +15,14 @@ pub enum FuncDefConversionError {
     NotAFuncDef,
 }
 
+// TODO: I NEED SPANS HERE FOR DIAGNOSTICS!!!
 #[derive(Debug, Error, Diagnostic)]
 pub enum VerifyError {
     #[error("expected {expected:?}, got {got:?}")]
     InvalidReturnType { expected: Type, got: Type },
+
+    #[error("cannot unwrap non-result type")]
+    UnwrapNonResult,
 
     #[error("expected {expected:?}, got {got:?}")]
     ArgumentLengthMismatch { expected: usize, got: usize },
@@ -41,51 +42,8 @@ pub struct FuncTable<'a> {
 
 #[derive(Debug)]
 pub struct FuncDef {
-    args: Box<[Type]>,
-    ret: Type,
-}
-
-pub struct ScopeStack<'a> {
-    scopes: Vec<HashMap<&'a str, PType<'a>>>,
-}
-
-impl<'a> ScopeStack<'a> {
-    pub fn new() -> Self {
-        Self {
-            scopes: vec![HashMap::new()],
-        }
-    }
-
-    pub fn push(&mut self) {
-        self.scopes.push(HashMap::new());
-    }
-
-    pub fn pop(&mut self) {
-        self.scopes
-            .pop()
-            .expect("global scope popped. you're fucked");
-    }
-
-    pub fn insert(&mut self, name: &'a str, ty: PType<'a>) {
-        let scope = self.scopes.last_mut().unwrap();
-        scope.insert(name, ty);
-    }
-
-    pub fn get(&self, name: &str) -> Option<&PType<'_>> {
-        for scope in self.scopes.iter().rev() {
-            if let Some(ty) = scope.get(name) {
-                return Some(ty);
-            }
-        }
-        None
-    }
-
-    pub fn with_scope<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
-        self.push();
-        let result = f(self);
-        self.pop();
-        result
-    }
+    pub args: Box<[Type]>,
+    pub ret: Type,
 }
 
 impl TryFrom<PVal<'_>> for FuncDef {

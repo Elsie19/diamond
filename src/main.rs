@@ -17,7 +17,7 @@ use miette::{IntoDiagnostic, Result};
 
 use parse::grammar::parse_di;
 
-use crate::typing::core::AstWalker;
+use crate::typing::{core::AstWalker, pass_two::TypeChecker};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
