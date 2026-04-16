@@ -44,7 +44,7 @@ impl Type {
             Type::String => Cow::Borrowed("string"),
             Type::Integer => Cow::Borrowed("integer"),
             Type::Unit => Cow::Borrowed("unit"),
-            Type::Array(_) => todo!(),
+            Type::Array(ty) => Cow::Owned(format!("[{}]", ty.as_display_ty())),
             Type::Stream => Cow::Borrowed("stream"),
             Type::File => Cow::Borrowed("file"),
             Type::Unret => Cow::Borrowed("unret"),

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.6.0", features = ["derive"] }
+distance = "0.4.0"
 enum-as-inner = "0.7.0"
 miette = { version = "7.6.0", features = ["fancy"] }
 pest = { version = "2.8.6", features = ["miette-error"] }

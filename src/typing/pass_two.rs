@@ -39,8 +39,18 @@ pub enum TypeCheckError {
         bad_bit: SourceSpan,
     },
 
-    #[error("unknown variable `{0}`")]
-    UnknownVariable(String),
+    #[error("unknown variable `{name}`")]
+    #[diagnostic(code(type_checking::variable::verify_exists))]
+    #[diagnostic(help("ensure that the correct variable name is used"))]
+    UnknownVariable {
+        name: String,
+
+        #[source_code]
+        src: NamedSource<String>,
+
+        #[label(primary, "used here")]
+        bad_bit: SourceSpan,
+    },
 }
 
 impl<'a> TypeChecker<'a> {
@@ -112,40 +122,45 @@ impl<'a> TypeChecker<'a> {
                 PAtomic::Array(spanned) => {
                     let elems = &spanned.node.node;
 
-                    if elems.is_empty() {
-                        return Err(TypeCheckError::VerifyError(
+                    match elems.iter().as_slice() {
+                        [] => Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::EmptyArrayInfer,
-                        ));
-                    }
+                        )),
+                        [first, rest @ ..] => {
+                            let first_ty = self.check_node(first)?;
+                            for elem in rest {
+                                let ty = self.check_node(elem)?;
 
-                    let first_ty = self.check_node(&elems[0])?;
-
-                    for elem in elems.iter().skip(1) {
-                        let ty = self.check_node(elem)?;
-
-                        if ty != first_ty {
-                            return Err(TypeCheckError::VerifyError(
-                                pass_one::VerifyError::MismatchedArrayElements {
-                                    expected: first_ty,
-                                    got: ty,
-                                    src: NamedSource::new(
-                                        self.file_name,
-                                        self.prog_text.to_string(),
-                                    ),
-                                    bad_bit: spest_to_smiette(elem.span()),
-                                },
-                            ));
+                                if ty != first_ty {
+                                    return Err(TypeCheckError::VerifyError(
+                                        pass_one::VerifyError::MismatchedArrayElements {
+                                            expected: first_ty,
+                                            got: ty,
+                                            src: NamedSource::new(
+                                                self.file_name,
+                                                self.prog_text.to_string(),
+                                            )
+                                            .with_language("diamond"),
+                                            bad_bit: spest_to_smiette(elem.span()),
+                                        },
+                                    ));
+                                }
+                            }
+                            Ok(Type::Array(Box::new(first_ty)))
                         }
                     }
-
-                    Ok(Type::Array(Box::new(first_ty)))
                 }
                 PAtomic::Ident(spanned) => {
                     let name = spanned.node;
                     self.scopes
                         .get(name)
                         .cloned()
-                        .ok_or_else(|| TypeCheckError::UnknownVariable(name.to_string()))
+                        .ok_or_else(|| TypeCheckError::UnknownVariable {
+                            name: name.to_string(),
+                            src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                                .with_language("diamond"),
+                            bad_bit: spest_to_smiette(spanned.span()),
+                        })
                 }
                 PAtomic::Unit(_) => Ok(Type::Unit),
                 PAtomic::Result(spanned) => Ok(Type::Result(todo!(), todo!())),
@@ -157,7 +172,8 @@ impl<'a> TypeChecker<'a> {
                 let def = self.funcs.lookup(func_name).ok_or_else(|| {
                     TypeCheckError::UnknownFunction {
                         name: func_name.to_string(),
-                        src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                        src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                            .with_language("diamond"),
                         bad_bit: spest_to_smiette(span),
                     }
                 })?;
@@ -168,7 +184,8 @@ impl<'a> TypeChecker<'a> {
                             pass_one::VerifyError::ArgumentLengthMismatch {
                                 expected: def.args.len(),
                                 got: args.node.len(),
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                                    .with_language("diamond"),
                                 bad_bit: spest_to_smiette(span),
                             },
                         ));
@@ -186,7 +203,8 @@ impl<'a> TypeChecker<'a> {
                                     src: NamedSource::new(
                                         self.file_name,
                                         self.prog_text.to_string(),
-                                    ),
+                                    )
+                                    .with_language("diamond"),
                                     bad_bit: spest_to_smiette(arg_expr.span()),
                                 },
                             ));
@@ -207,7 +225,8 @@ impl<'a> TypeChecker<'a> {
                                     src: NamedSource::new(
                                         self.file_name,
                                         self.prog_text.to_string(),
-                                    ),
+                                    )
+                                    .with_language("diamond"),
                                     bad_bit: spest_to_smiette(unwrap.span()),
                                 },
                             ));
@@ -225,7 +244,7 @@ impl<'a> TypeChecker<'a> {
                 self.scopes.push();
 
                 for stmt in stmts {
-                    self.check_inner(stmt, stmt.span())?;
+                    self.check_node(stmt)?;
                 }
 
                 if let Some(expr) = return_expr {
@@ -248,7 +267,8 @@ impl<'a> TypeChecker<'a> {
                     _ => {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::UnwrapNonResult {
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                                    .with_language("diamond"),
                                 bad_bit: spest_to_smiette(expr.span()),
                             },
                         ));
@@ -294,7 +314,8 @@ impl<'a> TypeChecker<'a> {
                     _ => {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::NonIterable {
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string()),
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                                    .with_language("diamond"),
                                 bad_bit: spest_to_smiette(loop_.expr.span()),
                             },
                         ));
