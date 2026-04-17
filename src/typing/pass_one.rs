@@ -69,10 +69,10 @@ pub enum VerifyError {
         #[source_code]
         src: NamedSource<String>,
 
-        #[label("current branch defined here")]
+        #[label("but defined here as `{}`", expected.as_display_ty())]
         cur_branch: SourceSpan,
 
-        #[label("previous branch defined here")]
+        #[label("previous branch defined here as `{}`", got.as_display_ty())]
         prev_branch: SourceSpan,
     },
 

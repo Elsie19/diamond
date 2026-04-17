@@ -258,11 +258,11 @@ impl<'a> TypeChecker<'a> {
                     self.scopes.push();
 
                     let cur = match &arm.res {
-                        PMatchCase::Ok(span) => {
+                        PMatchCase::Ok(_) => {
                             self.scopes.insert(&arm.inner, ok_ty.clone());
                             arm.expr.span()
                         }
-                        PMatchCase::Err(span) => {
+                        PMatchCase::Err(_) => {
                             self.scopes.insert(&arm.inner, err_ty.clone());
                             arm.expr.span()
                         }
@@ -284,7 +284,7 @@ impl<'a> TypeChecker<'a> {
                                     )
                                     .with_language("diamond"),
                                     cur_branch: spest_to_smiette(cur),
-                                    prev_branch: spest_to_smiette(last_span.unwrap()),
+                                    prev_branch: spest_to_smiette(last_span.expect("how are we failing on a current branch if we don't have a previous")),
                                 },
                             ));
                         }
