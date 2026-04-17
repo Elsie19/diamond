@@ -17,7 +17,7 @@ let @tee(file: stream, txt: string) = {
     @dump(file, txt);
 };
 
-let @bar(): integer = ();
+let @bar(): integer = 5;
 
 # TODO: Remove
 let ARGV = ["one", "two", "three"];
@@ -26,7 +26,8 @@ let STREAM = ["bla"];
 # set file to the first file inputted.
 let file = @file(match (@nth(ARGV, 0)) {
                 ok o = o,
-                err e = @panic("expected file to be passed"),
+                # err e = @panic("expected file to be passed"),
+                err e = 0,
              }); # ty : file
 let output = @open(@create(@file("kvs.txt"))!)!; # ty : stream
 

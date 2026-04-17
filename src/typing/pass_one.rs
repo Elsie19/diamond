@@ -59,8 +59,22 @@ pub enum VerifyError {
         bad_bit: SourceSpan,
     },
 
-    #[error("ruh")]
-    MismatchedMatchArms,
+    #[error("expected `{}`, got `{}`", expected.as_display_ty(), got.as_display_ty())]
+    #[diagnostic(code(type_checking::matching::homogenous::verify))]
+    #[diagnostic(help("ensure that the same type is being returned by both branches"))]
+    MismatchedMatchArms {
+        expected: Type,
+        got: Type,
+
+        #[source_code]
+        src: NamedSource<String>,
+
+        #[label("current branch defined here")]
+        cur_branch: SourceSpan,
+
+        #[label("previous branch defined here")]
+        prev_branch: SourceSpan,
+    },
 
     #[error("non-iterable expression used in iterable context")]
     #[diagnostic(code(type_checking::iter::iterable::verify))]

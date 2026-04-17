@@ -251,19 +251,22 @@ impl<'a> TypeChecker<'a> {
                     }
                 };
 
-                let mut result_ty = None;
+                let mut result_ty: Option<Type> = None;
+                let mut last_span = None;
 
                 for arm in arms {
                     self.scopes.push();
 
-                    match arm.res {
-                        PMatchCase::Ok(_) => {
+                    let cur = match &arm.res {
+                        PMatchCase::Ok(span) => {
                             self.scopes.insert(&arm.inner, ok_ty.clone());
+                            arm.expr.span()
                         }
-                        PMatchCase::Err(_) => {
+                        PMatchCase::Err(span) => {
                             self.scopes.insert(&arm.inner, err_ty.clone());
+                            arm.expr.span()
                         }
-                    }
+                    };
 
                     let arm_ty = self.check_inner(&arm.expr.node, arm.expr.span())?;
 
@@ -272,10 +275,21 @@ impl<'a> TypeChecker<'a> {
                     if let Some(prev) = &result_ty {
                         if *prev != arm_ty {
                             return Err(TypeCheckError::VerifyError(
-                                pass_one::VerifyError::MismatchedMatchArms,
+                                pass_one::VerifyError::MismatchedMatchArms {
+                                    expected: arm_ty,
+                                    got: prev.clone(),
+                                    src: NamedSource::new(
+                                        self.file_name,
+                                        self.prog_text.to_string(),
+                                    )
+                                    .with_language("diamond"),
+                                    cur_branch: spest_to_smiette(cur),
+                                    prev_branch: spest_to_smiette(last_span.unwrap()),
+                                },
                             ));
                         }
                     } else {
+                        last_span = Some(cur);
                         result_ty = Some(arm_ty);
                     }
                 }
