@@ -1,3 +1,3 @@
-# Diamond
+# Summary
 
-This book serves as an introduction to Diamond and important concepts it uses.
+- [Chapter 1](./chapter_1.md)

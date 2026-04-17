@@ -1,33 +1,44 @@
-name: ci
+name: Deploy mdBook
 
 on:
-  pull_request:
   push:
-    branches:
-      - main
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  test_and_maybe_deploy:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v1
+      - name: Install mdBook
+        uses: peaceiris/actions-mdbook@v2
         with:
-          mdbook-version: 'latest'
+          mdbook-version: latest
 
-      - name: Build
-        run: mdbook build
+      - name: Build book
+        run: mdbook build docs
 
-      - name: Test
-        run: mdbook test
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/book
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./book
-        # Only deploy on a push to master, not on a pull request.
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'lborb/book'
+        id: deployment
+        uses: actions/deploy-pages@v4
