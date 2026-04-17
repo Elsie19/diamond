@@ -207,15 +207,25 @@ impl<'a> TypeChecker<'a> {
                     self.check_node(stmt)?;
                 }
 
-                if let Some(expr) = return_expr {
-                    return self.check_inner(expr, expr.span());
-                }
-
                 if let Some(expr) = redirect {
-                    return self.check_inner(expr, expr.span());
+                    let res = self.check_inner(expr, expr.span());
+                    dbg!(&res);
+                    if !matches!(res, Ok(Type::Stream)) {
+                        return Err(TypeCheckError::VerifyError(
+                            pass_one::VerifyError::ExpectedStream {
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                                    .with_language("diamond"),
+                                bad_bit: spest_to_smiette(expr.span()),
+                            },
+                        ));
+                    }
                 }
 
                 self.scopes.pop();
+
+                if let Some(expr) = return_expr {
+                    return self.check_inner(expr, expr.span());
+                }
 
                 Ok(Type::Unit)
             }

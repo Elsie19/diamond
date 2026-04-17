@@ -14,7 +14,6 @@ let ~internal @skip(arr: [string], skip: integer): [string] = ();
 # returns unit type.
 let @tee(file: stream, txt: string) = {
     @printf("%s", txt);
-    @sprintf("%s", txt);
     @dump(file, txt);
 };
 

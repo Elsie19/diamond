@@ -31,6 +31,17 @@ pub enum VerifyError {
         bad_bit: SourceSpan,
     },
 
+    #[error("expected stream")]
+    #[diagnostic(code(type_checking::stream::is_valid::verify))]
+    #[diagnostic(help("ensure that a stream type is being passed"))]
+    ExpectedStream {
+        #[source_code]
+        src: NamedSource<String>,
+
+        #[label("erroneous type found here")]
+        bad_bit: SourceSpan,
+    },
+
     #[error("ruh")]
     MismatchedMatchArms,
 
