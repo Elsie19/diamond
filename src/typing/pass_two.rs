@@ -142,11 +142,14 @@ impl<'a> TypeChecker<'a> {
 
                 let args = args.as_ref().map(|a| &a.node[..]).unwrap_or(&[]);
 
-                if args.len() != def.args.len() {
+                let got = args.len();
+                let expected = def.args.len();
+
+                if got != expected {
                     return Err(TypeCheckError::VerifyError(
                         pass_one::VerifyError::ArgumentLengthMismatch {
-                            expected: def.args.len(),
-                            got: args.len(),
+                            expected,
+                            got,
                             src: self.source.clone(),
                             bad_bit: spest_to_smiette(span),
                         },
@@ -155,11 +158,12 @@ impl<'a> TypeChecker<'a> {
 
                 for (slot, (arg_expr, expected)) in args.iter().zip(&def.args).enumerate() {
                     let got = self.check_node(arg_expr)?;
-                    if got != *expected {
+                    let expected = expected.clone();
+                    if got != expected {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::ArgumentTypeMismatch {
                                 slot,
-                                expected: expected.clone(),
+                                expected,
                                 got,
                                 src: self.source.clone(),
                                 bad_bit: arg_expr.as_miette_span(),
@@ -267,16 +271,17 @@ impl<'a> TypeChecker<'a> {
                         }
                     };
 
-                    let arm_ty = self.check_inner(&arm.expr.node, arm.expr.span())?;
+                    let expected = self.check_inner(&arm.expr.node, arm.expr.span())?;
 
                     self.scopes.pop();
 
-                    if let Some(prev) = &result_ty {
-                        if *prev != arm_ty {
+                    if let Some(got) = &result_ty {
+                        if *got != expected {
+                            let got = got.clone();
                             return Err(TypeCheckError::VerifyError(
                                 pass_one::VerifyError::MismatchedMatchArms {
-                                    expected: arm_ty,
-                                    got: prev.clone(),
+                                    expected,
+                                    got,
                                     src: self.source.clone(),
                                     cur_branch: spest_to_smiette(cur),
                                     prev_branch: spest_to_smiette(last_span.expect("how are we failing on a current branch if we don't have a previous")),
@@ -285,40 +290,39 @@ impl<'a> TypeChecker<'a> {
                         }
                     } else {
                         last_span = Some(cur);
-                        result_ty = Some(arm_ty);
+                        result_ty = Some(expected);
                     }
                 }
 
-                Ok(result_ty.unwrap_or_default())
+                Ok(result_ty.unwrap_or(Type::Unit))
             }
             PVal::For { loop_, body } => {
                 let iter_ty = self.check_inner(&loop_.expr.node, loop_.expr.span())?;
 
-                let elem_ty = match iter_ty {
-                    Type::Array(inner) => *inner,
-                    _ => {
-                        // We can get a little clever here. If what's trying to be used as an
-                        // iterable is not a constant, but an identifier, we can go find its span
-                        // and have even nicer error messages.
-                        let defined_here = match &*loop_.expr.node {
-                            PVal::Atomic(spanned) => match &spanned.node {
-                                PAtomic::Ident(name) => self
-                                    .scopes
-                                    .get_span(name.node)
-                                    .map(|span| spest_to_smiette(*span)),
-                                _ => None,
-                            },
+                let elem_ty = if let Type::Array(inner) = iter_ty {
+                    *inner
+                } else {
+                    // We can get a little clever here. If what's trying to be used as an
+                    // iterable is not a constant, but an identifier, we can go find its span
+                    // and have even nicer error messages.
+                    let defined_here = match &*loop_.expr.node {
+                        PVal::Atomic(spanned) => match &spanned.node {
+                            PAtomic::Ident(name) => self
+                                .scopes
+                                .get_span(name.node)
+                                .map(|span| spest_to_smiette(*span)),
                             _ => None,
-                        };
+                        },
+                        _ => None,
+                    };
 
-                        return Err(TypeCheckError::VerifyError(
-                            pass_one::VerifyError::NonIterable {
-                                src: self.source.clone(),
-                                bad_bit: loop_.expr.as_miette_span(),
-                                defined_here,
-                            },
-                        ));
-                    }
+                    return Err(TypeCheckError::VerifyError(
+                        pass_one::VerifyError::NonIterable {
+                            src: self.source.clone(),
+                            bad_bit: loop_.expr.as_miette_span(),
+                            defined_here,
+                        },
+                    ));
                 };
 
                 self.scopes.push();

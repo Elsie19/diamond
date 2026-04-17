@@ -20,7 +20,7 @@ let @tee(file: stream, txt: string) = {
 let @bar(int: integer): integer = int;
 let @baz(int: integer): integer = @bar(int);
 
-let @last(lst: string): string = for (line in lst) {
+let @last(lst: [string]): string = for (line in lst) {
         line
 };
 

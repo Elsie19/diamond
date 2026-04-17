@@ -77,6 +77,7 @@ impl<'a, T> Spanned<'a, T> {
     }
 
     /// Get the span of the object.
+    #[must_use = "use the span bruh"]
     pub const fn span(&self) -> pest::Span<'a> {
         self.span
     }
