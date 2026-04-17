@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use distance::levenshtein;
-
 use crate::{
     parse::{grammar::UntypedAst, types::PVal},
     typing::{

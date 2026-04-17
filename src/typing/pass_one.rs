@@ -17,8 +17,22 @@ pub enum FuncDefConversionError {
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum VerifyError {
-    #[error("expected {expected:?}, got {got:?}")]
-    InvalidReturnType { expected: Type, got: Type },
+    #[error("expected `{}`, got `{}`", expected.as_display_ty(), got.as_display_ty())]
+    #[diagnostic(code(type_checking::return_ty::is_valid::verify))]
+    #[diagnostic(help("ensure the correct type is being returned"))]
+    InvalidReturnType {
+        expected: Type,
+        got: Type,
+
+        #[source_code]
+        src: NamedSource<String>,
+
+        #[label(primary, "wrong return type found here")]
+        bad_bit: SourceSpan,
+
+        #[label("defined here")]
+        decl: SourceSpan,
+    },
 
     #[error("cannot unwrap non-result type")]
     #[diagnostic(code(type_checking::result::is_result::verify))]

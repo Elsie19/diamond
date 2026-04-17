@@ -179,6 +179,21 @@ pub enum PType<'a> {
     Result(Spanned<'a, (Box<Self>, Box<Self>)>),
 }
 
+impl<'a> PType<'a> {
+    pub const fn span(&self) -> pest::Span<'a> {
+        match self {
+            Self::Array(a) => a.span,
+            Self::String(s) => s.span,
+            Self::Integer(i) => i.span,
+            Self::Unit(u) => u.span,
+            Self::Result(r) => r.span,
+            Self::Stream(s) => s.span,
+            Self::Unret(u) => u.span,
+            Self::File(f) => f.span,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FuncArg<'a> {
     pub name: SpannedStr<'a>,

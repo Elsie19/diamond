@@ -89,8 +89,10 @@ impl<'a> TypeChecker<'a> {
                 body,
                 internal,
             } => {
+                let expected = ret.clone().map_or(Type::Unit, Type::from);
+
                 if *internal {
-                    return Ok(Type::Unit);
+                    return Ok(expected);
                 }
 
                 self.scopes.push();
@@ -99,23 +101,26 @@ impl<'a> TypeChecker<'a> {
                     self.scopes.insert(&arg.name, arg.ty.clone().into());
                 }
 
-                let body_ty = self.check_inner(&body.node, body.span())?;
-
-                if let Some(ret) = ret
-                    && body_ty != ret.clone().into()
-                {
-                    self.scopes.pop();
-                    return Err(TypeCheckError::VerifyError(
-                        pass_one::VerifyError::InvalidReturnType {
-                            expected: Type::from(ret.clone()),
-                            got: body_ty,
-                        },
-                    ));
-                }
+                let result = {
+                    let got = self.check_inner(&body.node, body.span())?;
+                    if got != expected {
+                        Err(TypeCheckError::VerifyError(
+                            pass_one::VerifyError::InvalidReturnType {
+                                expected,
+                                got,
+                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                                    .with_language("diamond"),
+                                bad_bit: body.as_miette_span(),
+                                decl: spest_to_smiette(ret.clone().unwrap().span()),
+                            },
+                        ))
+                    } else {
+                        Ok(expected)
+                    }
+                };
 
                 self.scopes.pop();
-
-                Ok(Type::Unit)
+                result
             }
             PVal::Atomic(spanned) => match &spanned.node {
                 int @ PAtomic::Integer(_) => self.check_atomic(int, int.span()),
