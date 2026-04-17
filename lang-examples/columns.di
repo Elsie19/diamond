@@ -43,4 +43,4 @@ let output = @open(@create(@file("kvs.txt"))!)!; # ty : stream
         let txt = @sprintf("%s\n", @join_str(line_split, ","));
         @tee(output, txt);
     }
-} < @open(file)!;
+} < @open(file);

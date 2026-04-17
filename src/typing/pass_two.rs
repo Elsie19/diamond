@@ -165,7 +165,7 @@ impl<'a> TypeChecker<'a> {
                                         self.prog_text.to_string(),
                                     )
                                     .with_language("diamond"),
-                                    bad_bit: spest_to_smiette(arg_expr.span()),
+                                    bad_bit: arg_expr.as_miette_span(),
                                 },
                             ));
                         }
@@ -187,7 +187,7 @@ impl<'a> TypeChecker<'a> {
                                         self.prog_text.to_string(),
                                     )
                                     .with_language("diamond"),
-                                    bad_bit: spest_to_smiette(unwrap.span()),
+                                    bad_bit: unwrap.as_miette_span(),
                                 },
                             ));
                         }
@@ -208,14 +208,15 @@ impl<'a> TypeChecker<'a> {
                 }
 
                 if let Some(expr) = redirect {
-                    let res = self.check_inner(expr, expr.span());
-                    dbg!(&res);
-                    if !matches!(res, Ok(Type::Stream)) {
+                    let got = self.check_inner(expr, expr.span())?;
+                    if !matches!(got, Type::Stream) {
                         return Err(TypeCheckError::VerifyError(
-                            pass_one::VerifyError::ExpectedStream {
+                            pass_one::VerifyError::MismatchedType {
+                                expected: Type::Stream,
+                                got,
                                 src: NamedSource::new(self.file_name, self.prog_text.to_string())
                                     .with_language("diamond"),
-                                bad_bit: spest_to_smiette(expr.span()),
+                                bad_bit: expr.as_miette_span(),
                             },
                         ));
                     }
@@ -239,7 +240,7 @@ impl<'a> TypeChecker<'a> {
                             pass_one::VerifyError::UnwrapNonResult {
                                 src: NamedSource::new(self.file_name, self.prog_text.to_string())
                                     .with_language("diamond"),
-                                bad_bit: spest_to_smiette(expr.span()),
+                                bad_bit: expr.as_miette_span(),
                             },
                         ));
                     }
@@ -286,7 +287,7 @@ impl<'a> TypeChecker<'a> {
                             pass_one::VerifyError::NonIterable {
                                 src: NamedSource::new(self.file_name, self.prog_text.to_string())
                                     .with_language("diamond"),
-                                bad_bit: spest_to_smiette(loop_.expr.span()),
+                                bad_bit: loop_.expr.as_miette_span(),
                             },
                         ));
                     }
@@ -344,7 +345,7 @@ impl<'a> TypeChecker<'a> {
                                             self.prog_text.to_string(),
                                         )
                                         .with_language("diamond"),
-                                        bad_bit: spest_to_smiette(elem.span()),
+                                        bad_bit: elem.as_miette_span(),
                                     },
                                 ));
                             }

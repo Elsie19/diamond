@@ -31,10 +31,13 @@ pub enum VerifyError {
         bad_bit: SourceSpan,
     },
 
-    #[error("expected stream")]
-    #[diagnostic(code(type_checking::stream::is_valid::verify))]
-    #[diagnostic(help("ensure that a stream type is being passed"))]
-    ExpectedStream {
+    #[error("expected `{}`, got `{}`", expected.as_display_ty(), got.as_display_ty())]
+    #[diagnostic(code(type_checking::typing::is_valid::verify))]
+    #[diagnostic(help("ensure that the correct type is being passed"))]
+    MismatchedType {
+        expected: Type,
+        got: Type,
+
         #[source_code]
         src: NamedSource<String>,
 
