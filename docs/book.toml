@@ -1,0 +1,10 @@
+[book]
+authors = ["Elisabeth Wenger-Stickel"]
+language = "en"
+src = "src"
+title = "Diamond"
+
+[output.html]
+curly-quotes = true
+git-repository-url = "https://github.com/Elsie19/diamond/docs/"
+site-url = "https://elsie19.github.io/diamond/"
