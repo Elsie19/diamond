@@ -103,6 +103,7 @@ impl<'a> AstWalker<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct ScopeStack<'a> {
     scopes: Vec<HashMap<&'a str, Type>>,
 }

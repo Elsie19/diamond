@@ -21,7 +21,7 @@ let @tee(file: stream, txt: string) = {
 let @bar(): integer = 5;
 
 # TODO: Remove
-let RGV = ["one", "two", "three"];
+let ARGV = ["one", "two", "three"];
 let STREAM = ["bla"];
 
 # set file to the first file inputted.

@@ -13,6 +13,7 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
 pub struct TypeChecker<'a> {
     funcs: &'a FuncTable<'a>,
     scopes: ScopeStack<'a>,
@@ -117,53 +118,12 @@ impl<'a> TypeChecker<'a> {
                 Ok(Type::Unit)
             }
             PVal::Atomic(spanned) => match &spanned.node {
-                PAtomic::Integer(_) => Ok(Type::Integer),
-                PAtomic::String(_) => Ok(Type::String),
-                PAtomic::Array(spanned) => {
-                    let elems = &spanned.node.node;
-
-                    match elems.iter().as_slice() {
-                        [] => Err(TypeCheckError::VerifyError(
-                            pass_one::VerifyError::EmptyArrayInfer,
-                        )),
-                        [first, rest @ ..] => {
-                            let first_ty = self.check_node(first)?;
-                            for elem in rest {
-                                let ty = self.check_node(elem)?;
-
-                                if ty != first_ty {
-                                    return Err(TypeCheckError::VerifyError(
-                                        pass_one::VerifyError::MismatchedArrayElements {
-                                            expected: first_ty,
-                                            got: ty,
-                                            src: NamedSource::new(
-                                                self.file_name,
-                                                self.prog_text.to_string(),
-                                            )
-                                            .with_language("diamond"),
-                                            bad_bit: spest_to_smiette(elem.span()),
-                                        },
-                                    ));
-                                }
-                            }
-                            Ok(Type::Array(Box::new(first_ty)))
-                        }
-                    }
-                }
-                PAtomic::Ident(spanned) => {
-                    let name = spanned.node;
-                    self.scopes
-                        .get(name)
-                        .cloned()
-                        .ok_or_else(|| TypeCheckError::UnknownVariable {
-                            name: name.to_string(),
-                            src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                                .with_language("diamond"),
-                            bad_bit: spest_to_smiette(spanned.span()),
-                        })
-                }
-                PAtomic::Unit(_) => Ok(Type::Unit),
-                PAtomic::Result(spanned) => Ok(Type::Result(todo!(), todo!())),
+                int @ PAtomic::Integer(_) => self.check_atomic(int, int.span()),
+                string @ PAtomic::String(_) => self.check_atomic(string, string.span()),
+                arr @ PAtomic::Array(_) => self.check_atomic(arr, arr.span()),
+                ident @ PAtomic::Ident(_) => self.check_atomic(ident, ident.span()),
+                unit @ PAtomic::Unit(_) => self.check_atomic(unit, unit.span()),
+                res @ PAtomic::Result(_) => self.check_atomic(res, res.span()),
             },
             PVal::FuncCall { name, args, unwrap } => {
                 let func_name =
@@ -341,6 +301,65 @@ impl<'a> TypeChecker<'a> {
             PVal::Expr(spanned) | PVal::Stmt(spanned) => {
                 self.check_inner(&spanned.node, spanned.span())
             }
+        }
+    }
+
+    fn check_atomic(
+        &mut self,
+        atom: &'a PAtomic<'a>,
+        span: pest::Span<'a>,
+    ) -> Result<Type, TypeCheckError> {
+        match atom {
+            PAtomic::Integer(_) => Ok(Type::Integer),
+            PAtomic::String(_) => Ok(Type::String),
+            PAtomic::Array(spanned) => {
+                let elems = &spanned.node.node;
+
+                match elems.iter().as_slice() {
+                    [] => Err(TypeCheckError::VerifyError(
+                        pass_one::VerifyError::EmptyArrayInfer,
+                    )),
+                    [first, rest @ ..] => {
+                        let first_ty = self.check_node(first)?;
+                        for elem in rest {
+                            let ty = self.check_node(elem)?;
+
+                            if ty != first_ty {
+                                return Err(TypeCheckError::VerifyError(
+                                    pass_one::VerifyError::MismatchedArrayElements {
+                                        expected: first_ty,
+                                        got: ty,
+                                        src: NamedSource::new(
+                                            self.file_name,
+                                            self.prog_text.to_string(),
+                                        )
+                                        .with_language("diamond"),
+                                        bad_bit: spest_to_smiette(elem.span()),
+                                    },
+                                ));
+                            }
+                        }
+                        Ok(Type::Array(Box::new(first_ty)))
+                    }
+                }
+            }
+            PAtomic::Ident(ident) => {
+                let name = ident.node;
+                self.scopes
+                    .get(name)
+                    .cloned()
+                    .ok_or_else(|| TypeCheckError::UnknownVariable {
+                        name: name.to_string(),
+                        src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                            .with_language("diamond"),
+                        bad_bit: spest_to_smiette(span),
+                    })
+            }
+            PAtomic::Unit(_) => Ok(Type::Unit),
+            PAtomic::Result(spanned) => Ok(Type::Result(
+                Box::new(self.check_atomic(&spanned.0, spanned.0.span())?),
+                Box::new(self.check_atomic(&spanned.1, spanned.1.span())?),
+            )),
         }
     }
 }

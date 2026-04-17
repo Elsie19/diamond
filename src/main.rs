@@ -41,7 +41,7 @@ fn main() -> Result<()> {
     let mut checker = TypeChecker::new(&funcs, &file, &string);
     checker.check_program(&program)?;
 
-    dbg!(funcs);
+    dbg!(checker);
 
     Ok(())
 }
