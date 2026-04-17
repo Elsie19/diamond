@@ -3,3 +3,6 @@ authors = ["Elisabeth Wenger-Stickel"]
 language = "en"
 src = "src"
 title = "Diamond"
+
+[output.html]
+site-url = "/diamond/"
