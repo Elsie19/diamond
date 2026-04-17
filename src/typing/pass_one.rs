@@ -27,10 +27,10 @@ pub enum VerifyError {
         #[source_code]
         src: NamedSource<String>,
 
-        #[label(primary, "wrong return type found here")]
+        #[label(primary, "`{}` returned here", got.as_display_ty())]
         bad_bit: SourceSpan,
 
-        #[label("defined here")]
+        #[label("but was defined to return `{}` here", expected.as_display_ty())]
         decl: SourceSpan,
     },
 

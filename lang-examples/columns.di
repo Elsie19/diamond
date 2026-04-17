@@ -26,8 +26,7 @@ let STREAM = ["bla"];
 # set file to the first file inputted.
 let file = @file(match (@nth(ARGV, 0)) {
                 ok o = o,
-                # err e = @panic("expected file to be passed"),
-                err e = 0,
+                err e = @panic("expected file to be passed"),
              }); # ty : file
 let output = @open(@create(@file("kvs.txt"))!)!; # ty : stream
 
@@ -43,5 +42,10 @@ let output = @open(@create(@file("kvs.txt"))!)!; # ty : stream
         let line_split = @split(line, ",");
         let txt = @sprintf("%s\n", @join_str(line_split, ","));
         @tee(output, txt);
+    };
+
+    for (line in ["foo", "bar", "baz"]) {
+        @printf("%s", line);
     }
+
 } < @open(file)!;
