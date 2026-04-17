@@ -10,5 +10,15 @@ In Diamond, everything is an expression. What that means is that **everything re
 
 All return values.
 
+For instance:
+
+```diamond
+let @last(lst: [string]): string = for (line in lst) {
+        line
+};
+```
+
+Is a clever way to return the last element of a list. It will loop through the list, returning only the last element.
+
 > [!TIP]
 > If you don't want to return something, you can always suffix any expression with a `;`!

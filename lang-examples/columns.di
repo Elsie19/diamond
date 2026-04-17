@@ -20,6 +20,10 @@ let @tee(file: stream, txt: string) = {
 let @bar(int: integer): integer = int;
 let @baz(int: integer): integer = @bar(int);
 
+let @last(lst: string): string = for (line in lst) {
+        line
+};
+
 # TODO: Remove
 let ARGV = ["one", "two", "three"];
 let STREAM = ["bla"];

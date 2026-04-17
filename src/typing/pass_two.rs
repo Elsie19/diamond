@@ -17,8 +17,7 @@ use crate::{
 pub struct TypeChecker<'a> {
     funcs: &'a FuncTable<'a>,
     scopes: ScopeStack<'a>,
-    file_name: &'a str,
-    prog_text: &'a str,
+    source: NamedSource<String>,
 }
 
 #[derive(Debug, Error, Diagnostic)]
@@ -59,8 +58,7 @@ impl<'a> TypeChecker<'a> {
         Self {
             funcs,
             scopes: ScopeStack::new(),
-            file_name,
-            prog_text,
+            source: NamedSource::new(file_name, prog_text.to_string()).with_language("diamond"),
         }
     }
 
@@ -108,8 +106,7 @@ impl<'a> TypeChecker<'a> {
                             pass_one::VerifyError::InvalidReturnType {
                                 expected,
                                 got,
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                                    .with_language("diamond"),
+                                src: self.source.clone(),
                                 bad_bit: body.as_miette_span(),
                                 decl: spest_to_smiette(ret.clone().unwrap().span()),
                             },
@@ -137,8 +134,7 @@ impl<'a> TypeChecker<'a> {
                 let def = self.funcs.lookup(func_name).ok_or_else(|| {
                     TypeCheckError::UnknownFunction {
                         name: func_name.to_string(),
-                        src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                            .with_language("diamond"),
+                        src: self.source.clone(),
                         bad_bit: spest_to_smiette(span),
                     }
                 })?;
@@ -150,8 +146,7 @@ impl<'a> TypeChecker<'a> {
                         pass_one::VerifyError::ArgumentLengthMismatch {
                             expected: def.args.len(),
                             got: args.len(),
-                            src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                                .with_language("diamond"),
+                            src: self.source.clone(),
                             bad_bit: spest_to_smiette(span),
                         },
                     ));
@@ -165,8 +160,7 @@ impl<'a> TypeChecker<'a> {
                                 slot,
                                 expected: expected.clone(),
                                 got,
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                                    .with_language("diamond"),
+                                src: self.source.clone(),
                                 bad_bit: arg_expr.as_miette_span(),
                             },
                         ));
@@ -183,11 +177,7 @@ impl<'a> TypeChecker<'a> {
                         _ => {
                             return Err(TypeCheckError::VerifyError(
                                 pass_one::VerifyError::UnwrapNonResult {
-                                    src: NamedSource::new(
-                                        self.file_name,
-                                        self.prog_text.to_string(),
-                                    )
-                                    .with_language("diamond"),
+                                    src: self.source.clone(),
                                     bad_bit: unwrap.as_miette_span(),
                                 },
                             ));
@@ -215,8 +205,7 @@ impl<'a> TypeChecker<'a> {
                             pass_one::VerifyError::MismatchedType {
                                 expected: Type::Stream,
                                 got,
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                                    .with_language("diamond"),
+                                src: self.source.clone(),
                                 bad_bit: expr.as_miette_span(),
                             },
                         ));
@@ -226,10 +215,20 @@ impl<'a> TypeChecker<'a> {
                 self.scopes.pop();
 
                 if let Some(expr) = return_expr {
-                    return self.check_inner(expr, expr.span());
+                    self.check_inner(expr, expr.span())
+                } else {
+                    /*
+                     * Remember that:
+                     * {
+                     *  foo;
+                     *  bar;
+                     *  baz;
+                     * }
+                     *
+                     * the last expression isn't actually one, it's a statement.
+                     */
+                    Ok(Type::Unit)
                 }
-
-                Ok(Type::Unit)
             }
             PVal::Match { expr, arms } => {
                 let expr_ty = self.check_inner(expr, expr.span())?;
@@ -239,8 +238,7 @@ impl<'a> TypeChecker<'a> {
                     _ => {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::UnwrapNonResult {
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                                    .with_language("diamond"),
+                                src: self.source.clone(),
                                 bad_bit: expr.as_miette_span(),
                             },
                         ));
@@ -274,11 +272,7 @@ impl<'a> TypeChecker<'a> {
                                 pass_one::VerifyError::MismatchedMatchArms {
                                     expected: arm_ty,
                                     got: prev.clone(),
-                                    src: NamedSource::new(
-                                        self.file_name,
-                                        self.prog_text.to_string(),
-                                    )
-                                    .with_language("diamond"),
+                                    src: self.source.clone(),
                                     cur_branch: spest_to_smiette(cur),
                                     prev_branch: spest_to_smiette(last_span.expect("how are we failing on a current branch if we don't have a previous")),
                                 },
@@ -300,8 +294,7 @@ impl<'a> TypeChecker<'a> {
                     _ => {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::NonIterable {
-                                src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                                    .with_language("diamond"),
+                                src: self.source.clone(),
                                 bad_bit: loop_.expr.as_miette_span(),
                             },
                         ));
@@ -312,11 +305,11 @@ impl<'a> TypeChecker<'a> {
 
                 self.scopes.insert(&loop_.bind, elem_ty);
 
-                self.check_inner(&body.node, body.span())?;
+                let for_ret_ty = self.check_inner(&body.node, body.span())?;
 
                 self.scopes.pop();
 
-                Ok(Type::Unit)
+                Ok(for_ret_ty)
             }
             PVal::Let { name, expr } => {
                 let ty = self.check_inner(expr, expr.span())?;
@@ -346,26 +339,22 @@ impl<'a> TypeChecker<'a> {
                         pass_one::VerifyError::EmptyArrayInfer,
                     )),
                     [first, rest @ ..] => {
-                        let first_ty = self.check_node(first)?;
+                        let expected = self.check_node(first)?;
                         for elem in rest {
-                            let ty = self.check_node(elem)?;
+                            let got = self.check_node(elem)?;
 
-                            if ty != first_ty {
+                            if got != expected {
                                 return Err(TypeCheckError::VerifyError(
                                     pass_one::VerifyError::MismatchedArrayElements {
-                                        expected: first_ty,
-                                        got: ty,
-                                        src: NamedSource::new(
-                                            self.file_name,
-                                            self.prog_text.to_string(),
-                                        )
-                                        .with_language("diamond"),
+                                        expected,
+                                        got,
+                                        src: self.source.clone(),
                                         bad_bit: elem.as_miette_span(),
                                     },
                                 ));
                             }
                         }
-                        Ok(Type::Array(Box::new(first_ty)))
+                        Ok(Type::Array(Box::new(expected)))
                     }
                 }
             }
@@ -376,8 +365,7 @@ impl<'a> TypeChecker<'a> {
                     .cloned()
                     .ok_or_else(|| TypeCheckError::UnknownVariable {
                         name: name.to_string(),
-                        src: NamedSource::new(self.file_name, self.prog_text.to_string())
-                            .with_language("diamond"),
+                        src: self.source.clone(),
                         bad_bit: spest_to_smiette(span),
                     })
             }

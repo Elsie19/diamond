@@ -168,12 +168,6 @@ impl TryFrom<PVal<'_>> for FuncDef {
     }
 }
 
-impl FuncDef {
-    pub fn verify(&self, rhs: &Self) -> Result<(), VerifyError> {
-        Ok(())
-    }
-}
-
 impl FuncTable<'_> {
     pub fn new() -> Self {
         Self {
