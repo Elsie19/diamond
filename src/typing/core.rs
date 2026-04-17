@@ -103,7 +103,7 @@ impl<'a> AstWalker<'a> {
 
 #[derive(Debug)]
 pub struct ScopeStack<'a> {
-    scopes: Vec<HashMap<&'a str, Type>>,
+    scopes: Vec<HashMap<&'a str, (pest::Span<'a>, Type)>>,
 }
 
 impl<'a> ScopeStack<'a> {
@@ -123,15 +123,24 @@ impl<'a> ScopeStack<'a> {
             .expect("global scope popped. you're fucked");
     }
 
-    pub fn insert(&mut self, name: &'a str, ty: Type) {
+    pub fn insert(&mut self, name: &'a str, span: pest::Span<'a>, ty: Type) {
         let scope = self.scopes.last_mut().unwrap();
-        scope.insert(name, ty);
+        scope.insert(name, (span, ty));
     }
 
     pub fn get(&self, name: &str) -> Option<&Type> {
         for scope in self.scopes.iter().rev() {
             if let Some(ty) = scope.get(name) {
-                return Some(ty);
+                return Some(&ty.1);
+            }
+        }
+        None
+    }
+
+    pub fn get_span(&self, name: &str) -> Option<&pest::Span<'_>> {
+        for scope in self.scopes.iter().rev() {
+            if let Some((span, _)) = scope.get(name) {
+                return Some(span);
             }
         }
         None

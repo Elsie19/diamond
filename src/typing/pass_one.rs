@@ -85,6 +85,9 @@ pub enum VerifyError {
 
         #[label("non-iterable expression found here")]
         bad_bit: SourceSpan,
+
+        #[label("defined here")]
+        defined_here: Option<SourceSpan>,
     },
 
     #[error("cannot infer type from empty array")]

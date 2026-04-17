@@ -96,7 +96,8 @@ impl<'a> TypeChecker<'a> {
                 self.scopes.push();
 
                 for arg in &args.node {
-                    self.scopes.insert(&arg.name, arg.ty.clone().into());
+                    self.scopes
+                        .insert(&arg.name, arg.name.span(), arg.ty.clone().into());
                 }
 
                 let result = {
@@ -212,10 +213,8 @@ impl<'a> TypeChecker<'a> {
                     }
                 }
 
-                self.scopes.pop();
-
-                if let Some(expr) = return_expr {
-                    self.check_inner(expr, expr.span())
+                let result = if let Some(expr) = return_expr {
+                    self.check_inner(expr, expr.span())?
                 } else {
                     /*
                      * Remember that:
@@ -227,8 +226,12 @@ impl<'a> TypeChecker<'a> {
                      *
                      * the last expression isn't actually one, it's a statement.
                      */
-                    Ok(Type::Unit)
-                }
+                    Type::Unit
+                };
+
+                self.scopes.pop();
+
+                Ok(result)
             }
             PVal::Match { expr, arms } => {
                 let expr_ty = self.check_inner(expr, expr.span())?;
@@ -253,11 +256,13 @@ impl<'a> TypeChecker<'a> {
 
                     let cur = match &arm.res {
                         PMatchCase::Ok(_) => {
-                            self.scopes.insert(&arm.inner, ok_ty.clone());
+                            self.scopes
+                                .insert(&arm.inner, arm.inner.span(), ok_ty.clone());
                             arm.expr.span()
                         }
                         PMatchCase::Err(_) => {
-                            self.scopes.insert(&arm.inner, err_ty.clone());
+                            self.scopes
+                                .insert(&arm.inner, arm.inner.span(), err_ty.clone());
                             arm.expr.span()
                         }
                     };
@@ -292,10 +297,25 @@ impl<'a> TypeChecker<'a> {
                 let elem_ty = match iter_ty {
                     Type::Array(inner) => *inner,
                     _ => {
+                        // We can get a little clever here. If what's trying to be used as an
+                        // iterable is not a constant, but an identifier, we can go find its span
+                        // and have even nicer error messages.
+                        let defined_here = match &*loop_.expr.node {
+                            PVal::Atomic(spanned) => match &spanned.node {
+                                PAtomic::Ident(name) => self
+                                    .scopes
+                                    .get_span(name.node)
+                                    .map(|span| spest_to_smiette(*span)),
+                                _ => None,
+                            },
+                            _ => None,
+                        };
+
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::NonIterable {
                                 src: self.source.clone(),
                                 bad_bit: loop_.expr.as_miette_span(),
+                                defined_here,
                             },
                         ));
                     }
@@ -303,7 +323,7 @@ impl<'a> TypeChecker<'a> {
 
                 self.scopes.push();
 
-                self.scopes.insert(&loop_.bind, elem_ty);
+                self.scopes.insert(&loop_.bind, loop_.bind.span(), elem_ty);
 
                 let for_ret_ty = self.check_inner(&body.node, body.span())?;
 
@@ -313,7 +333,8 @@ impl<'a> TypeChecker<'a> {
             }
             PVal::Let { name, expr } => {
                 let ty = self.check_inner(expr, expr.span())?;
-                self.scopes.insert(name, ty.clone());
+
+                self.scopes.insert(name, name.span(), ty.clone());
                 Ok(ty)
             }
             PVal::Rust { inner } => self.check_inner(&inner.node, inner.span()),
