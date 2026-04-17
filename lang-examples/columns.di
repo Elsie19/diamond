@@ -17,7 +17,8 @@ let @tee(file: stream, txt: string) = {
     @dump(file, txt);
 };
 
-let @bar(): integer = 5;
+let @bar(int: integer): integer = int;
+let @baz(int: integer): integer = @bar(int);
 
 # TODO: Remove
 let ARGV = ["one", "two", "three"];

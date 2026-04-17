@@ -1,3 +1,12 @@
-# Summary
+# Diamond DSL
 
-- [Chapter 1](./chapter_1.md)
+[Introduction](README.md)
+
+# Getting to use Diamond
+
+- [What is Diamond](intro/what-is-diamond.md)
+
+# High level concepts
+
+- [Ethos](concepts/ethos.md)
+- ["Everything is an expression"](concepts/expression.md)

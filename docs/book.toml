@@ -6,3 +6,4 @@ title = "Diamond"
 
 [output.html]
 site-url = "/diamond/"
+admonitions = true

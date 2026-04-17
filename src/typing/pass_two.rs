@@ -143,37 +143,33 @@ impl<'a> TypeChecker<'a> {
                     }
                 })?;
 
-                if let Some(args) = args {
-                    if args.node.len() != def.args.len() {
+                let args = args.as_ref().map(|a| &a.node[..]).unwrap_or(&[]);
+
+                if args.len() != def.args.len() {
+                    return Err(TypeCheckError::VerifyError(
+                        pass_one::VerifyError::ArgumentLengthMismatch {
+                            expected: def.args.len(),
+                            got: args.len(),
+                            src: NamedSource::new(self.file_name, self.prog_text.to_string())
+                                .with_language("diamond"),
+                            bad_bit: spest_to_smiette(span),
+                        },
+                    ));
+                }
+
+                for (slot, (arg_expr, expected)) in args.iter().zip(&def.args).enumerate() {
+                    let got = self.check_node(arg_expr)?;
+                    if got != *expected {
                         return Err(TypeCheckError::VerifyError(
-                            pass_one::VerifyError::ArgumentLengthMismatch {
-                                expected: def.args.len(),
-                                got: args.node.len(),
+                            pass_one::VerifyError::ArgumentTypeMismatch {
+                                slot,
+                                expected: expected.clone(),
+                                got,
                                 src: NamedSource::new(self.file_name, self.prog_text.to_string())
                                     .with_language("diamond"),
-                                bad_bit: spest_to_smiette(span),
+                                bad_bit: arg_expr.as_miette_span(),
                             },
                         ));
-                    }
-
-                    for (slot, (arg_expr, expected)) in args.node.iter().zip(&def.args).enumerate()
-                    {
-                        let got = self.check_node(arg_expr)?;
-                        if got != *expected {
-                            return Err(TypeCheckError::VerifyError(
-                                pass_one::VerifyError::ArgumentTypeMismatch {
-                                    slot,
-                                    expected: expected.clone(),
-                                    got,
-                                    src: NamedSource::new(
-                                        self.file_name,
-                                        self.prog_text.to_string(),
-                                    )
-                                    .with_language("diamond"),
-                                    bad_bit: arg_expr.as_miette_span(),
-                                },
-                            ));
-                        }
                     }
                 }
 

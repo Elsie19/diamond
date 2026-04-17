@@ -104,7 +104,7 @@ pub enum VerifyError {
         bad_bit: SourceSpan,
     },
 
-    #[error("expected `{expected}`, but `{got}` {} supplied", if *got == 1 { "was" } else { "were" })]
+    #[error("expected an argument count of `{expected}`, but `{got}` {} supplied", if *got == 1 { "was" } else { "were" })]
     #[diagnostic(code(type_checking::function::argument_length::verify))]
     #[diagnostic(help("ensure that the number of arguments are uniform"))]
     ArgumentLengthMismatch {
