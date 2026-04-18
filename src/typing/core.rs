@@ -32,10 +32,8 @@ impl<'a> AstWalker<'a> {
             PVal::FuncLet(func) => {
                 let name = func.name();
 
-                let func = FuncDef::try_from(func.clone());
-                if let Ok(func) = func {
-                    table.table.insert(name, func);
-                }
+                let func = FuncDef::from(func.clone());
+                table.table.insert(name, func);
             }
             PVal::Grouping(group) => {
                 for stmt in group.stmts_raw() {

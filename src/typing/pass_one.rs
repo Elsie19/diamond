@@ -8,15 +8,9 @@ use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    parse::types::{PVal, funclet::FuncLet},
+    parse::types::{funclet::FuncLet},
     typing::types::Type,
 };
-
-#[derive(Debug, Error, Diagnostic)]
-pub enum FuncDefConversionError {
-    #[error("not a function definition")]
-    NotAFuncDef,
-}
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum VerifyError {
@@ -151,11 +145,9 @@ pub struct FuncDef {
     pub ret: Type,
 }
 
-impl TryFrom<FuncLet<'_>> for FuncDef {
-    type Error = FuncDefConversionError;
-
-    fn try_from(value: FuncLet<'_>) -> Result<Self, Self::Error> {
-        Ok(Self {
+impl From<FuncLet<'_>> for FuncDef {
+    fn from(value: FuncLet<'_>) -> Self {
+        Self {
             args: value
                 .args_raw()
                 .clone()
@@ -163,7 +155,7 @@ impl TryFrom<FuncLet<'_>> for FuncDef {
                 .map(|arg_pair| arg_pair.ty.into())
                 .collect(),
             ret: value.ret_raw().clone().map_or(Type::default(), Into::into),
-        })
+        }
     }
 }
 
