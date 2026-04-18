@@ -143,7 +143,6 @@ impl DIParser {
                 PVal::FuncLet(
                     FuncLet::builder()
                         .name(name)
-                        .args(Spanned::new(Box::new([]), span))
                         .body(body)
                         .build())
             },
@@ -163,7 +162,6 @@ impl DIParser {
                 PVal::FuncLet(
                     FuncLet::builder()
                         .name(name)
-                        .args(Spanned::new(Box::new([]), span))
                         .ret(ret)
                         .body(body)
                         .build())
@@ -186,7 +184,6 @@ impl DIParser {
                 PVal::FuncLet(
                     FuncLet::builder()
                         .name(name)
-                        .args(Spanned::new(Box::new([]), span))
                         .body(body)
                         .internal(internal)
                         .build())
@@ -210,7 +207,6 @@ impl DIParser {
                 PVal::FuncLet(
                     FuncLet::builder()
                         .name(name)
-                        .args(Spanned::new(Box::new([]), span))
                         .ret(ret)
                         .body(body)
                         .internal(internal)
@@ -588,7 +584,7 @@ mod complex_parsing {
 
         let funclet = unsafe { func.as_func_let_unchecked() };
 
-        let args = funclet.args_raw();
+        let args = funclet.args_raw().as_ref().expect("we have args");
 
         assert_eq!(funclet.name(), "foo");
 
@@ -609,11 +605,9 @@ mod complex_parsing {
 
         let funclet = unsafe { func.as_func_let_unchecked() };
 
-        let args = funclet.args_raw();
-
         assert_eq!(funclet.name(), "f");
 
-        assert_eq!(args.len(), 0);
+        assert_eq!(funclet.args_len(), 0);
 
         assert!(matches!(
             unsafe { funclet.body_raw().as_atomic_unchecked() }.node,
@@ -635,11 +629,9 @@ mod complex_parsing {
 
         let funclet = unsafe { func.as_func_let_unchecked() };
 
-        let args = funclet.args_raw();
-
         assert_eq!(funclet.name(), "tee");
 
-        assert_eq!(args.len(), 2);
+        assert_eq!(funclet.args_len(), 2);
 
         assert!(matches!(***funclet.body_raw(), PVal::Grouping { .. }))
     }

@@ -6,7 +6,8 @@ use crate::parse::types::{BPVal, PAtomic, PType, Spanned, SpannedPVal, SpannedSt
 pub struct FuncLet<'a> {
     #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     name: BPVal<'a>,
-    args: Spanned<'a, Box<[FuncArg<'a>]>>,
+    #[builder(default=None, setter(strip_option))]
+    args: Option<Spanned<'a, Box<[FuncArg<'a>]>>>,
     #[builder(default=None, setter(strip_option))]
     ret: Option<PType<'a>>,
     #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
@@ -42,8 +43,15 @@ impl<'a> FuncLet<'a> {
         }
     }
 
-    pub fn args_raw(&self) -> &Spanned<'a, Box<[FuncArg<'a>]>> {
+    pub fn args_raw(&self) -> &Option<Spanned<'a, Box<[FuncArg<'a>]>>> {
         &self.args
+    }
+
+    pub fn args_len(&self) -> usize {
+        match &self.args {
+            Some(args) => args.len(),
+            None => 0,
+        }
     }
 
     pub fn body_raw(&self) -> &BPVal<'a> {

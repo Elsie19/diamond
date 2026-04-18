@@ -327,9 +327,11 @@ impl<'a> TypeChecker<'a> {
 
         self.scopes.push();
 
-        for arg in &funclet.args_raw().node {
-            self.scopes
-                .insert(&arg.name, arg.name.span(), arg.ty.clone().into());
+        if let Some(args) = &funclet.args_raw() {
+            for arg in &args.node {
+                self.scopes
+                    .insert(&arg.name, arg.name.span(), arg.ty.clone().into());
+            }
         }
 
         let result = {

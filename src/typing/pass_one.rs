@@ -7,10 +7,7 @@ use std::collections::HashMap;
 use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
-use crate::{
-    parse::types::{funclet::FuncLet},
-    typing::types::Type,
-};
+use crate::{parse::types::funclet::FuncLet, typing::types::Type};
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum VerifyError {
@@ -150,10 +147,14 @@ impl From<FuncLet<'_>> for FuncDef {
         Self {
             args: value
                 .args_raw()
-                .clone()
-                .into_iter()
-                .map(|arg_pair| arg_pair.ty.into())
-                .collect(),
+                .as_ref()
+                .map(|args| {
+                    args.clone()
+                        .into_iter()
+                        .map(|arg_pair| arg_pair.ty.into())
+                        .collect()
+                })
+                .unwrap_or_default(),
             ret: value.ret_raw().clone().map_or(Type::default(), Into::into),
         }
     }
