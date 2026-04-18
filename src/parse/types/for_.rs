@@ -37,6 +37,6 @@ impl<'a> PForInner<'a> {
     }
 
     pub fn bind(&self) -> &str {
-        &self.bind.node
+        self.bind.node
     }
 }

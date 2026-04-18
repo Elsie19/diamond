@@ -6,7 +6,11 @@ use crate::parse::types::{
     match_::{PMatchArm, PMatchCase},
 };
 
-use super::types::*;
+use super::types::{BPArr, PAtomic, PType, PVal, Spanned, SpannedPVal};
+
+pub trait MietteSpan {
+    fn as_miette_span(&self) -> miette::SourceSpan;
+}
 
 pub type UntypedAst<'a> = Vec<SpannedPVal<'a>>;
 
@@ -100,36 +104,31 @@ impl DIParser {
         use crate::parse::types::funccall::FuncCall;
 
         let span = input.as_span();
-        Ok(match_nodes!(input.into_children();
+
+        let func = match_nodes!(input.into_children();
             [func_sigil_and_name(name), func_call_args(args), result_unwrap(unwrap)] =>
-                Spanned::new(PVal::FuncCall(
-                    FuncCall::builder()
-                        .name(name)
-                        .args(args)
-                        .unwrap(unwrap)
-                        .build()), span
-                ),
+                FuncCall::builder()
+                    .name(name)
+                    .args(args)
+                    .unwrap(unwrap)
+                    .build(),
             [func_sigil_and_name(name), func_call_args(args)] =>
-                Spanned::new(PVal::FuncCall(
-                    FuncCall::builder()
-                        .name(name)
-                        .args(args)
-                        .build()), span
-                ),
+                FuncCall::builder()
+                    .name(name)
+                    .args(args)
+                    .build(),
             [func_sigil_and_name(name), result_unwrap(unwrap)] =>
-                Spanned::new(PVal::FuncCall(
-                    FuncCall::builder()
-                        .name(name)
-                        .unwrap(unwrap)
-                        .build()), span
-                ),
+                FuncCall::builder()
+                    .name(name)
+                    .unwrap(unwrap)
+                    .build(),
             [func_sigil_and_name(name)] =>
-                Spanned::new(PVal::FuncCall(
-                    FuncCall::builder()
-                        .name(name)
-                        .build()), span
-                ),
-        ))
+                FuncCall::builder()
+                    .name(name)
+                    .build(),
+        );
+
+        Ok(Spanned::new(PVal::FuncCall(func), span))
     }
 
     fn func_def_expr(input: Node) -> DResult<SpannedPVal> {
@@ -140,95 +139,87 @@ impl DIParser {
         let funclet = match_nodes!(input.into_children();
             [func_sigil_and_name(name),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .body(body)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .body(body)
+                    .build()
             },
             [func_sigil_and_name(name),
              func_def_args(args),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .args(args)
-                        .body(body)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .args(args)
+                    .body(body)
+                    .build()
             },
             [func_sigil_and_name(name),
              func_def_ret(ret),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .ret(ret)
-                        .body(body)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .ret(ret)
+                    .body(body)
+                    .build()
             },
             [func_sigil_and_name(name),
              func_def_args(args),
              func_def_ret(ret),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .args(args)
-                        .ret(ret)
-                        .body(body)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .args(args)
+                    .ret(ret)
+                    .body(body)
+                    .build()
             },
             [internal(internal),
              func_sigil_and_name(name),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .body(body)
-                        .internal(internal)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .body(body)
+                    .internal(internal)
+                    .build()
             },
             [internal(internal),
              func_sigil_and_name(name),
              func_def_args(args),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .args(args)
-                        .body(body)
-                        .internal(internal)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .args(args)
+                    .body(body)
+                    .internal(internal)
+                    .build()
             },
             [internal(internal),
              func_sigil_and_name(name),
              func_def_ret(ret),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .ret(ret)
-                        .body(body)
-                        .internal(internal)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .ret(ret)
+                    .body(body)
+                    .internal(internal)
+                    .build()
             },
             [internal(internal),
              func_sigil_and_name(name),
              func_def_args(args),
              func_def_ret(ret),
              expr(body)] => {
-                PVal::FuncLet(
-                    FuncLet::builder()
-                        .name(name)
-                        .args(args)
-                        .ret(ret)
-                        .body(body)
-                        .internal(internal)
-                        .build())
+                FuncLet::builder()
+                    .name(name)
+                    .args(args)
+                    .ret(ret)
+                    .body(body)
+                    .internal(internal)
+                    .build()
             }
         );
 
-        Ok(Spanned::new(funclet, span))
+        Ok(Spanned::new(PVal::FuncLet(funclet), span))
     }
 
     fn internal(input: Node) -> DResult<bool> {
@@ -315,25 +306,21 @@ impl DIParser {
                 let mut v = vec![arm];
                 v.extend(rest);
 
-                PVal::Match(
-                    Match::builder()
-                        .expr(expr)
-                        .arms(v.into_boxed_slice())
-                        .build(),
-                )
+                Match::builder()
+                    .expr(expr)
+                    .arms(v.into_boxed_slice())
+                    .build()
             },
             [expr(expr),
              match_arm(arm)] => {
-                PVal::Match(
-                    Match::builder()
-                        .expr(expr)
-                        .arms(Box::new([arm]))
-                        .build(),
-                )
+                Match::builder()
+                    .expr(expr)
+                    .arms(Box::new([arm]))
+                    .build()
             }
         );
 
-        Ok(Spanned::new(match_, span))
+        Ok(Spanned::new(PVal::Match(match_), span))
     }
 
     fn match_arm(input: Node) -> DResult<Spanned<PMatchArm>> {

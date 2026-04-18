@@ -9,6 +9,8 @@ use std::ops::Deref;
 
 use enum_as_inner::EnumAsInner;
 
+use crate::parse::grammar::MietteSpan;
+
 /// A [`PVal`] with a span.
 pub type BPVal<'a> = Spanned<'a, Box<PVal<'a>>>;
 /// A [`Spanned`] array of [`PVal`]s.
@@ -40,6 +42,12 @@ impl<T> Deref for Spanned<'_, T> {
 
     fn deref(&self) -> &Self::Target {
         &self.node
+    }
+}
+
+impl<'a, T> MietteSpan for Spanned<'a, T> {
+    fn as_miette_span(&self) -> miette::SourceSpan {
+        miette::SourceSpan::from(self.span().start()..self.span().end())
     }
 }
 
@@ -91,12 +99,6 @@ impl<'a, T> Spanned<'a, T> {
     #[must_use = "use the span bruh"]
     pub const fn span(&self) -> pest::Span<'a> {
         self.span
-    }
-
-    pub fn as_miette_span(&self) -> miette::SourceSpan {
-        let start = self.span().start();
-        let end = self.span().end();
-        (start, end - start).into()
     }
 }
 

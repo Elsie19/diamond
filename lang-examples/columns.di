@@ -29,7 +29,7 @@ let @testing(): integer = {
         @printf("%s", line);
     }
 
-    0
+    0;
 };
 
 # TODO: Remove
