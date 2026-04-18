@@ -83,14 +83,13 @@ impl DIParser {
         let span = input.as_span();
 
         Ok(match_nodes!(input.into_children();
-            // SAFETY: `ident` returns a [`PAtomic`] but underneath we know it's a string.
             [ident(name),
              expr(expr)] => {
                 Spanned::new(
                     PVal::Let(
                         Let::builder()
-                            .name(unsafe { name.into_ident_unchecked() })
-                            .expr(expr.into_boxed())
+                            .name(name)
+                            .expr(expr)
                             .build()),
                 span)
             }
@@ -286,7 +285,7 @@ impl DIParser {
                 Spanned::new(PVal::For(
                     For::builder()
                         .loop_(loop_)
-                        .body(body.into_boxed())
+                        .body(body)
                         .build()),
                 span)
             }
@@ -300,8 +299,8 @@ impl DIParser {
             [ident(bind), expr(expr)] => {
                 Spanned::new(
                     PForInner::builder()
-                        .bind(unsafe { bind.into_ident_unchecked() })
-                        .expr(expr.into_boxed())
+                        .bind(bind)
+                        .expr(expr)
                         .build(),
                 span)
             }
@@ -322,7 +321,7 @@ impl DIParser {
 
                 PVal::Match(
                     Match::builder()
-                        .expr(expr.into_boxed())
+                        .expr(expr)
                         .arms(v.into_boxed_slice())
                         .build(),
                 )
@@ -331,7 +330,7 @@ impl DIParser {
              match_arm(arm)] => {
                 PVal::Match(
                     Match::builder()
-                        .expr(expr.into_boxed())
+                        .expr(expr)
                         .arms(Box::new([arm]))
                         .build(),
                 )
@@ -349,8 +348,8 @@ impl DIParser {
                 Spanned::new(
                     PMatchArm::builder()
                         .res(res)
-                        .inner(unsafe { inner.into_ident_unchecked() })
-                        .expr(expr.into_boxed())
+                        .inner(inner)
+                        .expr(expr)
                         .build(),
                 span)
             }
@@ -396,9 +395,8 @@ impl DIParser {
     fn func_arg(input: Node) -> DResult<FuncArg> {
         Ok(match_nodes!(input.into_children();
             [ident(name), type_name(ty)] => {
-                // SAFETY: We know that `ident` returns an [`ident`].
                 FuncArg::builder()
-                    .name(unsafe { name.into_ident_unchecked() })
+                    .name(name)
                     .ty(ty)
                     .build()
             }

@@ -1,10 +1,12 @@
 use typed_builder::TypedBuilder;
 
-use crate::parse::types::{BPVal, SpannedStr};
+use crate::parse::types::{BPVal, PAtomic, SpannedPVal, SpannedStr};
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct Let<'a> {
+    #[builder(setter(transform = |x: PAtomic<'a>| unsafe { x.into_ident_unchecked() }))]
     name: SpannedStr<'a>,
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     expr: BPVal<'a>,
 }
 

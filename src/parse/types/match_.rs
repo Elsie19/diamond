@@ -1,9 +1,10 @@
 use typed_builder::TypedBuilder;
 
-use crate::parse::types::{BPVal, Spanned, SpannedStr};
+use crate::parse::types::{BPVal, PAtomic, Spanned, SpannedPVal, SpannedStr};
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct Match<'a> {
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     expr: BPVal<'a>,
     arms: Box<[Spanned<'a, PMatchArm<'a>>]>,
 }
@@ -23,8 +24,10 @@ pub struct PMatchArm<'a> {
     /// The literal text `ok` or `err`.
     pub res: PMatchCase<'a>,
     /// The value associated with the branch.
+    #[builder(setter(transform = |x: PAtomic<'a>| unsafe { x.into_ident_unchecked() }))]
     pub inner: SpannedStr<'a>,
     /// The code that executes if matched.
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     pub expr: BPVal<'a>,
 }
 

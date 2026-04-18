@@ -1,16 +1,19 @@
 use typed_builder::TypedBuilder;
 
-use crate::parse::types::{BPVal, Spanned, SpannedStr};
+use crate::parse::types::{BPVal, PAtomic, Spanned, SpannedPVal, SpannedStr};
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct For<'a> {
     loop_: Spanned<'a, PForInner<'a>>,
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     body: BPVal<'a>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct PForInner<'a> {
+    #[builder(setter(transform = |x: PAtomic<'a>| unsafe { x.into_ident_unchecked() }))]
     pub bind: SpannedStr<'a>,
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     pub expr: BPVal<'a>,
 }
 

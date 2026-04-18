@@ -1,6 +1,6 @@
 use typed_builder::TypedBuilder;
 
-use crate::parse::types::{BPVal, PType, Spanned, SpannedPVal, SpannedStr};
+use crate::parse::types::{BPVal, PAtomic, PType, Spanned, SpannedPVal, SpannedStr};
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct FuncLet<'a> {
@@ -17,6 +17,7 @@ pub struct FuncLet<'a> {
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct FuncArg<'a> {
+    #[builder(setter(transform = |x: PAtomic<'a>| unsafe { x.into_ident_unchecked() }))]
     pub name: SpannedStr<'a>,
     pub ty: PType<'a>,
 }
