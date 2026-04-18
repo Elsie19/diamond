@@ -66,9 +66,9 @@ impl<'a> AstWalker<'a> {
                     Self::visit_function(&arm.expr, table);
                 }
             }
-            PVal::For { loop_, body } => {
-                Self::visit_function(&loop_.expr, table);
-                Self::visit_function(body, table);
+            PVal::For(for_) => {
+                Self::visit_function(&for_.loop_raw().expr_raw(), table);
+                Self::visit_function(&for_.body_raw(), table);
             }
             PVal::Let { name: _, expr } => {
                 Self::visit_function(expr, table);

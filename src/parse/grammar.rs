@@ -1,5 +1,7 @@
 use pest_consume::{Error, Parser, match_nodes};
 
+use crate::parse::types::for_::PForInner;
+
 use super::types::*;
 
 pub type UntypedAst<'a> = Vec<SpannedPVal<'a>>;
@@ -248,16 +250,22 @@ impl DIParser {
     }
 
     fn for_expr(input: Node) -> DResult<SpannedPVal> {
+        use crate::parse::types::for_::For;
+
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
-            [for_inner(loop_), expr(body)] => Spanned::new(PVal::For { loop_, body: body.into_boxed() }, span),
+            [for_inner(loop_), expr(body)] => Spanned::new(PVal::For(For::builder().loop_(loop_).body(body.into_boxed()).build()), span),
         ))
     }
 
     fn for_inner(input: Node) -> DResult<Spanned<PForInner>> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
-            [ident(bind), expr(expr)] => Spanned::new(PForInner { bind: unsafe { bind.into_ident_unchecked() }, expr: expr.into_boxed() }, span),
+            [ident(bind), expr(expr)] => Spanned::new(PForInner::builder()
+                    .bind(unsafe { bind.into_ident_unchecked() })
+                    .expr(expr.into_boxed())
+                    .build(),
+                span),
         ))
     }
 
@@ -649,13 +657,13 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let for_ = DIParser::for_expr(input).expect("failed to parse `for_expr`");
 
-        let (loop_, body) = unsafe { for_.as_for_unchecked() };
+        let for_ = unsafe { for_.as_for_unchecked() };
 
-        let bind = &loop_.bind;
+        let bind = for_.loop_raw().bind();
 
-        assert_eq!(*bind, "a");
+        assert_eq!(bind, "a");
 
-        assert!(matches!(***body, PVal::Grouping { .. }))
+        assert!(matches!(&***for_.body_raw(), PVal::Grouping { .. }))
     }
 
     #[test]

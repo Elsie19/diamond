@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::{
     parse::{
         grammar::{UntypedAst, spest_to_smiette},
-        types::{BPArr, BPVal, FuncArg, PAtomic, PMatchCase, PType, PVal, Spanned, SpannedPVal},
+        types::{BPVal, FuncArg, PAtomic, PMatchCase, PType, PVal, Spanned, SpannedPVal},
     },
     typing::{
         core::ScopeStack,
@@ -264,8 +264,10 @@ impl<'a> TypeChecker<'a> {
 
                 Ok(result_ty.unwrap_or_default())
             }
-            PVal::For { loop_, body } => {
-                let iter_ty = self.check_inner(&loop_.expr.node, loop_.expr.span())?;
+            PVal::For(for_) => {
+                let loop_expr = for_.loop_raw().expr_raw();
+
+                let iter_ty = self.inner(loop_expr)?;
 
                 let elem_ty = if let Type::Array(inner) = iter_ty {
                     *inner
@@ -273,7 +275,7 @@ impl<'a> TypeChecker<'a> {
                     // We can get a little clever here. If what's trying to be used as an
                     // iterable is not a constant, but an identifier, we can go find its span
                     // and have even nicer error messages.
-                    let defined_here = match &*loop_.expr.node {
+                    let defined_here = match &***loop_expr {
                         PVal::Atomic(spanned) => match &spanned.node {
                             PAtomic::Ident(name) => {
                                 self.scopes.get_span(name.node).map(|span| self.span(*span))
@@ -286,7 +288,7 @@ impl<'a> TypeChecker<'a> {
                     return Err(TypeCheckError::VerifyError(
                         pass_one::VerifyError::NonIterable {
                             src: self.src(),
-                            bad_bit: loop_.expr.as_miette_span(),
+                            bad_bit: loop_expr.as_miette_span(),
                             defined_here,
                         },
                     ));
@@ -294,9 +296,13 @@ impl<'a> TypeChecker<'a> {
 
                 self.scopes.push();
 
-                self.scopes.insert(&loop_.bind, loop_.bind.span(), elem_ty);
+                self.scopes.insert(
+                    for_.loop_raw().bind_raw(),
+                    for_.loop_raw().bind_raw().span(),
+                    elem_ty,
+                );
 
-                let for_ret_ty = self.check_inner(&body.node, body.span())?;
+                let for_ret_ty = self.inner(for_.body_raw())?;
 
                 self.scopes.pop();
 

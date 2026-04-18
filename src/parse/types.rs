@@ -1,3 +1,4 @@
+pub mod for_;
 pub mod funccall;
 pub mod grouping;
 
@@ -108,10 +109,7 @@ pub enum PVal<'a> {
         expr: BPVal<'a>,
         arms: Box<[Spanned<'a, PMatchArm<'a>>]>,
     },
-    For {
-        loop_: Spanned<'a, PForInner<'a>>,
-        body: BPVal<'a>,
-    },
+    For(for_::For<'a>),
     Let {
         name: SpannedStr<'a>,
         expr: BPVal<'a>,
@@ -216,10 +214,4 @@ impl PMatchArm<'_> {
 pub enum PMatchCase<'a> {
     Ok(SpannedStr<'a>),
     Err(SpannedStr<'a>),
-}
-
-#[derive(Debug, Clone)]
-pub struct PForInner<'a> {
-    pub bind: SpannedStr<'a>,
-    pub expr: BPVal<'a>,
 }
