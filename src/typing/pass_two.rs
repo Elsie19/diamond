@@ -103,20 +103,16 @@ impl<'a> TypeChecker<'a> {
                 internal,
             } => self.check_funclet(args, ret.as_ref(), body, *internal),
             PVal::Atomic(spanned) => self.check_atomic(&spanned.node, spanned.node.span()),
-            PVal::FuncCall { name, args, unwrap } => {
-                // SAFETY: We know that `name` can only be a string deep down.
-                let func_name =
-                    unsafe { name.node.as_atomic_unchecked().node.as_ident_unchecked() };
-
-                let def = self.funcs.lookup(func_name).ok_or_else(|| {
+            PVal::FuncCall(func) => {
+                let def = self.funcs.lookup(func.name()).ok_or_else(|| {
                     TypeCheckError::UnknownFunction {
-                        name: func_name.to_string(),
+                        name: func.name().to_string(),
                         src: self.src(),
                         bad_bit: self.span(span),
                     }
                 })?;
 
-                let args = args.as_ref().map(|a| &a.node[..]).unwrap_or(&[]);
+                let args = func.args_raw().as_ref().map(|a| &a.node[..]).unwrap_or(&[]);
 
                 let got = args.len();
                 let expected = def.args.len();
@@ -150,7 +146,7 @@ impl<'a> TypeChecker<'a> {
 
                 let mut ret_ty = def.ret.clone();
 
-                if let Some(unwrap) = unwrap {
+                if let Some(unwrap) = func.get_unwrap() {
                     match ret_ty {
                         Type::Result(ok, _) => {
                             ret_ty = *ok;

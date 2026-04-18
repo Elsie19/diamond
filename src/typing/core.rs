@@ -20,10 +20,10 @@ impl<'a> AstWalker<'a> {
     fn visit_function(node: &'a PVal<'a>, table: &mut FuncTable<'a>) {
         match node {
             PVal::Atomic(_) => {}
-            PVal::FuncCall { name, args, .. } => {
-                Self::visit_function(name, table);
+            PVal::FuncCall(func) => {
+                Self::visit_function(func.name_raw(), table);
 
-                if let Some(args) = args {
+                if let Some(args) = func.args_raw() {
                     for arg in args.iter() {
                         Self::visit_function(arg, table);
                     }

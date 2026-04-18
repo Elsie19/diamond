@@ -80,16 +80,38 @@ impl DIParser {
     }
 
     fn func_expr(input: Node) -> DResult<SpannedPVal> {
+        use crate::parse::types::funccall::FuncCall;
+
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
             [func_sigil_and_name(name), func_call_args(args), result_unwrap(unwrap)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap: Some(unwrap) }, span),
+                Spanned::new(PVal::FuncCall(
+                    FuncCall::builder()
+                        .name(name.into_boxed())
+                        .args(Some(args))
+                        .unwrap(Some(unwrap))
+                        .build()), span
+                ),
             [func_sigil_and_name(name), func_call_args(args)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: Some(args), unwrap: None }, span),
+                Spanned::new(PVal::FuncCall(
+                    FuncCall::builder()
+                        .name(name.into_boxed())
+                        .args(Some(args))
+                        .build()), span
+                ),
             [func_sigil_and_name(name), result_unwrap(unwrap)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap: Some(unwrap) }, span),
+                Spanned::new(PVal::FuncCall(
+                    FuncCall::builder()
+                        .name(name.into_boxed())
+                        .unwrap(Some(unwrap))
+                        .build()), span
+                ),
             [func_sigil_and_name(name)] =>
-                Spanned::new(PVal::FuncCall { name: name.into_boxed(), args: None, unwrap: None }, span)
+                Spanned::new(PVal::FuncCall(
+                    FuncCall::builder()
+                        .name(name.into_boxed())
+                        .build()), span
+                ),
         ))
     }
 
@@ -439,24 +461,13 @@ mod simple_parsing {
         let input = inputs.single().expect("expected only one root node");
         let func = DIParser::func_expr(input).expect("failed to parse `func_expr`");
 
-        let (name, args, unwrap) = match func.into_inner() {
-            PVal::FuncCall { name, args, unwrap } => (name, args, unwrap),
-            _ => unreachable!("not `PVal::FuncCall`"),
-        };
+        let func = unsafe { func.as_func_call_unchecked() };
 
-        let name = unsafe {
-            *name
-                .node
-                .into_atomic_unchecked()
-                .node
-                .into_ident_unchecked()
-        };
+        assert_eq!(func.name(), "super_func");
 
-        assert_eq!(name, "super_func");
+        assert!(!func.has_unwrap());
 
-        assert!(unwrap.is_none());
-
-        let Some(args) = args else {
+        let Some(args) = func.args_raw() else {
             unreachable!("args are not empty!");
         };
 
@@ -601,17 +612,14 @@ mod complex_parsing {
         assert!(err.err());
 
         let ok_expr = unsafe { ok.expr.node.as_atomic_unchecked().node.as_ident_unchecked() };
-        let (func_name, func_args, func_unwrap) = unsafe { err.expr.node.as_func_call_unchecked() };
 
-        let func_name = unsafe {
-            &func_name
-                .node
-                .as_atomic_unchecked()
-                .node
-                .as_ident_unchecked()
-        };
+        let func = unsafe { err.expr.node.as_func_call_unchecked() };
 
-        let func_args = &func_args.as_ref().expect("argument count should be 1").node;
+        let func_args = &func
+            .args_raw()
+            .as_ref()
+            .expect("argument count should be 1")
+            .node;
         assert_eq!(func_args.len(), 1);
         let func_arg = unsafe {
             func_args[0]
@@ -623,9 +631,9 @@ mod complex_parsing {
         };
 
         assert_eq!(*ok_expr, "o");
-        assert_eq!(**func_name, "panic");
+        assert_eq!(func.name(), "panic");
         assert_eq!(func_arg, "expected file to be passed");
-        assert!(func_unwrap.is_none());
+        assert!(!func.has_unwrap());
     }
 
     #[test]

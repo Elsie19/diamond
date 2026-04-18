@@ -1,3 +1,5 @@
+pub mod funccall;
+
 use std::ops::Deref;
 
 use enum_as_inner::EnumAsInner;
@@ -92,11 +94,7 @@ impl<'a, T> Spanned<'a, T> {
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum PVal<'a> {
     Atomic(Spanned<'a, PAtomic<'a>>),
-    FuncCall {
-        name: BPVal<'a>,
-        args: Option<BPArr<'a>>,
-        unwrap: Option<Spanned<'a, bool>>,
-    },
+    FuncCall(funccall::FuncCall<'a>),
     FuncLet {
         name: BPVal<'a>,
         args: Spanned<'a, Box<[FuncArg<'a>]>>,
