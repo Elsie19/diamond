@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::{
     parse::{
         grammar::{UntypedAst, spest_to_smiette},
-        types::{PAtomic, PMatchCase, PVal, Spanned, SpannedPVal},
+        types::{BPArr, BPVal, FuncArg, PAtomic, PMatchCase, PType, PVal, Spanned, SpannedPVal},
     },
     typing::{
         core::ScopeStack,
@@ -101,40 +101,7 @@ impl<'a> TypeChecker<'a> {
                 ret,
                 body,
                 internal,
-            } => {
-                let expected = ret.clone().map_or(Type::Unit, Type::from);
-
-                if *internal {
-                    return Ok(expected);
-                }
-
-                self.scopes.push();
-
-                for arg in &args.node {
-                    self.scopes
-                        .insert(&arg.name, arg.name.span(), arg.ty.clone().into());
-                }
-
-                let result = {
-                    let got = self.inner(body)?;
-                    if got != expected {
-                        Err(TypeCheckError::VerifyError(
-                            pass_one::VerifyError::InvalidReturnType {
-                                expected,
-                                got,
-                                src: self.src(),
-                                bad_bit: body.as_miette_span(),
-                                decl: self.span(ret.clone().unwrap().span()),
-                            },
-                        ))
-                    } else {
-                        Ok(expected)
-                    }
-                };
-
-                self.scopes.pop();
-                result
-            }
+            } => self.check_funclet(args, ret.as_ref(), body, *internal),
             PVal::Atomic(spanned) => self.check_atomic(&spanned.node, spanned.node.span()),
             PVal::FuncCall { name, args, unwrap } => {
                 // SAFETY: We know that `name` can only be a string deep down.
@@ -349,6 +316,47 @@ impl<'a> TypeChecker<'a> {
                 self.check_inner(&spanned.node, spanned.span())
             }
         }
+    }
+
+    fn check_funclet(
+        &mut self,
+        args: &'a Spanned<'a, Box<[FuncArg<'a>]>>,
+        ret: Option<&PType<'a>>,
+        body: &'a BPVal<'a>,
+        internal: bool,
+    ) -> Result<Type, TypeCheckError> {
+        let expected = ret.cloned().map_or(Type::Unit, Type::from);
+
+        if internal {
+            return Ok(expected);
+        }
+
+        self.scopes.push();
+
+        for arg in &args.node {
+            self.scopes
+                .insert(&arg.name, arg.name.span(), arg.ty.clone().into());
+        }
+
+        let result = {
+            let got = self.inner(body)?;
+            if got != expected {
+                Err(TypeCheckError::VerifyError(
+                    pass_one::VerifyError::InvalidReturnType {
+                        expected,
+                        got,
+                        src: self.src(),
+                        bad_bit: body.as_miette_span(),
+                        decl: self.span(ret.unwrap().span()),
+                    },
+                ))
+            } else {
+                Ok(expected)
+            }
+        };
+
+        self.scopes.pop();
+        result
     }
 
     fn check_atomic(
