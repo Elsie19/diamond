@@ -1,13 +1,13 @@
 use typed_builder::TypedBuilder;
 
-use crate::parse::types::{BPArr, BPVal, PVal, Spanned};
+use crate::parse::types::{BPArr, BPVal, Spanned};
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct FuncCall<'a> {
     name: BPVal<'a>,
-    #[builder(default=None)]
+    #[builder(default=None, setter(strip_option))]
     args: Option<BPArr<'a>>,
-    #[builder(default=None)]
+    #[builder(default=None, setter(strip_option))]
     unwrap: Option<Spanned<'a, bool>>,
 }
 
