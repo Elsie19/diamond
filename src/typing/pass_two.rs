@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::{
     parse::{
         grammar::{UntypedAst, spest_to_smiette},
-        types::{PAtomic, PMatchCase, PVal, SpannedPVal},
+        types::{PAtomic, PMatchCase, PVal, Spanned, SpannedPVal},
     },
     typing::{
         core::ScopeStack,
@@ -65,12 +65,24 @@ impl<'a> TypeChecker<'a> {
         }
     }
 
+    fn src(&self) -> NamedSource<String> {
+        self.source.clone()
+    }
+
+    fn span(&self, span: pest::Span<'a>) -> SourceSpan {
+        spest_to_smiette(span)
+    }
+
     pub fn check_program(&mut self, program: &'a UntypedAst<'a>) -> Result<(), TypeCheckError> {
         for node in program {
             self.check_node(node)?;
         }
 
         Ok(())
+    }
+
+    fn inner(&mut self, sp: &'a Spanned<'a, Box<PVal<'a>>>) -> Result<Type, TypeCheckError> {
+        self.check_inner(&sp.node, sp.span())
     }
 
     fn check_node(&mut self, node: &'a SpannedPVal<'a>) -> Result<Type, TypeCheckError> {
@@ -104,15 +116,15 @@ impl<'a> TypeChecker<'a> {
                 }
 
                 let result = {
-                    let got = self.check_inner(&body.node, body.span())?;
+                    let got = self.inner(body)?;
                     if got != expected {
                         Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::InvalidReturnType {
                                 expected,
                                 got,
-                                src: self.source.clone(),
+                                src: self.src(),
                                 bad_bit: body.as_miette_span(),
-                                decl: spest_to_smiette(ret.clone().unwrap().span()),
+                                decl: self.span(ret.clone().unwrap().span()),
                             },
                         ))
                     } else {
@@ -132,8 +144,8 @@ impl<'a> TypeChecker<'a> {
                 let def = self.funcs.lookup(func_name).ok_or_else(|| {
                     TypeCheckError::UnknownFunction {
                         name: func_name.to_string(),
-                        src: self.source.clone(),
-                        bad_bit: spest_to_smiette(span),
+                        src: self.src(),
+                        bad_bit: self.span(span),
                     }
                 })?;
 
@@ -147,8 +159,8 @@ impl<'a> TypeChecker<'a> {
                         pass_one::VerifyError::ArgumentLengthMismatch {
                             expected,
                             got,
-                            src: self.source.clone(),
-                            bad_bit: spest_to_smiette(span),
+                            src: self.src(),
+                            bad_bit: self.span(span),
                         },
                     ));
                 }
@@ -162,7 +174,7 @@ impl<'a> TypeChecker<'a> {
                                 slot,
                                 expected,
                                 got,
-                                src: self.source.clone(),
+                                src: self.src(),
                                 bad_bit: arg_expr.as_miette_span(),
                             },
                         ));
@@ -179,7 +191,7 @@ impl<'a> TypeChecker<'a> {
                         _ => {
                             return Err(TypeCheckError::VerifyError(
                                 pass_one::VerifyError::UnwrapNonResult {
-                                    src: self.source.clone(),
+                                    src: self.src(),
                                     bad_bit: unwrap.as_miette_span(),
                                 },
                             ));
@@ -201,13 +213,13 @@ impl<'a> TypeChecker<'a> {
                 }
 
                 if let Some(expr) = redirect {
-                    let got = self.check_inner(expr, expr.span())?;
+                    let got = self.inner(expr)?;
                     if !matches!(got, Type::Stream) {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::MismatchedType {
                                 expected: Type::Stream,
                                 got,
-                                src: self.source.clone(),
+                                src: self.src(),
                                 bad_bit: expr.as_miette_span(),
                             },
                         ));
@@ -215,7 +227,7 @@ impl<'a> TypeChecker<'a> {
                 }
 
                 let result = if let Some(expr) = return_expr {
-                    self.check_inner(expr, expr.span())?
+                    self.inner(expr)?
                 } else {
                     /*
                      * Remember that:
@@ -235,14 +247,14 @@ impl<'a> TypeChecker<'a> {
                 Ok(result)
             }
             PVal::Match { expr, arms } => {
-                let expr_ty = self.check_inner(expr, expr.span())?;
+                let expr_ty = self.inner(expr)?;
 
                 let (ok_ty, err_ty) = match expr_ty {
                     Type::Result(ok, err) => (*ok, *err),
                     _ => {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::UnwrapNonResult {
-                                src: self.source.clone(),
+                                src: self.src(),
                                 bad_bit: expr.as_miette_span(),
                             },
                         ));
@@ -268,7 +280,7 @@ impl<'a> TypeChecker<'a> {
                         }
                     };
 
-                    let expected = self.check_inner(&arm.expr.node, arm.expr.span())?;
+                    let expected = self.inner(&arm.expr)?;
 
                     self.scopes.pop();
 
@@ -279,9 +291,9 @@ impl<'a> TypeChecker<'a> {
                                 pass_one::VerifyError::MismatchedMatchArms {
                                     expected,
                                     got,
-                                    src: self.source.clone(),
-                                    cur_branch: spest_to_smiette(cur),
-                                    prev_branch: spest_to_smiette(last_span.expect("how are we failing on a current branch if we don't have a previous")),
+                                    src: self.src(),
+                                    cur_branch: self.span(cur),
+                                    prev_branch: self.span(last_span.expect("how are we failing on a current branch if we don't have a previous")),
                                 },
                             ));
                         }
@@ -304,10 +316,9 @@ impl<'a> TypeChecker<'a> {
                     // and have even nicer error messages.
                     let defined_here = match &*loop_.expr.node {
                         PVal::Atomic(spanned) => match &spanned.node {
-                            PAtomic::Ident(name) => self
-                                .scopes
-                                .get_span(name.node)
-                                .map(|span| spest_to_smiette(*span)),
+                            PAtomic::Ident(name) => {
+                                self.scopes.get_span(name.node).map(|span| self.span(*span))
+                            }
                             _ => None,
                         },
                         _ => None,
@@ -315,7 +326,7 @@ impl<'a> TypeChecker<'a> {
 
                     return Err(TypeCheckError::VerifyError(
                         pass_one::VerifyError::NonIterable {
-                            src: self.source.clone(),
+                            src: self.src(),
                             bad_bit: loop_.expr.as_miette_span(),
                             defined_here,
                         },
@@ -333,7 +344,7 @@ impl<'a> TypeChecker<'a> {
                 Ok(for_ret_ty)
             }
             PVal::Let { name, expr } => {
-                let ty = self.check_inner(expr, expr.span())?;
+                let ty = self.inner(expr)?;
 
                 self.scopes.insert(name, name.span(), ty.clone());
                 Ok(ty)
@@ -369,7 +380,7 @@ impl<'a> TypeChecker<'a> {
                                     pass_one::VerifyError::MismatchedArrayElements {
                                         expected,
                                         got,
-                                        src: self.source.clone(),
+                                        src: self.src(),
                                         bad_bit: elem.as_miette_span(),
                                     },
                                 ));
@@ -386,8 +397,8 @@ impl<'a> TypeChecker<'a> {
                     .cloned()
                     .ok_or_else(|| TypeCheckError::UnknownVariable {
                         name: name.to_string(),
-                        src: self.source.clone(),
-                        bad_bit: spest_to_smiette(span),
+                        src: self.src(),
+                        bad_bit: self.span(span),
                     })
             }
             PAtomic::Unit(_) => Ok(Type::Unit),
