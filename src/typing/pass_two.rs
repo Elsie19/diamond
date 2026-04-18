@@ -54,7 +54,10 @@ pub enum TypeCheckError {
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(funcs: &'a FuncTable<'a>, file_name: &'a str, prog_text: &'a str) -> Self {
+    pub fn new<T>(funcs: &'a FuncTable<'a>, file_name: &'a str, prog_text: T) -> Self
+    where
+        T: ToString,
+    {
         Self {
             funcs,
             scopes: ScopeStack::new(),
@@ -120,15 +123,9 @@ impl<'a> TypeChecker<'a> {
                 self.scopes.pop();
                 result
             }
-            PVal::Atomic(spanned) => match &spanned.node {
-                int @ PAtomic::Integer(_) => self.check_atomic(int, int.span()),
-                string @ PAtomic::String(_) => self.check_atomic(string, string.span()),
-                arr @ PAtomic::Array(_) => self.check_atomic(arr, arr.span()),
-                ident @ PAtomic::Ident(_) => self.check_atomic(ident, ident.span()),
-                unit @ PAtomic::Unit(_) => self.check_atomic(unit, unit.span()),
-                res @ PAtomic::Result(_) => self.check_atomic(res, res.span()),
-            },
+            PVal::Atomic(spanned) => self.check_atomic(&spanned.node, spanned.node.span()),
             PVal::FuncCall { name, args, unwrap } => {
+                // SAFETY: We know that `name` can only be a string deep down.
                 let func_name =
                     unsafe { name.node.as_atomic_unchecked().node.as_ident_unchecked() };
 
