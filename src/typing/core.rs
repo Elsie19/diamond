@@ -51,12 +51,12 @@ impl<'a> AstWalker<'a> {
                     );
                 }
             }
-            PVal::Grouping { stmts, redirect } => {
-                for stmt in stmts {
+            PVal::Grouping(group) => {
+                for stmt in group.stmts_raw() {
                     Self::visit_function(stmt, table);
                 }
 
-                if let Some(redir) = redirect {
+                if let Some(redir) = group.redirect_raw() {
                     Self::visit_function(redir, table);
                 }
             }

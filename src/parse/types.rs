@@ -1,4 +1,5 @@
 pub mod funccall;
+pub mod grouping;
 
 use std::ops::Deref;
 
@@ -102,10 +103,7 @@ pub enum PVal<'a> {
         body: BPVal<'a>,
         internal: bool,
     },
-    Grouping {
-        stmts: Box<[Spanned<'a, PVal<'a>>]>,
-        redirect: Option<BPVal<'a>>,
-    },
+    Grouping(grouping::Grouping<'a>),
     Match {
         expr: BPVal<'a>,
         arms: Box<[Spanned<'a, PMatchArm<'a>>]>,

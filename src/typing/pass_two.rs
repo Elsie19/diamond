@@ -164,14 +164,14 @@ impl<'a> TypeChecker<'a> {
 
                 Ok(ret_ty)
             }
-            PVal::Grouping { stmts, redirect } => {
+            PVal::Grouping(group) => {
                 self.scopes.push();
 
-                for stmt in stmts {
+                for stmt in group.stmts_raw() {
                     self.check_node(stmt)?;
                 }
 
-                if let Some(expr) = redirect {
+                if let Some(expr) = group.redirect_raw() {
                     let got = self.inner(expr)?;
                     if !matches!(got, Type::Stream) {
                         return Err(TypeCheckError::VerifyError(
@@ -185,7 +185,7 @@ impl<'a> TypeChecker<'a> {
                     }
                 }
 
-                let result = if let Some(expr) = stmts.last() {
+                let result = if let Some(expr) = group.stmts_raw().last() {
                     self.check_inner(expr, expr.span())?
                 } else {
                     /*

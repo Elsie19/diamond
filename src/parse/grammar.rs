@@ -229,13 +229,15 @@ impl DIParser {
     }
 
     fn grouping(input: Node) -> DResult<SpannedPVal> {
+        use crate::parse::types::grouping::Grouping;
+
         let span = input.as_span();
-        let (stmts, redirect) = match_nodes!(input.into_children();
-            [stmt_or_expr(stmts)..] => (stmts.collect(), None),
-            [stmt_or_expr(stmts).., redirect(redirect)] => (stmts.collect(), Some(redirect.into_boxed())),
+        let group = match_nodes!(input.into_children();
+            [stmt_or_expr(stmts)..] => Grouping::builder().stmts(stmts.collect()).build(),
+            [stmt_or_expr(stmts).., redirect(redirect)] => Grouping::builder().stmts(stmts.collect()).redirect(redirect.into_boxed()).build(),
         );
 
-        Ok(Spanned::new(PVal::Grouping { stmts, redirect }, span))
+        Ok(Spanned::new(PVal::Grouping(group), span))
     }
 
     fn stmt_or_expr(input: Node) -> DResult<SpannedPVal> {
