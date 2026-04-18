@@ -29,26 +29,12 @@ impl<'a> AstWalker<'a> {
                     }
                 }
             }
-            func @ PVal::FuncLet {
-                name,
-                args: _,
-                ret: _,
-                body: _,
-                internal: _,
-            } => {
+            PVal::FuncLet(func) => {
+                let name = func.name();
+
                 let func = FuncDef::try_from(func.clone());
                 if let Ok(func) = func {
-                    table.table.insert(
-                        unsafe {
-                            name.node
-                                .clone()
-                                .into_atomic_unchecked()
-                                .node
-                                .into_ident_unchecked()
-                                .node
-                        },
-                        func,
-                    );
+                    table.table.insert(name, func);
                 }
             }
             PVal::Grouping(group) => {

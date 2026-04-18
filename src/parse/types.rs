@@ -1,5 +1,6 @@
 pub mod for_;
 pub mod funccall;
+pub mod funclet;
 pub mod grouping;
 pub mod match_;
 
@@ -102,13 +103,7 @@ impl<'a, T> Spanned<'a, T> {
 pub enum PVal<'a> {
     Atomic(Spanned<'a, PAtomic<'a>>),
     FuncCall(funccall::FuncCall<'a>),
-    FuncLet {
-        name: BPVal<'a>,
-        args: Spanned<'a, Box<[FuncArg<'a>]>>,
-        ret: Option<PType<'a>>,
-        body: BPVal<'a>,
-        internal: bool,
-    },
+    FuncLet(funclet::FuncLet<'a>),
     Grouping(grouping::Grouping<'a>),
     Match(match_::Match<'a>),
     For(for_::For<'a>),
@@ -184,10 +179,4 @@ impl<'a> PType<'a> {
             Self::File(f) => f.span,
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct FuncArg<'a> {
-    pub name: SpannedStr<'a>,
-    pub ty: PType<'a>,
 }

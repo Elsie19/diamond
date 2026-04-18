@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::{
     parse::{
         grammar::{UntypedAst, spest_to_smiette},
-        types::{BPVal, FuncArg, PAtomic, PType, PVal, Spanned, SpannedPVal, match_::PMatchCase},
+        types::{PAtomic, PVal, Spanned, SpannedPVal, funclet::FuncLet, match_::PMatchCase},
     },
     typing::{
         core::ScopeStack,
@@ -95,13 +95,7 @@ impl<'a> TypeChecker<'a> {
         span: pest::Span<'a>,
     ) -> Result<Type, TypeCheckError> {
         match &node {
-            PVal::FuncLet {
-                name: _,
-                args,
-                ret,
-                body,
-                internal,
-            } => self.check_funclet(args, ret.as_ref(), body, *internal),
+            PVal::FuncLet(funclet) => self.check_funclet(funclet),
             PVal::Atomic(spanned) => self.check_atomic(&spanned.node, spanned.node.span()),
             PVal::FuncCall(func) => {
                 let def = self.funcs.lookup(func.name()).ok_or_else(|| {
@@ -322,27 +316,22 @@ impl<'a> TypeChecker<'a> {
         }
     }
 
-    fn check_funclet(
-        &mut self,
-        args: &'a Spanned<'a, Box<[FuncArg<'a>]>>,
-        ret: Option<&PType<'a>>,
-        body: &'a BPVal<'a>,
-        internal: bool,
-    ) -> Result<Type, TypeCheckError> {
-        let expected = ret.cloned().map_or(Type::Unit, Type::from);
+    fn check_funclet(&mut self, funclet: &'a FuncLet<'a>) -> Result<Type, TypeCheckError> {
+        let expected = funclet.ret().cloned().map_or(Type::Unit, Type::from);
 
-        if internal {
+        if funclet.is_internal() {
             return Ok(expected);
         }
 
         self.scopes.push();
 
-        for arg in &args.node {
+        for arg in &funclet.args_raw().node {
             self.scopes
                 .insert(&arg.name, arg.name.span(), arg.ty.clone().into());
         }
 
         let result = {
+            let body = funclet.body_raw();
             let got = self.inner(body)?;
             if got != expected {
                 Err(TypeCheckError::VerifyError(
@@ -351,7 +340,7 @@ impl<'a> TypeChecker<'a> {
                         got,
                         src: self.src(),
                         bad_bit: body.as_miette_span(),
-                        decl: self.span(ret.unwrap().span()),
+                        decl: self.span(funclet.ret().unwrap().span()),
                     },
                 ))
             } else {

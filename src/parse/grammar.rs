@@ -2,6 +2,7 @@ use pest_consume::{Error, Parser, match_nodes};
 
 use crate::parse::types::{
     for_::PForInner,
+    funclet::FuncArg,
     match_::{PMatchArm, PMatchCase},
 };
 
@@ -121,121 +122,106 @@ impl DIParser {
     }
 
     fn func_def_expr(input: Node) -> DResult<SpannedPVal> {
+        use crate::parse::types::funclet::FuncLet;
+
         let span = input.as_span();
 
-        Ok(match_nodes!(input.into_children();
-            [func_sigil_and_name(name), expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args: Spanned::new(Box::new([]), span),
-                        ret: None,
-                        body: body.into_boxed(),
-                        internal: false,
-                    },
-                    span,
-                )
+        let funclet = match_nodes!(input.into_children();
+            [func_sigil_and_name(name),
+             expr(body)] => {
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(Spanned::new(Box::new([]), span))
+                        .body(body.into_boxed())
+                        .build())
             },
             [func_sigil_and_name(name),
              func_def_args(args),
              expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args,
-                        ret: None,
-                        body: body.into_boxed(),
-                        internal: false,
-                    },
-                    span,
-                )
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(args)
+                        .body(body.into_boxed())
+                        .build())
             },
             [func_sigil_and_name(name),
              func_def_ret(ret),
              expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args: Spanned::new(Box::new([]), span),
-                        ret: Some(ret),
-                        body: body.into_boxed(),
-                        internal: false,
-                    },
-                    span,
-                )
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(Spanned::new(Box::new([]), span))
+                        .ret(ret)
+                        .body(body.into_boxed())
+                        .build())
             },
             [func_sigil_and_name(name),
              func_def_args(args),
              func_def_ret(ret),
              expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args,
-                        ret: Some(ret),
-                        body: body.into_boxed(),
-                        internal: false,
-                    },
-                    span,
-                )
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(args)
+                        .ret(ret)
+                        .body(body.into_boxed())
+                        .build())
             },
             [internal(internal),
              func_sigil_and_name(name),
              expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args: Spanned::new(Box::new([]), span),
-                        ret: None,
-                        body: body.into_boxed(),
-                        internal,
-                    },
-                    span,
-                )
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(Spanned::new(Box::new([]), span))
+                        .body(body.into_boxed())
+                        .internal(true)
+                        .build())
             },
             [internal(internal),
              func_sigil_and_name(name),
              func_def_args(args),
              expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args,
-                        ret: None,
-                        body: body.into_boxed(),
-                        internal,
-                    },
-                    span,
-                )
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(args)
+                        .body(body.into_boxed())
+                        .internal(true)
+                        .build())
             },
             [internal(internal),
              func_sigil_and_name(name),
              func_def_ret(ret),
              expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args: Spanned::new(Box::new([]), span),
-                        ret: Some(ret),
-                        body: body.into_boxed(),
-                        internal,
-                    },
-                    span,
-                )
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(Spanned::new(Box::new([]), span))
+                        .ret(ret)
+                        .body(body.into_boxed())
+                        .internal(true)
+                        .build())
             },
-            [internal(internal), func_sigil_and_name(name), func_def_args(args), func_def_ret(ret), expr(body)] => {
-                Spanned::new(
-                    PVal::FuncLet {
-                        name: name.into_boxed(),
-                        args,
-                        ret: Some(ret),
-                        body: body.into_boxed(),
-                        internal,
-                    },
-                    span,
-                )
+            [internal(internal),
+             func_sigil_and_name(name),
+             func_def_args(args),
+             func_def_ret(ret),
+             expr(body)] => {
+                PVal::FuncLet(
+                    FuncLet::builder()
+                        .name(name.into_boxed())
+                        .args(args)
+                        .ret(ret)
+                        .body(body.into_boxed())
+                        .internal(true)
+                        .build())
             }
-        ))
+        );
+
+        Ok(Spanned::new(funclet, span))
     }
 
     fn internal(input: Node) -> DResult<bool> {
@@ -399,8 +385,10 @@ impl DIParser {
         Ok(match_nodes!(input.into_children();
             [ident(name), type_name(ty)] => {
                 // SAFETY: We know that `ident` returns an [`ident`].
-                let name = unsafe { name.into_ident_unchecked() };
-                FuncArg { name, ty }
+                FuncArg::builder()
+                    .name(unsafe { name.into_ident_unchecked() })
+                    .ty(ty)
+                    .build()
             }
         ))
     }
@@ -588,18 +576,11 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
 
-        let (name, args, _, _, _) = unsafe { func.node.into_func_let_unchecked() };
-        let args = args.node;
+        let funclet = unsafe { func.as_func_let_unchecked() };
 
-        let name = unsafe {
-            *name
-                .node
-                .into_atomic_unchecked()
-                .node
-                .into_ident_unchecked()
-        };
+        let args = funclet.args_raw();
 
-        assert_eq!(name, "foo");
+        assert_eq!(funclet.name(), "foo");
 
         assert_eq!(args.len(), 1);
 
@@ -616,23 +597,16 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
 
-        let (name, args, ret, body, internal) = unsafe { func.node.into_func_let_unchecked() };
-        let args = args.node;
+        let funclet = unsafe { func.as_func_let_unchecked() };
 
-        let name = unsafe {
-            *name
-                .node
-                .into_atomic_unchecked()
-                .node
-                .into_ident_unchecked()
-        };
+        let args = funclet.args_raw();
 
-        assert_eq!(name, "f");
+        assert_eq!(funclet.name(), "f");
 
         assert_eq!(args.len(), 0);
 
         assert!(matches!(
-            unsafe { body.node.into_atomic_unchecked() }.node,
+            unsafe { funclet.body_raw().as_atomic_unchecked() }.node,
             PAtomic::Unit(_)
         ))
     }
@@ -649,22 +623,15 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
 
-        let (name, args, ret, body, internal) = unsafe { func.node.into_func_let_unchecked() };
-        let args = args.node;
+        let funclet = unsafe { func.as_func_let_unchecked() };
 
-        let name = unsafe {
-            *name
-                .node
-                .into_atomic_unchecked()
-                .node
-                .into_ident_unchecked()
-        };
+        let args = funclet.args_raw();
 
-        assert_eq!(name, "tee");
+        assert_eq!(funclet.name(), "tee");
 
         assert_eq!(args.len(), 2);
 
-        assert!(matches!(*body.node, PVal::Grouping { .. }))
+        assert!(matches!(***funclet.body_raw(), PVal::Grouping { .. }))
     }
 
     #[test]
