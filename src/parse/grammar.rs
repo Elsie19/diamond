@@ -211,7 +211,6 @@ impl DIParser {
         let (stmts, redirect) = match_nodes!(input.into_children();
             [stmt_or_expr(stmts)..] => (stmts.collect(), None),
             [stmt_or_expr(stmts).., redirect(redirect)] => (stmts.collect(), Some(redirect.into_boxed())),
-            [stmt(stmts).., redirect(redirect)] => (stmts.collect(), Some(redirect.into_boxed())),
         );
 
         Ok(Spanned::new(PVal::Grouping { stmts, redirect }, span))

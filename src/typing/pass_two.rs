@@ -204,8 +204,6 @@ impl<'a> TypeChecker<'a> {
             PVal::Grouping { stmts, redirect } => {
                 self.scopes.push();
 
-                let stmts = stmts.iter().as_slice();
-
                 for stmt in stmts {
                     self.check_node(stmt)?;
                 }
@@ -301,7 +299,7 @@ impl<'a> TypeChecker<'a> {
                     }
                 }
 
-                Ok(result_ty.unwrap_or(Type::Unit))
+                Ok(result_ty.unwrap_or_default())
             }
             PVal::For { loop_, body } => {
                 let iter_ty = self.check_inner(&loop_.expr.node, loop_.expr.span())?;
