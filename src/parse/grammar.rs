@@ -105,7 +105,7 @@ impl DIParser {
             [func_sigil_and_name(name), func_call_args(args), result_unwrap(unwrap)] =>
                 Spanned::new(PVal::FuncCall(
                     FuncCall::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(args)
                         .unwrap(unwrap)
                         .build()), span
@@ -113,21 +113,21 @@ impl DIParser {
             [func_sigil_and_name(name), func_call_args(args)] =>
                 Spanned::new(PVal::FuncCall(
                     FuncCall::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(args)
                         .build()), span
                 ),
             [func_sigil_and_name(name), result_unwrap(unwrap)] =>
                 Spanned::new(PVal::FuncCall(
                     FuncCall::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .unwrap(unwrap)
                         .build()), span
                 ),
             [func_sigil_and_name(name)] =>
                 Spanned::new(PVal::FuncCall(
                     FuncCall::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .build()), span
                 ),
         ))
@@ -143,9 +143,9 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(Spanned::new(Box::new([]), span))
-                        .body(body.into_boxed())
+                        .body(body)
                         .build())
             },
             [func_sigil_and_name(name),
@@ -153,9 +153,9 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(args)
-                        .body(body.into_boxed())
+                        .body(body)
                         .build())
             },
             [func_sigil_and_name(name),
@@ -163,10 +163,10 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(Spanned::new(Box::new([]), span))
                         .ret(ret)
-                        .body(body.into_boxed())
+                        .body(body)
                         .build())
             },
             [func_sigil_and_name(name),
@@ -175,10 +175,10 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(args)
                         .ret(ret)
-                        .body(body.into_boxed())
+                        .body(body)
                         .build())
             },
             [internal(internal),
@@ -186,9 +186,9 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(Spanned::new(Box::new([]), span))
-                        .body(body.into_boxed())
+                        .body(body)
                         .internal(internal)
                         .build())
             },
@@ -198,9 +198,9 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(args)
-                        .body(body.into_boxed())
+                        .body(body)
                         .internal(internal)
                         .build())
             },
@@ -210,10 +210,10 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(Spanned::new(Box::new([]), span))
                         .ret(ret)
-                        .body(body.into_boxed())
+                        .body(body)
                         .internal(internal)
                         .build())
             },
@@ -224,10 +224,10 @@ impl DIParser {
              expr(body)] => {
                 PVal::FuncLet(
                     FuncLet::builder()
-                        .name(name.into_boxed())
+                        .name(name)
                         .args(args)
                         .ret(ret)
-                        .body(body.into_boxed())
+                        .body(body)
                         .internal(internal)
                         .build())
             }

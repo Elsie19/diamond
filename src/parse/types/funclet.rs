@@ -1,13 +1,15 @@
 use typed_builder::TypedBuilder;
 
-use crate::parse::types::{BPVal, PType, Spanned, SpannedStr};
+use crate::parse::types::{BPVal, PType, Spanned, SpannedPVal, SpannedStr};
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct FuncLet<'a> {
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     name: BPVal<'a>,
     args: Spanned<'a, Box<[FuncArg<'a>]>>,
     #[builder(default=None, setter(strip_option))]
     ret: Option<PType<'a>>,
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     body: BPVal<'a>,
     #[builder(default = false)]
     internal: bool,

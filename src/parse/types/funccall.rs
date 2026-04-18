@@ -1,9 +1,10 @@
 use typed_builder::TypedBuilder;
 
-use crate::parse::types::{BPArr, BPVal, Spanned};
+use crate::parse::types::{BPArr, BPVal, Spanned, SpannedPVal};
 
 #[derive(Debug, Clone, TypedBuilder)]
 pub struct FuncCall<'a> {
+    #[builder(setter(transform = |x: SpannedPVal<'a>| x.into_boxed()))]
     name: BPVal<'a>,
     #[builder(default=None, setter(strip_option))]
     args: Option<BPArr<'a>>,
