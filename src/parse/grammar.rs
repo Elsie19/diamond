@@ -177,7 +177,7 @@ impl DIParser {
                         .name(name.into_boxed())
                         .args(Spanned::new(Box::new([]), span))
                         .body(body.into_boxed())
-                        .internal(true)
+                        .internal(internal)
                         .build())
             },
             [internal(internal),
@@ -189,7 +189,7 @@ impl DIParser {
                         .name(name.into_boxed())
                         .args(args)
                         .body(body.into_boxed())
-                        .internal(true)
+                        .internal(internal)
                         .build())
             },
             [internal(internal),
@@ -202,7 +202,7 @@ impl DIParser {
                         .args(Spanned::new(Box::new([]), span))
                         .ret(ret)
                         .body(body.into_boxed())
-                        .internal(true)
+                        .internal(internal)
                         .build())
             },
             [internal(internal),
@@ -216,7 +216,7 @@ impl DIParser {
                         .args(args)
                         .ret(ret)
                         .body(body.into_boxed())
-                        .internal(true)
+                        .internal(internal)
                         .build())
             }
         );
