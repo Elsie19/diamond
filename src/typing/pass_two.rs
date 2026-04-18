@@ -171,7 +171,7 @@ impl<'a> TypeChecker<'a> {
                     self.check_node(stmt)?;
                 }
 
-                if let Some(expr) = group.redirect_raw() {
+                if let Some(expr) = group.redirect() {
                     let got = self.inner(expr)?;
                     if !matches!(got, Type::Stream) {
                         return Err(TypeCheckError::VerifyError(
