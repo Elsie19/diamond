@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::{
     parse::{
         grammar::{UntypedAst, spest_to_smiette},
-        types::{BPVal, FuncArg, PAtomic, PMatchCase, PType, PVal, Spanned, SpannedPVal},
+        types::{BPVal, FuncArg, PAtomic, PType, PVal, Spanned, SpannedPVal, match_::PMatchCase},
     },
     typing::{
         core::ScopeStack,
@@ -205,8 +205,10 @@ impl<'a> TypeChecker<'a> {
 
                 Ok(result)
             }
-            PVal::Match { expr, arms } => {
-                let expr_ty = self.inner(expr)?;
+            PVal::Match(match_) => {
+                let expr_raw = match_.expr_raw();
+
+                let expr_ty = self.inner(expr_raw)?;
 
                 let (ok_ty, err_ty) = match expr_ty {
                     Type::Result(ok, err) => (*ok, *err),
@@ -214,7 +216,7 @@ impl<'a> TypeChecker<'a> {
                         return Err(TypeCheckError::VerifyError(
                             pass_one::VerifyError::UnwrapNonResult {
                                 src: self.src(),
-                                bad_bit: expr.as_miette_span(),
+                                bad_bit: expr_raw.as_miette_span(),
                             },
                         ));
                     }
@@ -223,7 +225,7 @@ impl<'a> TypeChecker<'a> {
                 let mut result_ty: Option<Type> = None;
                 let mut last_span = None;
 
-                for arm in arms {
+                for arm in match_.arms_raw() {
                     self.scopes.push();
 
                     let cur = match &arm.res {

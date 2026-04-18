@@ -1,6 +1,7 @@
 pub mod for_;
 pub mod funccall;
 pub mod grouping;
+pub mod match_;
 
 use std::ops::Deref;
 
@@ -72,6 +73,10 @@ impl<'a, T> Spanned<'a, T> {
         self.node
     }
 
+    pub fn as_inner(&self) -> &T {
+        &self.node
+    }
+
     /// [`Box`] the inner `T`.
     pub fn into_boxed(self) -> Spanned<'a, Box<T>> {
         Spanned {
@@ -105,10 +110,7 @@ pub enum PVal<'a> {
         internal: bool,
     },
     Grouping(grouping::Grouping<'a>),
-    Match {
-        expr: BPVal<'a>,
-        arms: Box<[Spanned<'a, PMatchArm<'a>>]>,
-    },
+    Match(match_::Match<'a>),
     For(for_::For<'a>),
     Let {
         name: SpannedStr<'a>,
@@ -188,30 +190,4 @@ impl<'a> PType<'a> {
 pub struct FuncArg<'a> {
     pub name: SpannedStr<'a>,
     pub ty: PType<'a>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PMatchArm<'a> {
-    /// The literal text `ok` or `err`.
-    pub res: PMatchCase<'a>,
-    /// The value associated with the branch.
-    pub inner: SpannedStr<'a>,
-    /// The code that executes if matched.
-    pub expr: BPVal<'a>,
-}
-
-impl PMatchArm<'_> {
-    pub const fn ok(&self) -> bool {
-        matches!(self.res, PMatchCase::Ok(_))
-    }
-
-    pub const fn err(&self) -> bool {
-        matches!(self.res, PMatchCase::Err(_))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum PMatchCase<'a> {
-    Ok(SpannedStr<'a>),
-    Err(SpannedStr<'a>),
 }

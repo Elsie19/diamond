@@ -1,6 +1,9 @@
 use pest_consume::{Error, Parser, match_nodes};
 
-use crate::parse::types::for_::PForInner;
+use crate::parse::types::{
+    for_::PForInner,
+    match_::{PMatchArm, PMatchCase},
+};
 
 use super::types::*;
 
@@ -133,7 +136,9 @@ impl DIParser {
                     span,
                 )
             },
-            [func_sigil_and_name(name), func_def_args(args), expr(body)] => {
+            [func_sigil_and_name(name),
+             func_def_args(args),
+             expr(body)] => {
                 Spanned::new(
                     PVal::FuncLet {
                         name: name.into_boxed(),
@@ -145,7 +150,9 @@ impl DIParser {
                     span,
                 )
             },
-            [func_sigil_and_name(name), func_def_ret(ret), expr(body)] => {
+            [func_sigil_and_name(name),
+             func_def_ret(ret),
+             expr(body)] => {
                 Spanned::new(
                     PVal::FuncLet {
                         name: name.into_boxed(),
@@ -157,7 +164,10 @@ impl DIParser {
                     span,
                 )
             },
-            [func_sigil_and_name(name), func_def_args(args), func_def_ret(ret), expr(body)] => {
+            [func_sigil_and_name(name),
+             func_def_args(args),
+             func_def_ret(ret),
+             expr(body)] => {
                 Spanned::new(
                     PVal::FuncLet {
                         name: name.into_boxed(),
@@ -169,7 +179,9 @@ impl DIParser {
                     span,
                 )
             },
-            [internal(internal), func_sigil_and_name(name), expr(body)] => {
+            [internal(internal),
+             func_sigil_and_name(name),
+             expr(body)] => {
                 Spanned::new(
                     PVal::FuncLet {
                         name: name.into_boxed(),
@@ -181,7 +193,10 @@ impl DIParser {
                     span,
                 )
             },
-            [internal(internal), func_sigil_and_name(name), func_def_args(args), expr(body)] => {
+            [internal(internal),
+             func_sigil_and_name(name),
+             func_def_args(args),
+             expr(body)] => {
                 Spanned::new(
                     PVal::FuncLet {
                         name: name.into_boxed(),
@@ -193,7 +208,10 @@ impl DIParser {
                     span,
                 )
             },
-            [internal(internal), func_sigil_and_name(name), func_def_ret(ret), expr(body)] => {
+            [internal(internal),
+             func_sigil_and_name(name),
+             func_def_ret(ret),
+             expr(body)] => {
                 Spanned::new(
                     PVal::FuncLet {
                         name: name.into_boxed(),
@@ -234,9 +252,20 @@ impl DIParser {
         use crate::parse::types::grouping::Grouping;
 
         let span = input.as_span();
+
         let group = match_nodes!(input.into_children();
-            [stmt_or_expr(stmts)..] => Grouping::builder().stmts(stmts.collect()).build(),
-            [stmt_or_expr(stmts).., redirect(redirect)] => Grouping::builder().stmts(stmts.collect()).redirect(redirect.into_boxed()).build(),
+            [stmt_or_expr(stmts)..] => {
+                Grouping::builder()
+                    .stmts(stmts.collect())
+                    .build()
+            },
+            [stmt_or_expr(stmts)..,
+             redirect(redirect)] => {
+                Grouping::builder()
+                    .stmts(stmts.collect())
+                    .redirect(redirect.into_boxed())
+                    .build()
+            }
         );
 
         Ok(Spanned::new(PVal::Grouping(group), span))
@@ -253,40 +282,80 @@ impl DIParser {
         use crate::parse::types::for_::For;
 
         let span = input.as_span();
+
         Ok(match_nodes!(input.into_children();
-            [for_inner(loop_), expr(body)] => Spanned::new(PVal::For(For::builder().loop_(loop_).body(body.into_boxed()).build()), span),
+            [for_inner(loop_), expr(body)] => {
+                Spanned::new(PVal::For(
+                    For::builder()
+                        .loop_(loop_)
+                        .body(body.into_boxed())
+                        .build()),
+                span)
+            }
         ))
     }
 
     fn for_inner(input: Node) -> DResult<Spanned<PForInner>> {
         let span = input.as_span();
+
         Ok(match_nodes!(input.into_children();
-            [ident(bind), expr(expr)] => Spanned::new(PForInner::builder()
-                    .bind(unsafe { bind.into_ident_unchecked() })
-                    .expr(expr.into_boxed())
-                    .build(),
-                span),
+            [ident(bind), expr(expr)] => {
+                Spanned::new(
+                    PForInner::builder()
+                        .bind(unsafe { bind.into_ident_unchecked() })
+                        .expr(expr.into_boxed())
+                        .build(),
+                span)
+            }
         ))
     }
 
     fn match_expr(input: Node) -> DResult<SpannedPVal> {
+        use crate::parse::types::match_::Match;
+
         let span = input.as_span();
-        let arms = match_nodes!(input.into_children();
-            [expr(expr), match_arm(arm), match_arm(rest)..] => PVal::Match { expr: expr.into_boxed(), arms: {
+
+        let match_ = match_nodes!(input.into_children();
+            [expr(expr),
+             match_arm(arm),
+             match_arm(rest)..] => {
                 let mut v = vec![arm];
                 v.extend(rest);
-                v.into_boxed_slice()
-            } },
-            [expr(expr), match_arm(arm)] => PVal::Match { expr: expr.into_boxed(), arms: Box::new([arm]) },
+
+                PVal::Match(
+                    Match::builder()
+                        .expr(expr.into_boxed())
+                        .arms(v.into_boxed_slice())
+                        .build(),
+                )
+            },
+            [expr(expr),
+             match_arm(arm)] => {
+                PVal::Match(
+                    Match::builder()
+                        .expr(expr.into_boxed())
+                        .arms(Box::new([arm]))
+                        .build(),
+                )
+            }
         );
 
-        Ok(Spanned::new(arms, span))
+        Ok(Spanned::new(match_, span))
     }
 
     fn match_arm(input: Node) -> DResult<Spanned<PMatchArm>> {
         let span = input.as_span();
+
         Ok(match_nodes!(input.into_children();
-            [result_branch(res), ident(inner), expr(expr)] => Spanned::new(PMatchArm { res, inner: unsafe { inner.into_ident_unchecked() }, expr: expr.into_boxed() }, span)
+            [result_branch(res), ident(inner), expr(expr)] => {
+                Spanned::new(
+                    PMatchArm::builder()
+                        .res(res)
+                        .inner(unsafe { inner.into_ident_unchecked() })
+                        .expr(expr.into_boxed())
+                        .build(),
+                span)
+            }
         ))
     }
 
@@ -610,9 +679,11 @@ mod complex_parsing {
         let input = inputs.single().expect("expected only one root node");
         let match_ = DIParser::match_expr(input).expect("failed to parse `match_expr`");
 
-        let (expr, arms) = unsafe { match_.node.into_match_unchecked() };
+        let match_ = unsafe { match_.node.into_match_unchecked() };
 
-        assert!(matches!(**expr, PVal::FuncCall { .. }));
+        let arms = match_.arms_raw();
+
+        assert!(matches!(***match_.expr_raw(), PVal::FuncCall { .. }));
 
         assert_eq!(arms.len(), 2);
 

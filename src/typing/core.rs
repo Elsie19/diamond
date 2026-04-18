@@ -60,15 +60,15 @@ impl<'a> AstWalker<'a> {
                     Self::visit_function(redir, table);
                 }
             }
-            PVal::Match { expr, arms } => {
-                Self::visit_function(expr, table);
-                for arm in arms {
+            PVal::Match(match_) => {
+                Self::visit_function(match_.expr_raw(), table);
+                for arm in match_.arms_raw() {
                     Self::visit_function(&arm.expr, table);
                 }
             }
             PVal::For(for_) => {
-                Self::visit_function(&for_.loop_raw().expr_raw(), table);
-                Self::visit_function(&for_.body_raw(), table);
+                Self::visit_function(for_.loop_raw().expr_raw(), table);
+                Self::visit_function(for_.body_raw(), table);
             }
             PVal::Let { name: _, expr } => {
                 Self::visit_function(expr, table);
