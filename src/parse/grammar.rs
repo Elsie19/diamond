@@ -78,10 +78,22 @@ impl DIParser {
     }
 
     fn assign_expr(input: Node) -> DResult<SpannedPVal> {
+        use crate::parse::types::let_::Let;
+
         let span = input.as_span();
+
         Ok(match_nodes!(input.into_children();
             // SAFETY: `ident` returns a [`PAtomic`] but underneath we know it's a string.
-            [ident(name), expr(expr)] => Spanned::new(PVal::Let { name: unsafe { name.into_ident_unchecked() }, expr: expr.into_boxed() }, span),
+            [ident(name),
+             expr(expr)] => {
+                Spanned::new(
+                    PVal::Let(
+                        Let::builder()
+                            .name(unsafe { name.into_ident_unchecked() })
+                            .expr(expr.into_boxed())
+                            .build()),
+                span)
+            }
         ))
     }
 
@@ -550,17 +562,17 @@ mod simple_parsing {
         let input = inputs.single().expect("expected only one root node");
         let assign = DIParser::assign_expr(input).expect("failed to parse `assign_expr`");
 
-        let (ident, expr) = unsafe { assign.node.into_let_unchecked() };
+        let assign = unsafe { assign.as_let_unchecked() };
 
         let expr = unsafe {
-            expr.node
-                .into_atomic_unchecked()
-                .node
-                .into_integer_unchecked()
+            assign
+                .expr_raw()
+                .as_atomic_unchecked()
+                .as_integer_unchecked()
         };
 
-        assert_eq!(ident, "a");
-        assert_eq!(expr, 0);
+        assert_eq!(assign.name(), "a");
+        assert_eq!(*expr, 0);
     }
 }
 

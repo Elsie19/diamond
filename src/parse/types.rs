@@ -2,6 +2,7 @@ pub mod for_;
 pub mod funccall;
 pub mod funclet;
 pub mod grouping;
+pub mod let_;
 pub mod match_;
 
 use std::ops::Deref;
@@ -107,10 +108,7 @@ pub enum PVal<'a> {
     Grouping(grouping::Grouping<'a>),
     Match(match_::Match<'a>),
     For(for_::For<'a>),
-    Let {
-        name: SpannedStr<'a>,
-        expr: BPVal<'a>,
-    },
+    Let(let_::Let<'a>),
     Expr(BPVal<'a>),
     Stmt(BPVal<'a>),
 }

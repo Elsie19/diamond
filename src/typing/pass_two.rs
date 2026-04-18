@@ -304,8 +304,10 @@ impl<'a> TypeChecker<'a> {
 
                 Ok(for_ret_ty)
             }
-            PVal::Let { name, expr } => {
-                let ty = self.inner(expr)?;
+            PVal::Let(let_) => {
+                let ty = self.inner(let_.expr_raw())?;
+
+                let name = let_.name_raw();
 
                 self.scopes.insert(name, name.span(), ty.clone());
                 Ok(ty)
