@@ -51,17 +51,9 @@ impl<'a> AstWalker<'a> {
                     );
                 }
             }
-            PVal::Grouping {
-                stmts,
-                return_expr,
-                redirect,
-            } => {
+            PVal::Grouping { stmts, redirect } => {
                 for stmt in stmts {
                     Self::visit_function(stmt, table);
-                }
-
-                if let Some(return_) = return_expr {
-                    Self::visit_function(return_, table);
                 }
 
                 if let Some(redir) = redirect {

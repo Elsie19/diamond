@@ -208,20 +208,19 @@ impl DIParser {
 
     fn grouping(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
-        let (stmts, return_expr, redirect) = match_nodes!(input.into_children();
-            [stmt(stmts)..] => (stmts.collect(), None, None),
-            [stmt(stmts).., expr(ret)] => (stmts.collect(), Some(ret.into_boxed()), None),
-            [stmt(stmts).., redirect(redirect)] => (stmts.collect(), None, Some(redirect.into_boxed())),
-            [stmt(stmts).., expr(ret), redirect(redirect)] => (stmts.collect(), Some(ret.into_boxed()), Some(redirect.into_boxed())),
+        let (stmts, redirect) = match_nodes!(input.into_children();
+            [stmt_or_expr(stmts)..] => (stmts.collect(), None),
+            [stmt_or_expr(stmts).., redirect(redirect)] => (stmts.collect(), Some(redirect.into_boxed())),
+            [stmt(stmts).., redirect(redirect)] => (stmts.collect(), Some(redirect.into_boxed())),
         );
 
-        Ok(Spanned::new(
-            PVal::Grouping {
-                stmts,
-                return_expr,
-                redirect,
-            },
-            span,
+        Ok(Spanned::new(PVal::Grouping { stmts, redirect }, span))
+    }
+
+    fn stmt_or_expr(input: Node) -> DResult<SpannedPVal> {
+        Ok(match_nodes!(input.into_children();
+            [stmt(stmt)] => stmt,
+            [expr(expr)] => expr,
         ))
     }
 

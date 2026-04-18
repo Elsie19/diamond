@@ -106,7 +106,6 @@ pub enum PVal<'a> {
     },
     Grouping {
         stmts: Box<[Spanned<'a, PVal<'a>>]>,
-        return_expr: Option<BPVal<'a>>,
         redirect: Option<BPVal<'a>>,
     },
     Match {

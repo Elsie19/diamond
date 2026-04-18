@@ -23,7 +23,9 @@ func_def_args = { func_arg ~ ("," ~ func_arg)* }
 
 func_arg = { ident ~ ":" ~ type_name }
 
-grouping = { "{" ~ stmt* ~ expr? ~ "}" ~ redirect? }
+grouping = { "{" ~ stmt_or_expr* ~ "}" ~ redirect? }
+
+stmt_or_expr = { stmt | expr }
 
 func_expr = { func_sigil_and_name ~ "(" ~ func_call_args? ~ ")" ~ result_unwrap? }
 

@@ -201,12 +201,10 @@ impl<'a> TypeChecker<'a> {
 
                 Ok(ret_ty)
             }
-            PVal::Grouping {
-                stmts,
-                return_expr,
-                redirect,
-            } => {
+            PVal::Grouping { stmts, redirect } => {
                 self.scopes.push();
+
+                let stmts = stmts.iter().as_slice();
 
                 for stmt in stmts {
                     self.check_node(stmt)?;
@@ -226,8 +224,8 @@ impl<'a> TypeChecker<'a> {
                     }
                 }
 
-                let result = if let Some(expr) = return_expr {
-                    self.inner(expr)?
+                let result = if let Some(expr) = stmts.last() {
+                    self.check_inner(expr, expr.span())?
                 } else {
                     /*
                      * Remember that:

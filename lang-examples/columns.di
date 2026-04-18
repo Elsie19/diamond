@@ -24,6 +24,14 @@ let @last(lst: [string]): string = for (line in lst) {
         line
 };
 
+let @testing(): integer = {
+    for (line in ["one", "two", "three"]) {
+        @printf("%s", line);
+    }
+
+    ""
+};
+
 # TODO: Remove
 let ARGV = ["one", "two", "three"];
 let STREAM = ["bla"];
@@ -47,7 +55,7 @@ let output = @open(@create(@file("kvs.txt"))!)!; # ty : stream
         let line_split = @split(line, ",");
         let txt = @sprintf("%s\n", @join_str(line_split, ","));
         @tee(output, txt);
-    };
+    }
 
     for (line in ["foo", "bar", "baz"]) {
         @printf("%s", line);
