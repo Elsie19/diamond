@@ -121,9 +121,6 @@ pub enum PVal<'a> {
         name: SpannedStr<'a>,
         expr: BPVal<'a>,
     },
-    Rust {
-        inner: BPVal<'a>,
-    },
     Expr(BPVal<'a>),
     Stmt(BPVal<'a>),
 }
@@ -140,7 +137,6 @@ impl PVal<'_> {
             Self::FuncLet { .. } => "FuncLet",
             Self::FuncCall { .. } => "FuncCall",
             Self::Grouping { .. } => "Grouping",
-            Self::Rust { .. } => "Rust",
         }
     }
 }

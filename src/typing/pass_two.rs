@@ -341,7 +341,6 @@ impl<'a> TypeChecker<'a> {
                 self.scopes.insert(name, name.span(), ty.clone());
                 Ok(ty)
             }
-            PVal::Rust { inner } => self.check_inner(&inner.node, inner.span()),
             PVal::Expr(spanned) | PVal::Stmt(spanned) => {
                 self.check_inner(&spanned.node, spanned.span())
             }

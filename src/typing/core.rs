@@ -81,9 +81,6 @@ impl<'a> AstWalker<'a> {
             PVal::Let { name: _, expr } => {
                 Self::visit_function(expr, table);
             }
-            PVal::Rust { inner } => {
-                Self::visit_function(inner, table);
-            }
             PVal::Stmt(spanned) | PVal::Expr(spanned) => {
                 Self::visit_function(spanned, table);
             }

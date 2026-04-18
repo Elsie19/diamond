@@ -7,7 +7,6 @@ expr = {
   | func_def_expr
   | assign_expr
   | func_expr
-  | rust_expr
   | grouping
   | value
 }
@@ -58,8 +57,6 @@ result_unwrap = { "!" }
 for_expr = { "for" ~ "(" ~ for_inner ~ ")" ~ expr }
 
 for_inner = { ident ~ "in" ~ expr }
-
-rust_expr = { "rust" ~ "{" ~ (stmt | expr) ~ "}" }
 
 redirect = { "<" ~ expr }
 
