@@ -1,44 +1,16 @@
-use std::{collections::HashSet, fmt::Display};
-
 use crate::typing::types::Type;
 
-#[derive(Debug)]
-pub struct VarGen {
-    store: HashSet<String>,
-}
+/// Various ways of generating variable names.
+pub mod vargen_strategies;
 
-impl Default for VarGen {
-    fn default() -> Self {
-        Self {
-            store: HashSet::new(),
-        }
-    }
-}
+pub trait VarGenerator {
+    /// Initialize variable generator.
+    fn init() -> Self;
 
-impl VarGen {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn var<S>(&mut self, str: S) -> &str
+    /// Generate fresh variable name.
+    fn fresh<S>(&mut self, str: S) -> String
     where
-        S: AsRef<str>,
-    {
-        let mut num = 0;
-        loop {
-            num += 1;
-            let id = format!("{}_{}", Self::normalize(str.as_ref()), num);
-
-            if self.store.insert(id.clone()) {
-                return self.store.get(&id).expect("checked above");
-            }
-        }
-    }
-
-    fn normalize(str: &str) -> String {
-        let str = str.replace(['_', '-'], "");
-        str.chars().filter(|c| c.is_ascii_alphabetic()).collect()
-    }
+        S: AsRef<str>;
 }
 
 #[derive(Debug)]

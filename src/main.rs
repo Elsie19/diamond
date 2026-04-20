@@ -14,7 +14,10 @@ use miette::{IntoDiagnostic, Result};
 
 use parse::grammar::parse_di;
 
-use crate::typing::{core::AstWalker, pass_two::TypeChecker};
+use crate::typing::{
+    core::AstWalker, pass_two::TypeChecker,
+    strata::vargen_strategies::interpreter::VarGenInterpreter,
+};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -35,8 +38,10 @@ fn main() -> Result<()> {
 
     let funcs = walker.collect_function_defs();
 
-    let mut checker = TypeChecker::new(&funcs, &file, &string);
+    let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
     let _ = checker.check_program(&program)?;
+
+    dbg!(checker);
 
     Ok(())
 }

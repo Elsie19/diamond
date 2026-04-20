@@ -17,17 +17,17 @@ use crate::{
     typing::{
         core::ScopeStack,
         pass_one::{self, FuncTable},
-        strata::{IR, IRMatchArm, VarGen},
+        strata::{IR, IRMatchArm, VarGenerator},
         types::Type,
     },
 };
 
 #[derive(Debug)]
-pub struct TypeChecker<'a> {
+pub struct TypeChecker<'a, G> {
     funcs: &'a FuncTable<'a>,
     scopes: ScopeStack<'a>,
     source: NamedSource<String>,
-    var_gen: VarGen,
+    var_gen: G,
     ir: Vec<IR>,
 }
 
@@ -64,7 +64,10 @@ pub enum TypeCheckError {
     },
 }
 
-impl<'a> TypeChecker<'a> {
+impl<'a, G> TypeChecker<'a, G>
+where
+    G: VarGenerator,
+{
     pub fn new<T>(funcs: &'a FuncTable<'a>, file_name: &'a str, prog_text: &T) -> Self
     where
         T: ToString,
@@ -73,7 +76,7 @@ impl<'a> TypeChecker<'a> {
             funcs,
             scopes: ScopeStack::new(),
             source: NamedSource::new(file_name, prog_text.to_string()).with_language("diamond"),
-            var_gen: VarGen::new(),
+            var_gen: G::init(),
             ir: Vec::new(),
         }
     }
@@ -122,7 +125,7 @@ impl<'a> TypeChecker<'a> {
             PVal::Expr(spanned) => self.check_inner(&spanned.node, spanned.span()),
             // Type check everything inside but it still returns a [`Type::Unit`] by design.
             PVal::Stmt(spanned) => {
-                self.check_inner(&spanned.node, spanned.span())?;
+                let _ = self.check_inner(&spanned.node, spanned.span())?;
                 Ok(Type::Unit)
             }
         }
@@ -165,7 +168,7 @@ impl<'a> TypeChecker<'a> {
 
         let bind_name = for_.loop_raw().bind_raw();
 
-        let unique = self.var_gen.var(**bind_name);
+        let unique = self.var_gen.fresh(**bind_name);
 
         let bind = unique.to_string();
 
@@ -220,7 +223,7 @@ impl<'a> TypeChecker<'a> {
                 PMatchCase::Err(_) => (err_ty.clone(), false),
             };
 
-            let unique = self.var_gen.var(arm.res.name());
+            let unique = self.var_gen.fresh(arm.res.name());
 
             let unique = unique.to_string();
 
@@ -276,12 +279,12 @@ impl<'a> TypeChecker<'a> {
         debug_assert_eq!(expr_ir.len(), 1);
 
         let name = let_.name_raw();
-        let unique = self.var_gen.var(**name);
+        let unique = self.var_gen.fresh(**name);
 
-        self.scopes.insert(name, name.span(), ty.clone(), unique);
+        self.scopes.insert(name, name.span(), ty.clone(), &unique);
 
         self.ir.push(IR::Let {
-            name: unique.to_string(),
+            name: unique,
             ty: ty.clone(),
             value: expr_ir,
         });
@@ -304,7 +307,7 @@ impl<'a> TypeChecker<'a> {
                     &arg.name,
                     arg.name.span(),
                     arg.ty.clone().into(),
-                    self.var_gen.var(*arg.name),
+                    self.var_gen.fresh(*arg.name),
                 );
             }
         }
@@ -358,6 +361,7 @@ impl<'a> TypeChecker<'a> {
 
         let prev_len = self.ir.len();
 
+        #[allow(unused_assignments) /* I KNOW CLIPPY OMFG */]
         let mut last_val_ty = Type::Unit;
         let mut last_expr_end = None;
 
@@ -366,6 +370,7 @@ impl<'a> TypeChecker<'a> {
                 last_val_ty = Type::Unit;
             }
             [rest @ .., last] => {
+                #[allow(unused_assignments) /* I'm gonna shoot you, Clippy */]
                 for stmt in rest {
                     last_val_ty = self.check_node(stmt)?;
                 }
