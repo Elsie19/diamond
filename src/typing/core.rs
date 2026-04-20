@@ -77,28 +77,24 @@ impl<'a> AstWalker<'a> {
 #[derive(Debug)]
 pub struct ScopeStack<'a> {
     scopes: Vec<HashMap<&'a str, (pest::Span<'a>, Type)>>,
-    cur_scope: usize,
 }
 
 impl<'a> ScopeStack<'a> {
     pub fn new() -> Self {
         Self {
             scopes: vec![HashMap::new()],
-            cur_scope: 0,
         }
     }
 
     pub fn scope(&self) -> usize {
-        self.cur_scope
+        self.scopes.len() - 1
     }
 
     pub fn push(&mut self) {
-        self.cur_scope += 1;
         self.scopes.push(HashMap::new());
     }
 
     pub fn pop(&mut self) {
-        self.cur_scope -= 1;
         self.scopes
             .pop()
             .expect("global scope popped. you're fucked");
@@ -111,8 +107,8 @@ impl<'a> ScopeStack<'a> {
 
     pub fn get(&self, name: &str) -> Option<&Type> {
         for scope in self.scopes.iter().rev() {
-            if let Some(ty) = scope.get(name) {
-                return Some(&ty.1);
+            if let Some((_, ty)) = scope.get(name) {
+                return Some(ty);
             }
         }
         None

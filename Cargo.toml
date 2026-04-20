@@ -7,6 +7,7 @@ edition = "2024"
 clap = { version = "4.6.0", features = ["derive"] }
 enum-as-inner = "0.7.0"
 miette = { version = "7.6.0", features = ["fancy"] }
+nanoid = "0.5.0"
 pest = { version = "2.8.6", features = ["miette-error"] }
 pest_consume = { git = "https://github.com/Nadrieril/pest_consume", version = "1.1.3" }
 thiserror = "2.0.18"
