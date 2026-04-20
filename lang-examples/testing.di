@@ -6,5 +6,5 @@ let @testing(): integer = {
         @atoi(line)!
     }
 
-    0;
+    0
 };

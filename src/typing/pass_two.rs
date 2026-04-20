@@ -17,6 +17,7 @@ use crate::{
     typing::{
         core::ScopeStack,
         pass_one::{self, FuncTable},
+        strata::web::Web,
         types::Type,
     },
 };
@@ -26,6 +27,7 @@ pub struct TypeChecker<'a> {
     funcs: &'a FuncTable<'a>,
     scopes: ScopeStack<'a>,
     source: NamedSource<String>,
+    web: Web,
 }
 
 #[derive(Debug, Error, Diagnostic)]
@@ -70,6 +72,7 @@ impl<'a> TypeChecker<'a> {
             funcs,
             scopes: ScopeStack::new(),
             source: NamedSource::new(file_name, prog_text.to_string()).with_language("diamond"),
+            web: Web::new(),
         }
     }
 
@@ -372,7 +375,10 @@ impl<'a> TypeChecker<'a> {
 
     fn check_atomic(&mut self, atom: &'a PAtomic<'a>) -> Result<Type, TypeCheckError> {
         match atom {
-            PAtomic::Integer(_) => Ok(Type::Integer),
+            PAtomic::Integer(_) => {
+                self.web.insert(Type::Integer);
+                Ok(Type::Integer)
+            }
             PAtomic::String(_) => Ok(Type::String),
             PAtomic::Array(spanned) => {
                 let elems = &spanned.node.node;

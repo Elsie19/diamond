@@ -38,5 +38,7 @@ fn main() -> Result<()> {
     let mut checker = TypeChecker::new(&funcs, &file, &string);
     let typed_ir = checker.check_program(&program)?;
 
+    dbg!(checker);
+
     Ok(())
 }
