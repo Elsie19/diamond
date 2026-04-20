@@ -100,6 +100,10 @@ impl<'a, T> Spanned<'a, T> {
     pub const fn span(&self) -> pest::Span<'a> {
         self.span
     }
+
+    pub fn pretty_span(&self) -> String {
+        format!("[{}..{}]", self.span().start(), self.span().end())
+    }
 }
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -150,6 +154,28 @@ impl<'a> PAtomic<'a> {
             Self::Integer(i) => i.span,
             Self::Unit(u) => u.span,
             Self::Result(r) => r.span,
+        }
+    }
+
+    pub const fn kind(&self) -> &'static str {
+        match self {
+            PAtomic::Integer(_) => "Integer",
+            PAtomic::String(_) => "String",
+            PAtomic::Array(_) => "Array",
+            PAtomic::Ident(_) => "Ident",
+            PAtomic::Unit(_) => "Unit",
+            PAtomic::Result(_) => "Result",
+        }
+    }
+
+    pub fn pretty_span(&self) -> String {
+        match self {
+            PAtomic::Integer(spanned) => spanned.pretty_span(),
+            PAtomic::String(spanned) => spanned.pretty_span(),
+            PAtomic::Array(spanned) => spanned.pretty_span(),
+            PAtomic::Ident(spanned) => spanned.pretty_span(),
+            PAtomic::Unit(spanned) => spanned.pretty_span(),
+            PAtomic::Result(spanned) => spanned.pretty_span(),
         }
     }
 }

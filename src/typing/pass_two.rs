@@ -270,6 +270,7 @@ impl<'a> TypeChecker<'a> {
     fn check_let(&mut self, let_: &'a Let<'a>) -> Result<Type, TypeCheckError> {
         let prev_len = self.ir.len();
         let ty = self.inner(let_.expr_raw())?;
+
         let expr_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
 
         debug_assert_eq!(expr_ir.len(), 1);
@@ -381,6 +382,7 @@ impl<'a> TypeChecker<'a> {
         let redirect_ir = if let Some(expr) = group.redirect() {
             let prev_len_redirect = self.ir.len();
             let got = self.inner(expr)?;
+
             if !matches!(got, Type::Stream) {
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::MismatchedType {
