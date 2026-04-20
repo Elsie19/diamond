@@ -76,7 +76,7 @@ impl<'a> AstWalker<'a> {
 
 #[derive(Debug)]
 pub struct ScopeStack<'a> {
-    scopes: Vec<HashMap<&'a str, (pest::Span<'a>, Type)>>,
+    scopes: Vec<HashMap<&'a str, (pest::Span<'a>, Type, String)>>,
 }
 
 impl<'a> ScopeStack<'a> {
@@ -100,14 +100,14 @@ impl<'a> ScopeStack<'a> {
             .expect("global scope popped. you're fucked");
     }
 
-    pub fn insert(&mut self, name: &'a str, span: pest::Span<'a>, ty: Type) {
+    pub fn insert<T>(&mut self, name: &'a str, span: pest::Span<'a>, ty: Type, id: T) where T: ToString {
         let scope = self.scopes.last_mut().unwrap();
-        scope.insert(name, (span, ty));
+        scope.insert(name, (span, ty, id.to_string()));
     }
 
     pub fn get(&self, name: &str) -> Option<&Type> {
         for scope in self.scopes.iter().rev() {
-            if let Some((_, ty)) = scope.get(name) {
+            if let Some((_, ty, _)) = scope.get(name) {
                 return Some(ty);
             }
         }
@@ -116,10 +116,16 @@ impl<'a> ScopeStack<'a> {
 
     pub fn get_span(&self, name: &str) -> Option<&pest::Span<'_>> {
         for scope in self.scopes.iter().rev() {
-            if let Some((span, _)) = scope.get(name) {
+            if let Some((span, _, _)) = scope.get(name) {
                 return Some(span);
             }
         }
         None
+    }
+
+    pub fn get_unique_ident(&self, name: &str) -> Option<(Type, String)> {
+        self.scopes.iter().rev().find_map(|scope| {
+            scope.get(name).map(|(_, ty, unique)| (ty.clone(), unique.clone()))
+        })
     }
 }

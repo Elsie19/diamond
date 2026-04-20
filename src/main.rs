@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     let funcs = walker.collect_function_defs();
 
     let mut checker = TypeChecker::new(&funcs, &file, &string);
-    let typed_ir = checker.check_program(&program)?;
+    let _ = checker.check_program(&program)?;
 
     dbg!(checker);
 

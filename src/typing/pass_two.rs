@@ -17,7 +17,7 @@ use crate::{
     typing::{
         core::ScopeStack,
         pass_one::{self, FuncTable},
-        strata::IR,
+        strata::{IR, IRMatchArm, VarGen},
         types::Type,
     },
 };
@@ -27,6 +27,7 @@ pub struct TypeChecker<'a> {
     funcs: &'a FuncTable<'a>,
     scopes: ScopeStack<'a>,
     source: NamedSource<String>,
+    var_gen: VarGen,
     ir: Vec<IR>,
 }
 
@@ -72,6 +73,7 @@ impl<'a> TypeChecker<'a> {
             funcs,
             scopes: ScopeStack::new(),
             source: NamedSource::new(file_name, prog_text.to_string()).with_language("diamond"),
+            var_gen: VarGen::new(),
             ir: Vec::new(),
         }
     }
@@ -82,6 +84,10 @@ impl<'a> TypeChecker<'a> {
 
     fn span(&self, span: pest::Span<'a>) -> SourceSpan {
         spest_to_smiette(span)
+    }
+
+    pub fn ir(&self) -> &[IR] {
+        &self.ir
     }
 
     pub fn check_program(&mut self, program: &'a UntypedAst<'a>) -> Result<&[IR], TypeCheckError> {
@@ -125,7 +131,10 @@ impl<'a> TypeChecker<'a> {
     fn check_for(&mut self, for_: &'a For<'a>) -> Result<Type, TypeCheckError> {
         let loop_expr = for_.loop_raw().expr_raw();
 
+        let prev_iter_len = self.ir.len();
         let iter_ty = self.inner(loop_expr)?;
+
+        let iter_ir = self.ir.drain(prev_iter_len..).collect::<Vec<_>>();
 
         let elem_ty = if let Type::Array(inner) = iter_ty {
             *inner
@@ -154,15 +163,26 @@ impl<'a> TypeChecker<'a> {
 
         self.scopes.push();
 
-        self.scopes.insert(
-            for_.loop_raw().bind_raw(),
-            for_.loop_raw().bind_raw().span(),
-            elem_ty,
-        );
+        let bind_name = for_.loop_raw().bind_raw();
 
+        let unique = self.var_gen.var(**bind_name);
+
+        let bind = unique.to_string();
+
+        self.scopes
+            .insert(bind_name.node, bind_name.span(), elem_ty, unique);
+
+        let prev_body_len = self.ir.len();
         let for_ret_ty = self.inner(for_.body_raw())?;
+        let body_ir = self.ir.drain(prev_body_len..).collect::<Vec<_>>();
 
         self.scopes.pop();
+
+        self.ir.push(IR::For {
+            bind,
+            iter: iter_ir,
+            body: body_ir,
+        });
 
         Ok(for_ret_ty)
     }
@@ -170,7 +190,9 @@ impl<'a> TypeChecker<'a> {
     fn check_match(&mut self, match_: &'a Match<'a>) -> Result<Type, TypeCheckError> {
         let expr_raw = match_.expr_raw();
 
+        let prev_expr_len = self.ir.len();
         let expr_ty = self.inner(expr_raw)?;
+        let expr_ir = self.ir.drain(prev_expr_len..).collect::<Vec<_>>();
 
         let (ok_ty, err_ty) = match expr_ty {
             Type::Result(ok, err) => (*ok, *err),
@@ -186,26 +208,37 @@ impl<'a> TypeChecker<'a> {
 
         let mut result_ty: Option<Type> = None;
         let mut last_span = None;
+        let mut arms_ir = vec![];
 
         for arm in match_.arms_raw() {
             self.scopes.push();
 
-            let cur = match &arm.res {
-                PMatchCase::Ok(_) => {
-                    self.scopes
-                        .insert(&arm.inner, arm.inner.span(), ok_ty.clone());
-                    arm.expr.span()
-                }
-                PMatchCase::Err(_) => {
-                    self.scopes
-                        .insert(&arm.inner, arm.inner.span(), err_ty.clone());
-                    arm.expr.span()
-                }
+            let prev_arm_len = self.ir.len();
+
+            let (bind_ty, is_ok) = match &arm.res {
+                PMatchCase::Ok(_) => (ok_ty.clone(), true),
+                PMatchCase::Err(_) => (err_ty.clone(), false),
             };
 
+            let unique = self.var_gen.var(arm.res.name());
+
+            let unique = unique.to_string();
+
+            self.scopes
+                .insert(&arm.inner, arm.inner.span(), bind_ty, &unique);
+
+            let cur = arm.expr.span();
+
             let expected = self.inner(&arm.expr)?;
+            let body_ir = self.ir.drain(prev_arm_len..).collect::<Vec<_>>();
 
             self.scopes.pop();
+
+            arms_ir.push(IRMatchArm {
+                bind: unique,
+                is_ok,
+                body: body_ir,
+            });
 
             if let Some(got) = &result_ty {
                 if *got != expected {
@@ -226,15 +259,32 @@ impl<'a> TypeChecker<'a> {
             }
         }
 
+        self.ir.push(IR::Match {
+            expr: expr_ir,
+            arms: arms_ir,
+        });
+
         Ok(result_ty.unwrap_or_default())
     }
 
     fn check_let(&mut self, let_: &'a Let<'a>) -> Result<Type, TypeCheckError> {
+        let prev_len = self.ir.len();
         let ty = self.inner(let_.expr_raw())?;
+        let expr_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
+
+        debug_assert_eq!(expr_ir.len(), 1);
 
         let name = let_.name_raw();
+        let unique = self.var_gen.var(**name);
 
-        self.scopes.insert(name, name.span(), ty.clone());
+        self.scopes.insert(name, name.span(), ty.clone(), unique);
+
+        self.ir.push(IR::Let {
+            name: unique.to_string(),
+            ty: ty.clone(),
+            value: expr_ir,
+        });
+
         Ok(ty)
     }
 
@@ -249,8 +299,12 @@ impl<'a> TypeChecker<'a> {
 
         if let Some(args) = &funclet.args_raw() {
             for arg in &args.node {
-                self.scopes
-                    .insert(&arg.name, arg.name.span(), arg.ty.clone().into());
+                self.scopes.insert(
+                    &arg.name,
+                    arg.name.span(),
+                    arg.ty.clone().into(),
+                    self.var_gen.var(*arg.name),
+                );
             }
         }
 
@@ -301,12 +355,27 @@ impl<'a> TypeChecker<'a> {
 
         let stmts = group.stmts_raw();
 
-        let mut last_val_ty = Type::Unit;
-
         let prev_len = self.ir.len();
 
-        for stmt in stmts {
-            last_val_ty = self.check_node(stmt)?;
+        let mut last_val_ty = Type::Unit;
+        let mut last_expr_end = None;
+
+        match stmts {
+            [] => {
+                last_val_ty = Type::Unit;
+            }
+            [rest @ .., last] => {
+                for stmt in rest {
+                    last_val_ty = self.check_node(stmt)?;
+                }
+
+                let before = self.ir.len();
+                last_val_ty = self.check_node(last)?;
+
+                let mut emitted = self.ir.drain(before..).collect::<Vec<_>>();
+
+                last_expr_end = emitted.pop();
+            }
         }
 
         let redirect_ir = if let Some(expr) = group.redirect() {
@@ -340,6 +409,7 @@ impl<'a> TypeChecker<'a> {
 
         self.ir.push(IR::Grouping {
             inner: inner_ir,
+            expr_end: last_expr_end.map(Box::new),
             redirect: redirect_ir,
         });
 
@@ -376,9 +446,18 @@ impl<'a> TypeChecker<'a> {
             ));
         }
 
+        let mut args_ir = Vec::with_capacity(args.len());
+
         for (slot, (arg_expr, expected)) in args.iter().zip(&def.args).enumerate() {
+            let prev_len = self.ir.len();
+
             let got = self.check_node(arg_expr)?;
+
+            let arg_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
+            args_ir.extend(arg_ir);
+
             let expected = expected.clone();
+
             if got != expected {
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::ArgumentTypeMismatch {
@@ -393,6 +472,8 @@ impl<'a> TypeChecker<'a> {
         }
 
         let mut ret_ty = def.ret.clone();
+
+        let unwrap = func.has_unwrap();
 
         if let Some(unwrap) = func.get_unwrap() {
             match ret_ty {
@@ -410,13 +491,25 @@ impl<'a> TypeChecker<'a> {
             }
         }
 
+        self.ir.push(IR::FuncCall {
+            name: func.name().to_string(),
+            args: args_ir,
+            unwrap,
+        });
+
         Ok(ret_ty)
     }
 
     fn check_atomic(&mut self, atom: &'a PAtomic<'a>) -> Result<Type, TypeCheckError> {
         match atom {
-            PAtomic::Integer(_) => Ok(Type::Integer),
-            PAtomic::String(_) => Ok(Type::String),
+            PAtomic::Integer(i) => {
+                self.ir.push(IR::Integer(**i));
+                Ok(Type::Integer)
+            }
+            PAtomic::String(s) => {
+                self.ir.push(IR::String(s.to_string()));
+                Ok(Type::String)
+            }
             PAtomic::Array(spanned) => {
                 let elems = &spanned.node.node;
 
@@ -425,7 +518,10 @@ impl<'a> TypeChecker<'a> {
                         pass_one::VerifyError::EmptyArrayInfer,
                     )),
                     [first, rest @ ..] => {
+                        let prev_len = self.ir.len();
+
                         let expected = self.check_node(first)?;
+
                         for elem in rest {
                             let got = self.check_node(elem)?;
 
@@ -440,26 +536,52 @@ impl<'a> TypeChecker<'a> {
                                 ));
                             }
                         }
+
+                        let elems_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
+
+                        self.ir.push(IR::Array(elems_ir));
+
                         Ok(Type::Array(Box::new(expected)))
                     }
                 }
             }
             PAtomic::Ident(ident) => {
                 let name = ident.node;
-                self.scopes
-                    .get(name)
-                    .cloned()
-                    .ok_or_else(|| TypeCheckError::UnknownVariable {
+
+                let (ty, unique) = self.scopes.get_unique_ident(name).ok_or_else(|| {
+                    TypeCheckError::UnknownVariable {
                         name: name.to_string(),
                         src: self.src(),
                         bad_bit: self.span(atom.span()),
-                    })
+                    }
+                })?;
+
+                self.ir.push(IR::Ident(unique));
+
+                Ok(ty)
             }
-            PAtomic::Unit(_) => Ok(Type::Unit),
-            PAtomic::Result(spanned) => Ok(Type::Result(
-                Box::new(self.check_atomic(&spanned.0)?),
-                Box::new(self.check_atomic(&spanned.1)?),
-            )),
+            PAtomic::Unit(_) => {
+                self.ir.push(IR::Unit);
+                Ok(Type::Unit)
+            }
+            PAtomic::Result(spanned) => {
+                let prev_len = self.ir.len();
+
+                let ok_ty = self.check_atomic(&spanned.0)?;
+                let err_ty = self.check_atomic(&spanned.1)?;
+
+                let mut parts = self.ir.drain(prev_len..).collect::<Vec<_>>();
+
+                let err_ir = parts.pop().expect("missing err IR");
+                let ok_ir = parts.pop().expect("missing ok IR");
+
+                self.ir.push(IR::Result {
+                    ok: Box::new(ok_ir),
+                    err: Box::new(err_ir),
+                });
+
+                Ok(Type::Result(Box::new(ok_ty), Box::new(err_ty)))
+            }
         }
     }
 }

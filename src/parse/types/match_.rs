@@ -46,3 +46,11 @@ pub enum PMatchCase<'a> {
     Ok(SpannedStr<'a>),
     Err(SpannedStr<'a>),
 }
+
+impl<'a> PMatchCase<'a> {
+    pub fn name(&self) -> &str {
+        match self {
+            PMatchCase::Ok(spanned) | PMatchCase::Err(spanned) => &*spanned
+        }
+    }
+}
