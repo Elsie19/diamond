@@ -13,7 +13,7 @@ All return values.
 For instance:
 
 ```diamond
-let @last(lst: [string]): string = for (line in lst) {
+let last(lst: [string]): string = for (line in lst) {
         line
 };
 ```

@@ -11,7 +11,7 @@ expr = {
   | value
 }
 
-func_sigil_and_name = ${ "@" ~ ident }
+func_sigil_and_name = { ident }
 
 func_def_expr = { "let" ~ internal? ~ func_sigil_and_name ~ "(" ~ func_def_args? ~ ")" ~ func_def_ret? ~ "=" ~ expr }
 
