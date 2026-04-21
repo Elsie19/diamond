@@ -52,6 +52,7 @@ impl<'a> Functions<'a> {
                 sprintf => functions::printf::sprintf,
                 printf => functions::printf::printf,
                 puts => functions::printf::puts,
+                panic => functions::panic::panic,
             },
         }
     }

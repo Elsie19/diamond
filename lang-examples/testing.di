@@ -3,7 +3,7 @@ let ~internal sprintf(format: string, args: [any]): string = ();
 let ~internal puts(format: string): unit = ();
 let ~internal atoi(str: string): result(integer, string) = ();
 let ~internal itoa(str: integer): string = ();
-let ~internal panic(msg: string): unret = ();
+let ~internal panic(format: string, args: [any]): unret = ();
 let ~internal dump_var(var: any): unit = ();
 
 let bla = 0;
@@ -20,3 +20,4 @@ let bla = for (i in [1, 2, 3]) {
 
 let IMHEREHOES = itoa(bla);
 printf("number is `%d` but as string is `%s`!\n", [bla, IMHEREHOES]);
+panic("oopsies: %s\n", ["I fucked up"]);
