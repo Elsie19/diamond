@@ -5,6 +5,8 @@
 # Getting to use Diamond
 
 - [What is Diamond](intro/what-is-diamond.md)
+- [The Basics](writing/basics.md)
+    * [Hello World!](writing/hello-world.md)
 
 # High level concepts
 

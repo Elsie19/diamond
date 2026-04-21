@@ -526,9 +526,10 @@ where
                 let elems = &spanned.node.node;
 
                 match elems.iter().as_slice() {
-                    [] => Err(TypeCheckError::VerifyError(
-                        pass_one::VerifyError::EmptyArrayInfer,
-                    )),
+                    [] => {
+                        self.ir.push(IR::Array(vec![]));
+                        Ok(Type::Array(Box::new(Type::Any)))
+                    }
                     [first, rest @ ..] => {
                         let prev_len = self.ir.len();
 

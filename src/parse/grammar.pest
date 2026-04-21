@@ -40,7 +40,7 @@ result_type = { "result" ~ "(" ~ type_name ~ "," ~ type_name ~ ")" }
 value = { ident | integer | string_lit | array_lit | unit_lit }
 
 string_lit   = @{ "\"" ~ inner_string ~ "\"" }
-inner_string = !{ (!"\"" ~ ANY)* }
+inner_string = !{ " " | (!"\"" ~ ANY)* }
 
 array_lit = { "[" ~ func_call_args? ~ "]" }
 

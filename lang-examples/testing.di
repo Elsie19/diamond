@@ -19,5 +19,10 @@ let bla = for (i in [1, 2, 3]) {
 };
 
 let IMHEREHOES = func(bla);
+printf("Hello, World!\n", []);
 printf("IMHEREHOES is `%s`\n", [IMHEREHOES]);
 printf("number is `%d` but as string is `%s`!\n", [bla, IMHEREHOES]);
+
+for (char in ["H", "e", "l", "l", "o", ",", " ", "W", "o", "r", "l", "d", "!", "\n"]) {
+    printf("%s", [char]);
+};
