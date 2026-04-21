@@ -15,9 +15,19 @@ let func(int: integer): string = {
     itoa(int)
 };
 
+let last(lst: [any]): any = {
+    for (i in lst) {
+        i
+    }
+};
+
 let bla = for (i in [1, 2, 3]) {
     i
 };
+
+let last_num = last([1, 2, 3]);
+
+printf("last_num is `%d`\n", [last_num]);
 
 let IMHEREHOES = func(bla);
 printf("Hello, World!\n", []);
