@@ -1,23 +1,28 @@
 use std::collections::HashMap;
 
 use crate::{
-    interpreter::types::ILitType,
+    interpreter::{
+        stdlib::{Functions, RuntimeFunc},
+        types::ILitType,
+    },
     typing::{pass_one::FuncTable, strata::IR},
 };
 
 #[derive(Debug)]
 pub struct Engine<'a> {
     ir: &'a [IR],
-    funcs: &'a FuncTable<'a>,
+    func_table: &'a FuncTable<'a>,
     vars: HashMap<String, ILitType>,
+    funcs: Functions<'a>,
 }
 
 impl<'a> Engine<'a> {
-    pub fn new(ir: &'a [IR], funcs: &'a FuncTable<'a>) -> Self {
+    pub fn new(ir: &'a [IR], func_table: &'a FuncTable<'a>) -> Self {
         Self {
             ir,
-            funcs,
+            func_table,
             vars: HashMap::new(),
+            funcs: Functions::stdlib(),
         }
     }
 
@@ -65,7 +70,27 @@ impl<'a> Engine<'a> {
                 self.vars.insert(name.clone(), val)
             }
             IR::Match { expr, arms } => todo!("match"),
-            IR::FuncCall { name, args, unwrap } => todo!("funccall"),
+            IR::FuncCall { name, args, unwrap } => {
+                let func = self
+                    .funcs
+                    .resolve(name)
+                    .cloned()
+                    .unwrap_or_else(|| panic!("function `{name}` not found!"));
+
+                let mut evaled_args = Vec::with_capacity(args.len());
+
+                for arg in args {
+                    let val = self.eval(arg).expect("arg produced no value");
+                    evaled_args.push(val);
+                }
+
+                match func {
+                    RuntimeFunc::Internal(f) => f(self, &evaled_args),
+                    RuntimeFunc::User(body) => {
+                        todo!("user functions");
+                    }
+                }
+            }
             IR::Integer(i) => Some(ILitType::Integer(*i)),
             IR::String(s) => Some(ILitType::String(s.to_string())),
             IR::Ident(ident) => self.vars.get(ident).cloned(),

@@ -7,8 +7,8 @@ let bla = 0;
 let foobar = "hello";
 let woah_there = bla;
 
-let bla = for (i in ["one", "two", "three"]) {
-    i;
+let bla = for (i in [1, 2, 3]) {
+    i
 };
 
-panic(bla);
+let IMHEREHOES = itoa(bla);
