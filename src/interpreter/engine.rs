@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     interpreter::{
-        stdlib::{Functions, RuntimeFunc},
+        stdlib::{Functions, RuntimeFunc, UserFunc},
         types::{ILitType, IResultBranch},
     },
     typing::{pass_one::FuncTable, strata::IR},
@@ -64,7 +64,7 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval(&mut self, node: &IR) -> Option<ILitType> {
+    fn eval(&mut self, node: &'a IR) -> Option<ILitType> {
         match node {
             IR::FuncLet {
                 name,
@@ -72,7 +72,17 @@ impl<'a> Engine<'a> {
                 internal: _,
                 ret,
                 body,
-            } => todo!("funclet"),
+            } => {
+                let func = RuntimeFunc::User(UserFunc {
+                    args: args.clone().into_boxed_slice(),
+                    body,
+                    ret: ret.clone(),
+                });
+
+                self.funcs.insert(name, func);
+
+                None
+            }
             IR::Grouping {
                 inner,
                 expr_end,
@@ -124,8 +134,24 @@ impl<'a> Engine<'a> {
 
                 let ret = match func {
                     RuntimeFunc::Internal(f) => f(self, &evaled_args),
-                    RuntimeFunc::User(body) => {
-                        todo!("user functions");
+                    RuntimeFunc::User(func) => {
+                        self.push_frame();
+
+                        for (i, (arg_name, _)) in func.args.iter().enumerate() {
+                            let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
+
+                            self.set_var(arg_name, val);
+                        }
+
+                        let mut last = None;
+
+                        for node in func.body {
+                            last = self.eval(node);
+                        }
+
+                        self.pop_frame();
+
+                        last
                     }
                 };
 
@@ -143,7 +169,7 @@ impl<'a> Engine<'a> {
             }
             IR::Integer(i) => Some(ILitType::Integer(*i)),
             IR::String(s) => Some(ILitType::String(s.to_string())),
-            IR::Ident(ident) => self.get_var(ident).cloned(),
+            IR::Ident(ident) => Some(self.get_var(ident).cloned().expect("could not find ident")),
             IR::Array(irs) => {
                 let mut elems = Vec::with_capacity(irs.len());
                 for elem in irs {
@@ -161,7 +187,7 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval_for_loop(&mut self, bind: &str, iter: &[IR], body: &[IR]) -> Option<ILitType> {
+    fn eval_for_loop(&mut self, bind: &str, iter: &'a [IR], body: &'a [IR]) -> Option<ILitType> {
         debug_assert_eq!(iter.len(), 1);
 
         let iter = self.eval(&iter[0]).expect("iter did not produce value");

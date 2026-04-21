@@ -57,6 +57,10 @@ impl<'a> Functions<'a> {
         }
     }
 
+    pub fn insert<T: ToString>(&mut self, name: &T, func: RuntimeFunc<'a>) {
+        self.funcs.insert(name.to_string(), func);
+    }
+
     pub fn resolve<S: AsRef<str>>(&self, name: S) -> Option<&RuntimeFunc<'a>> {
         self.funcs.get(name.as_ref())
     }

@@ -1,6 +1,7 @@
 use crate::interpreter::{engine::Engine, types::ILitType};
+use std::fmt::Write;
 
-pub fn puts<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType> {
+pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let ILitType::String(s) = &args[0] else {
         unreachable!("oopsies");
     };
@@ -10,18 +11,18 @@ pub fn puts<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType>
     Some(ILitType::Unit)
 }
 
-pub fn printf<'a>(engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType> {
+pub fn printf(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let ret = sprintf(engine, args);
     let Some(ILitType::String(s)) = ret else {
         unreachable!("oopsies");
     };
 
-    print!("{}", s);
+    print!("{s}");
 
     Some(ILitType::Integer(s.len()))
 }
 
-pub fn sprintf<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType> {
+pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let (fmt, args) = match args {
         [fmt] => (fmt, None),
         [fmt, args @ ..] => (fmt, Some(args)),
@@ -37,7 +38,7 @@ pub fn sprintf<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitTy
             ILitType::Array(arr) => arr,
             _ => unreachable!("type checked"),
         },
-        None => return Some(ILitType::String(fmt.to_string())),
+        None => return Some(ILitType::String(fmt.clone())),
     };
 
     // We know at least this much is true.
@@ -51,12 +52,11 @@ pub fn sprintf<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitTy
             match it.next() {
                 Some('n') => buf.push('\n'),
                 Some('t') => buf.push('\t'),
-                Some('\\') => buf.push('\\'),
+                Some('\\') | None => buf.push('\\'),
                 Some(other) => {
                     buf.push('\\');
                     buf.push(other);
                 }
-                None => buf.push('\\'),
             }
             continue;
         }
@@ -72,12 +72,9 @@ pub fn sprintf<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitTy
             continue;
         }
 
-        let spec = match it.next() {
-            Some(s) => s,
-            None => {
-                buf.push('%');
-                break;
-            }
+        let Some(spec) = it.next() else {
+            buf.push('%');
+            break;
         };
 
         let arg = args.get(cur_arg).unwrap_or(&ILitType::Unit);
@@ -94,7 +91,7 @@ pub fn sprintf<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitTy
                     if idx > 0 {
                         buf.push_str(", ");
                     }
-                    buf.push_str(&format!("{:?}", v));
+                    let _ = write!(buf, "{:?}", v);
                 }
 
                 mini_buf.push(']');

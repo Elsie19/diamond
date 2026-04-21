@@ -10,14 +10,14 @@ let bla = 0;
 let foobar = "hello";
 let woah_there = bla;
 
-# let func(int: integer): string = {
-#     itoa(int)
-# };
+let func(int: integer): string = {
+    itoa(int)
+};
 
 let bla = for (i in [1, 2, 3]) {
     i
 };
 
-let IMHEREHOES = itoa(bla);
+let IMHEREHOES = func(bla);
+printf("IMHEREHOES is `%s`\n", [IMHEREHOES]);
 printf("number is `%d` but as string is `%s`!\n", [bla, IMHEREHOES]);
-panic("oopsies: %s\n", ["I fucked up"]);

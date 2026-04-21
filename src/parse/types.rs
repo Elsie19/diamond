@@ -45,7 +45,7 @@ impl<T> Deref for Spanned<'_, T> {
     }
 }
 
-impl<'a, T> MietteSpan for Spanned<'a, T> {
+impl<T> MietteSpan for Spanned<'_, T> {
     fn as_miette_span(&self) -> miette::SourceSpan {
         miette::SourceSpan::from(self.span().start()..self.span().end())
     }

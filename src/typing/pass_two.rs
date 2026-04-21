@@ -299,14 +299,16 @@ where
 
         self.scopes.push();
 
+        let mut lowered_args = vec![];
+
         if let Some(args) = &funclet.args_raw() {
             for arg in &args.node {
-                self.scopes.insert(
-                    &arg.name,
-                    arg.name.span(),
-                    arg.ty.clone().into(),
-                    self.var_gen.fresh(*arg.name),
-                );
+                let unique = self.var_gen.fresh(*arg.name);
+
+                self.scopes
+                    .insert(&arg.name, arg.name.span(), arg.ty.clone().into(), &unique);
+
+                lowered_args.push((unique, arg.ty.clone().into()));
             }
         }
 
@@ -334,16 +336,7 @@ where
 
         self.ir.push(IR::FuncLet {
             name: funclet.name().to_string(),
-            args: funclet
-                .args_raw()
-                .as_ref()
-                .map(|arg| {
-                    arg.node
-                        .iter()
-                        .map(|a| (a.name.to_string(), a.ty.clone().into()))
-                        .collect()
-                })
-                .unwrap_or_default(),
+            args: lowered_args,
             internal: false,
             ret: expected.clone(),
             body: body_ir,

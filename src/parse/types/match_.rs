@@ -47,10 +47,10 @@ pub enum PMatchCase<'a> {
     Err(SpannedStr<'a>),
 }
 
-impl<'a> PMatchCase<'a> {
+impl PMatchCase<'_> {
     pub fn name(&self) -> &str {
         match self {
-            PMatchCase::Ok(spanned) | PMatchCase::Err(spanned) => &*spanned
+            PMatchCase::Ok(spanned) | PMatchCase::Err(spanned) => spanned,
         }
     }
 }
