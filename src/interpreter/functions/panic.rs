@@ -7,6 +7,7 @@ pub fn panic(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
         unreachable!("type checked");
     };
 
-    eprint!("rt panic: {}", s);
+    eprint!("thread 'main' ({}) panicked: {}", std::process::id(), s);
+
     std::process::exit(1)
 }

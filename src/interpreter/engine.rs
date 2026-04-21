@@ -129,8 +129,6 @@ impl<'a> Engine<'a> {
                     panic!("type checked");
                 };
 
-                let mut last = None;
-
                 for arm in arms {
                     let (bind_name, is_ok, body) = {
                         let IRMatchArm { bind, is_ok, body } = arm;
@@ -146,6 +144,8 @@ impl<'a> Engine<'a> {
                     if let Some(val) = active {
                         self.push_frame();
                         self.set_var(bind_name, *val);
+
+                        let mut last = None;
 
                         for node in body {
                             last = self.eval(node);

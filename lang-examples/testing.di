@@ -24,11 +24,11 @@ printf("Hello, World!\n", []);
 printf("IMHEREHOES is `%s`\n", [IMHEREHOES]);
 printf("number is `%d` but as string is `%s`!\n", [bla, IMHEREHOES]);
 
-for (char in ["H", "e", "l", "l", "o", ",", " ", "W", "o", "r", "l", "d", "!", "\n"]) {
-    printf("%s", [char]);
-};
-
 let num = match (testing_branch(1)) {
     ok o = o,
     err e = panic("NUMBER RETURNED IS `%d`\n", [e]),
+};
+
+for (char in ["H", "e", "l", "l", "o", ",", " ", "W", "o", "r", "l", "d", "!", "\n"]) {
+    printf("%s", [char]);
 };
