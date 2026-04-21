@@ -7,6 +7,9 @@ pub mod parse;
 /// Type checker.
 pub mod typing;
 
+/// Interpreter, duh.
+pub mod interpreter;
+
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -14,9 +17,12 @@ use miette::{IntoDiagnostic, Result};
 
 use parse::grammar::parse_di;
 
-use crate::typing::{
-    core::AstWalker, pass_two::TypeChecker,
-    strata::vargen_strategies::interpreter::VarGenInterpreter,
+use crate::{
+    interpreter::engine::Engine,
+    typing::{
+        core::AstWalker, pass_two::TypeChecker,
+        strata::vargen_strategies::interpreter::VarGenInterpreter,
+    },
 };
 
 #[derive(Parser)]
@@ -41,7 +47,11 @@ fn main() -> Result<()> {
     let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
     let _ = checker.check_program(&program)?;
 
-    dbg!(checker);
+    let mut engine = Engine::new(checker.ir(), &funcs);
+
+    engine.run();
+
+    dbg!(&engine);
 
     Ok(())
 }

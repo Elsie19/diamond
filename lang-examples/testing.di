@@ -3,23 +3,12 @@ let ~internal atoi(str: string): result(integer, string) = ();
 let ~internal itoa(str: integer): string = ();
 let ~internal panic(msg: string): unret = ();
 
-let testing(): integer = {
-    for (line in ["1", "2", "3"]) {
-        let bar = 0;
-        let num = match (atoi(line)) {
-            ok o = {
-                let line = 69;
-                printf("%s\n", itoa(line));
-                o
-            },
-            err e = panic("oopsies"),
-        };
-        num
-    }
+let bla = 0;
+let foobar = "hello";
+let woah_there = bla;
 
-    0
+let bla = for (i in ["one", "two", "three"]) {
+    i;
 };
 
-let bla(): integer = {
-    0
-};
+panic(bla);

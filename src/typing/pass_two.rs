@@ -145,14 +145,12 @@ where
             // We can get a little clever here. If what's trying to be used as an
             // iterable is not a constant, but an identifier, we can go find its span
             // and have even nicer error messages.
-            let defined_here = match &***loop_expr {
-                PVal::Atomic(spanned) => match &spanned.node {
-                    PAtomic::Ident(name) => {
-                        self.scopes.get_span(name.node).map(|span| self.span(*span))
-                    }
-                    _ => None,
-                },
-                _ => None,
+            let defined_here = if let PVal::Atomic(spanned) = &***loop_expr
+                && let PAtomic::Ident(name) = &**spanned
+            {
+                self.scopes.get_span(name.node).map(|span| self.span(*span))
+            } else {
+                None
             };
 
             return Err(TypeCheckError::VerifyError(
@@ -478,6 +476,15 @@ where
                         got,
                         src: self.src(),
                         bad_bit: arg_expr.as_miette_span(),
+                        defined_here: if let PVal::Atomic(atomic) = &**arg_expr
+                            && let PAtomic::Ident(ident) = &**atomic
+                        {
+                            self.scopes
+                                .get_span(ident.node)
+                                .map(|span| self.span(*span))
+                        } else {
+                            None
+                        },
                     },
                 ));
             }

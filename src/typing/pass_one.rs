@@ -128,10 +128,13 @@ pub enum VerifyError {
 
         #[label("used here")]
         bad_bit: SourceSpan,
+
+        #[label("defined here")]
+        defined_here: Option<SourceSpan>,
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct FuncTable<'a> {
     pub table: HashMap<&'a str, FuncDef>,
 }
@@ -162,12 +165,14 @@ impl From<FuncLet<'_>> for FuncDef {
 
 impl FuncTable<'_> {
     pub fn new() -> Self {
-        Self {
-            table: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn lookup(&self, name: &str) -> Option<&FuncDef> {
         self.table.get(name)
+    }
+
+    pub fn lookup_ret(&self, name: &str) -> Option<&Type> {
+        self.table.get(name).map(|val| &val.ret)
     }
 }
