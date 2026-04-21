@@ -357,9 +357,40 @@ where
     fn check_grouping(&mut self, group: &'a Grouping<'a>) -> Result<Type, TypeCheckError> {
         self.scopes.push();
 
-        let stmts = group.stmts_raw();
-
         let prev_len = self.ir.len();
+
+        let redirect_ir = if let Some(expr) = group.redirect() {
+            let prev_len_redirect = self.ir.len();
+            let got = self.inner(expr)?;
+
+            if !matches!(got, Type::Stream) {
+                return Err(TypeCheckError::VerifyError(
+                    pass_one::VerifyError::MismatchedType {
+                        expected: Type::Stream,
+                        got,
+                        src: self.src(),
+                        bad_bit: expr.as_miette_span(),
+                    },
+                ));
+            }
+
+            let mut drained = self.ir.drain(prev_len_redirect..).collect::<Vec<_>>();
+            let ir = drained
+                .pop()
+                .expect("redirect produced no IR but we found one above?");
+
+            let stream_name = "STREAM";
+            let unique = self.var_gen.fresh(stream_name);
+
+            self.scopes
+                .insert(stream_name, expr.span(), Type::Stream, &unique);
+
+            Some((Box::new(ir), unique))
+        } else {
+            None
+        };
+
+        let stmts = group.stmts_raw();
 
         #[allow(unused_assignments) /* I KNOW CLIPPY OMFG */]
         let mut last_val_ty = Type::Unit;
@@ -383,32 +414,6 @@ where
                 last_expr_end = emitted.pop();
             }
         }
-
-        let redirect_ir = if let Some(expr) = group.redirect() {
-            let prev_len_redirect = self.ir.len();
-            let got = self.inner(expr)?;
-
-            if !matches!(got, Type::Stream) {
-                return Err(TypeCheckError::VerifyError(
-                    pass_one::VerifyError::MismatchedType {
-                        expected: Type::Stream,
-                        got,
-                        src: self.src(),
-                        bad_bit: expr.as_miette_span(),
-                    },
-                ));
-            }
-
-            let mut drained = self.ir.drain(prev_len_redirect..).collect::<Vec<_>>();
-
-            Some(Box::new(
-                drained
-                    .pop()
-                    .expect("redirect produced no IR but we found one above?"),
-            ))
-        } else {
-            None
-        };
 
         let inner_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
 

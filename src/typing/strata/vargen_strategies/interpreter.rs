@@ -34,7 +34,8 @@ impl VarGenerator for VarGenInterpreter {
 
 impl VarGenInterpreter {
     fn normalize(str: &str) -> String {
-        str.replace('-', "_")
+        str.to_ascii_lowercase()
+            .replace('-', "_")
             .chars()
             .filter(|c| c.is_ascii_alphabetic())
             .collect()

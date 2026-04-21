@@ -25,7 +25,8 @@ pub enum IR {
     Grouping {
         inner: Vec<Self>,
         expr_end: Option<Box<Self>>,
-        redirect: Option<Box<Self>>,
+        /// Expression and binding name.
+        redirect: Option<(Box<Self>, String)>,
     },
     For {
         bind: String,
