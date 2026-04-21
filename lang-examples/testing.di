@@ -5,6 +5,7 @@ let ~internal atoi(str: string): result(integer, string) = ();
 let ~internal itoa(str: integer): string = ();
 let ~internal panic(format: string, args: [any]): unret = ();
 let ~internal dump_var(var: any): unit = ();
+let ~internal testing_branch(int: integer): result(integer, integer) = ();
 
 let bla = 0;
 let foobar = "hello";
@@ -25,4 +26,9 @@ printf("number is `%d` but as string is `%s`!\n", [bla, IMHEREHOES]);
 
 for (char in ["H", "e", "l", "l", "o", ",", " ", "W", "o", "r", "l", "d", "!", "\n"]) {
     printf("%s", [char]);
+};
+
+let num = match (testing_branch(1)) {
+    ok o = o,
+    err e = panic("NUMBER RETURNED IS `%d`\n", [e]),
 };

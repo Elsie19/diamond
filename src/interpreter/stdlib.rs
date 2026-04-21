@@ -53,6 +53,7 @@ impl<'a> Functions<'a> {
                 printf => functions::printf::printf,
                 puts => functions::printf::puts,
                 panic => functions::panic::panic,
+                testing_branch => functions::testing_branch::testing_branch,
             },
         }
     }

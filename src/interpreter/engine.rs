@@ -5,7 +5,10 @@ use crate::{
         stdlib::{Functions, RuntimeFunc, UserFunc},
         types::{ILitType, IResultBranch},
     },
-    typing::{pass_one::FuncTable, strata::IR},
+    typing::{
+        pass_one::FuncTable,
+        strata::{IR, IRMatchArm},
+    },
 };
 
 #[derive(Debug)]
@@ -117,7 +120,44 @@ impl<'a> Engine<'a> {
                 self.set_var(name, val.clone());
                 Some(val)
             }
-            IR::Match { expr, arms } => todo!("match"),
+            IR::Match { expr, arms } => {
+                let expr = self
+                    .eval(&expr[0])
+                    .expect("match expr did not produce value");
+
+                let ILitType::Result(result) = expr else {
+                    panic!("type checked");
+                };
+
+                let mut last = None;
+
+                for arm in arms {
+                    let (bind_name, is_ok, body) = {
+                        let IRMatchArm { bind, is_ok, body } = arm;
+                        (bind, is_ok, body)
+                    };
+
+                    let active = match (&result, is_ok) {
+                        (IResultBranch::Ok(v), true) => Some(v.clone()),
+                        (IResultBranch::Err(v), false) => Some(v.clone()),
+                        _ => None,
+                    };
+
+                    if let Some(val) = active {
+                        self.push_frame();
+                        self.set_var(bind_name, *val);
+
+                        for node in body {
+                            last = self.eval(node);
+                        }
+
+                        self.pop_frame();
+                        return last;
+                    }
+                }
+
+                panic!("match didn't find an arm");
+            }
             IR::FuncCall { name, args, unwrap } => {
                 let func = self
                     .funcs
@@ -196,18 +236,18 @@ impl<'a> Engine<'a> {
             unreachable!("arrays are the only iterable thing");
         };
 
-        self.push_frame();
-
         let mut last = None;
 
         for rust_idx in iter {
+            self.push_frame();
+
             self.set_var(bind, rust_idx);
             for ir in body {
                 last = self.eval(ir);
             }
-        }
 
-        self.pop_frame();
+            self.pop_frame();
+        }
 
         last
     }
