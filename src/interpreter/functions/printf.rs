@@ -33,12 +33,9 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
         unreachable!("checked at type checking");
     };
 
-    let args = match args {
-        Some(a) => match &a[0] {
-            ILitType::Array(arr) => arr,
-            _ => unreachable!("type checked"),
-        },
-        None => return Some(ILitType::String(fmt.clone())),
+    let args = match &args.unwrap()[0] {
+        ILitType::Array(arr) => arr,
+        _ => unreachable!("type checked"),
     };
 
     // We know at least this much is true.
