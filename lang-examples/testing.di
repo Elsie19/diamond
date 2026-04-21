@@ -1,5 +1,6 @@
 let ~internal printf(format: string, args: [any]): integer = ();
 let ~internal sprintf(format: string, args: [any]): string = ();
+let ~internal puts(format: string): unit = ();
 let ~internal atoi(str: string): result(integer, string) = ();
 let ~internal itoa(str: integer): string = ();
 let ~internal panic(msg: string): unret = ();

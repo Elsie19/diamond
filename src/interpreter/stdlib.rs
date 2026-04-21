@@ -51,6 +51,7 @@ impl<'a> Functions<'a> {
                 dump_var => functions::dump_var::dump_var,
                 sprintf => functions::printf::sprintf,
                 printf => functions::printf::printf,
+                puts => functions::printf::puts,
             },
         }
     }

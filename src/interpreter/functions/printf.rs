@@ -1,5 +1,15 @@
 use crate::interpreter::{engine::Engine, types::ILitType};
 
+pub fn puts<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType> {
+    let ILitType::String(s) = &args[0] else {
+        unreachable!("oopsies");
+    };
+
+    print!("{s}");
+
+    Some(ILitType::Unit)
+}
+
 pub fn printf<'a>(engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType> {
     let ret = sprintf(engine, args);
     let Some(ILitType::String(s)) = ret else {
@@ -11,7 +21,7 @@ pub fn printf<'a>(engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType
     Some(ILitType::Integer(s.len()))
 }
 
-pub fn sprintf<'a>(engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType> {
+pub fn sprintf<'a>(_engine: &mut Engine<'a>, args: &[ILitType]) -> Option<ILitType> {
     let (fmt, args) = match args {
         [fmt] => (fmt, None),
         [fmt, args @ ..] => (fmt, Some(args)),
