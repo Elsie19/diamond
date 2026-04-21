@@ -51,7 +51,5 @@ fn main() -> Result<()> {
 
     engine.run();
 
-    dbg!(&engine);
-
     Ok(())
 }

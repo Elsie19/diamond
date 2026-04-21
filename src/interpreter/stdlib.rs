@@ -49,6 +49,8 @@ impl<'a> Functions<'a> {
             funcs: stdlib! {
                 itoa => functions::itoa::itoa,
                 dump_var => functions::dump_var::dump_var,
+                sprintf => functions::printf::sprintf,
+                printf => functions::printf::printf,
             },
         }
     }

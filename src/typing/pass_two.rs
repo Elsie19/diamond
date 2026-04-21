@@ -545,14 +545,14 @@ where
                             let got = self.check_node(elem)?;
 
                             if got != expected {
-                                return Err(TypeCheckError::VerifyError(
+                                /* return Err(TypeCheckError::VerifyError(
                                     pass_one::VerifyError::MismatchedArrayElements {
                                         expected,
                                         got,
                                         src: self.src(),
                                         bad_bit: elem.as_miette_span(),
                                     },
-                                ));
+                                )); */
                             }
                         }
 
