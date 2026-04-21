@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     interpreter::{
         stdlib::{Functions, RuntimeFunc},
-        types::ILitType,
+        types::{ILitType, IResultBranch},
     },
     typing::{pass_one::FuncTable, strata::IR},
 };
@@ -12,8 +12,15 @@ use crate::{
 pub struct Engine<'a> {
     ir: &'a [IR],
     func_table: &'a FuncTable<'a>,
-    vars: HashMap<String, ILitType>,
+    // Even though the IR generator ensures that all variables have unique identifiers, we still
+    // need to have stack frames for recursion in function calls.
+    frames: Vec<StackFrame>,
     funcs: Functions<'a>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct StackFrame {
+    vars: HashMap<String, ILitType>,
 }
 
 impl<'a> Engine<'a> {
@@ -21,9 +28,34 @@ impl<'a> Engine<'a> {
         Self {
             ir,
             func_table,
-            vars: HashMap::new(),
+            frames: vec![StackFrame::default()],
             funcs: Functions::stdlib(),
         }
+    }
+
+    fn get_var(&self, name: &str) -> Option<&ILitType> {
+        for frame in self.frames.iter().rev() {
+            if let Some(v) = frame.vars.get(name) {
+                return Some(v);
+            }
+        }
+        None
+    }
+
+    fn set_var<T: ToString>(&mut self, name: T, val: ILitType) {
+        self.frames
+            .last_mut()
+            .unwrap()
+            .vars
+            .insert(name.to_string(), val);
+    }
+
+    fn push_frame(&mut self) {
+        self.frames.push(StackFrame::default());
+    }
+
+    fn pop_frame(&mut self) {
+        self.frames.pop();
     }
 
     pub fn run(&mut self) {
@@ -46,28 +78,34 @@ impl<'a> Engine<'a> {
                 expr_end,
                 redirect,
             } => {
+                self.push_frame();
+
                 if let Some((redir_ir, bind)) = redirect {
                     let val = self
                         .eval(redir_ir)
                         .expect("redirect did not produce value!!!");
-                    self.vars.insert(bind.clone(), val);
+                    self.set_var(bind, val);
                 }
 
                 for node in inner {
                     self.eval(node);
                 }
 
-                if let Some(expr) = expr_end {
-                    self.eval(expr)
-                } else {
-                    Some(ILitType::Unit)
-                }
+                let inner_val = match expr_end {
+                    Some(expr) => self.eval(expr),
+                    None => Some(ILitType::Unit),
+                };
+
+                self.pop_frame();
+
+                inner_val
             }
             IR::For { bind, iter, body } => self.eval_for_loop(bind, iter, body),
             IR::Let { name, ty: _, value } => {
                 debug_assert_eq!(value.len(), 1);
                 let val = self.eval(&value[0]).expect("did not produce value!!!");
-                self.vars.insert(name.clone(), val)
+                self.set_var(name, val.clone());
+                Some(val)
             }
             IR::Match { expr, arms } => todo!("match"),
             IR::FuncCall { name, args, unwrap } => {
@@ -84,16 +122,28 @@ impl<'a> Engine<'a> {
                     evaled_args.push(val);
                 }
 
-                match func {
+                let ret = match func {
                     RuntimeFunc::Internal(f) => f(self, &evaled_args),
                     RuntimeFunc::User(body) => {
                         todo!("user functions");
                     }
+                };
+
+                if *unwrap {
+                    match ret.expect("return failed") {
+                        ILitType::Result(iresult_branch) => match iresult_branch {
+                            IResultBranch::Ok(ilit_type) => Some(*ilit_type),
+                            IResultBranch::Err(_) => panic!("found err branch"),
+                        },
+                        err => panic!("expected `result`, but got `{:?}`", err),
+                    }
+                } else {
+                    ret
                 }
             }
             IR::Integer(i) => Some(ILitType::Integer(*i)),
             IR::String(s) => Some(ILitType::String(s.to_string())),
-            IR::Ident(ident) => self.vars.get(ident).cloned(),
+            IR::Ident(ident) => self.get_var(ident).cloned(),
             IR::Array(irs) => {
                 let mut elems = Vec::with_capacity(irs.len());
                 for elem in irs {
@@ -113,20 +163,25 @@ impl<'a> Engine<'a> {
 
     fn eval_for_loop(&mut self, bind: &str, iter: &[IR], body: &[IR]) -> Option<ILitType> {
         debug_assert_eq!(iter.len(), 1);
-        let iter = &iter[0];
-        let iter = self.eval(iter).expect("iter did not produce value");
+
+        let iter = self.eval(&iter[0]).expect("iter did not produce value");
+
         let ILitType::Array(iter) = iter else {
             unreachable!("arrays are the only iterable thing");
         };
 
+        self.push_frame();
+
         let mut last = None;
 
         for rust_idx in iter {
-            self.vars.insert(bind.to_string(), rust_idx);
+            self.set_var(bind, rust_idx);
             for ir in body {
                 last = self.eval(ir);
             }
         }
+
+        self.pop_frame();
 
         last
     }

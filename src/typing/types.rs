@@ -13,6 +13,7 @@ pub enum Type {
     File,
     Result(Box<Self>, Box<Self>),
     Unret,
+    Any,
 }
 
 impl PartialEq for Type {
@@ -22,7 +23,7 @@ impl PartialEq for Type {
         match (self, other) {
             // This allows unret types (panicking and stuff) to always work in places where it
             // expects some other type.
-            (Unret, _) | (_, Unret) => true,
+            (Unret, _) | (_, Unret) | (Any, _) | (_, Any) => true,
 
             (String, String) => true,
             (Integer, Integer) => true,
@@ -48,6 +49,7 @@ impl Type {
             Type::Stream => Cow::Borrowed("stream"),
             Type::File => Cow::Borrowed("file"),
             Type::Unret => Cow::Borrowed("unret"),
+            Type::Any => Cow::Borrowed("any"),
             Type::Result(ok, err) => {
                 format!("result({}, {})", ok.as_display_ty(), err.as_display_ty()).into()
             }
@@ -65,6 +67,7 @@ impl From<PType<'_>> for Type {
             PType::Stream(_) => Self::Stream,
             PType::String(_) => Self::String,
             PType::Unret(_) => Self::Unret,
+            PType::Any(_) => Self::Any,
             PType::Result(re) => {
                 let (a, b) = {
                     let re = re.into_inner();

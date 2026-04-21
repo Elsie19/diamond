@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     interpreter::{engine::Engine, functions, types::ILitType},
-    typing::strata::IR,
+    typing::{strata::IR, types::Type},
 };
 
 macro_rules! stdlib {
@@ -27,8 +27,15 @@ macro_rules! stdlib {
 
 #[derive(Debug, Clone)]
 pub(crate) enum RuntimeFunc<'a> {
-    User(&'a IR),
+    User(UserFunc<'a>),
     Internal(fn(&mut Engine<'a>, &[ILitType]) -> Option<ILitType>),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct UserFunc<'a> {
+    pub args: Box<[(String, Type)]>,
+    pub body: &'a [IR],
+    pub ret: Type,
 }
 
 #[derive(Debug)]
@@ -41,6 +48,7 @@ impl<'a> Functions<'a> {
         Self {
             funcs: stdlib! {
                 itoa => functions::itoa::itoa,
+                dump_var => functions::dump_var::dump_var,
             },
         }
     }

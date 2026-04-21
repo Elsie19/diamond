@@ -189,6 +189,7 @@ pub enum PType<'a> {
     Unit(Spanned<'a, &'a str>),
     Unret(Spanned<'a, &'a str>),
     Integer(Spanned<'a, &'a str>),
+    Any(Spanned<'a, &'a str>),
     Result(Spanned<'a, (Box<Self>, Box<Self>)>),
 }
 
@@ -203,6 +204,7 @@ impl<'a> PType<'a> {
             Self::Stream(s) => s.span,
             Self::Unret(u) => u.span,
             Self::File(f) => f.span,
+            Self::Any(a) => a.span,
         }
     }
 }

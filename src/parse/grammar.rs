@@ -481,6 +481,7 @@ impl DIParser {
             txt @ "unit" => Ok(PType::Unit(Spanned::new(txt, span))),
             txt @ "integer" => Ok(PType::Integer(Spanned::new(txt, span))),
             txt @ "unret" => Ok(PType::Unret(Spanned::new(txt, span))),
+            txt @ "any" => Ok(PType::Any(Spanned::new(txt, span))),
             err => Err(input.error(err)),
         }
     }

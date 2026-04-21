@@ -34,7 +34,7 @@ func_call_args = { expr ~ ("," ~ expr)* }
 type_name = { type_array | result_type | atomic_type }
 
 type_array  = { "[" ~ type_name ~ "]" }
-atomic_type = { "integer" | "stream" | "string" | "file" | "unit" | "unret" }
+atomic_type = { "integer" | "stream" | "string" | "file" | "unit" | "unret" | "any" }
 result_type = { "result" ~ "(" ~ type_name ~ "," ~ type_name ~ ")" }
 
 value = { ident | integer | string_lit | array_lit | unit_lit }
