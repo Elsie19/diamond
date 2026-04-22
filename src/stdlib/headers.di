@@ -9,6 +9,9 @@ let ~internal testing_branch(int: integer): result(integer, integer) = ();
 let ~internal nth(arr: [any], nth: integer): result(any, string) = ();
 let ~internal file(path: string): file = ();
 
+# Get last element of list.
+#
+# This works because in 
 let last(lst: [any]): any = {
     for (i in lst) {
         i

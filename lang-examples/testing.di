@@ -36,3 +36,13 @@ for (char in ["H", "e", "l", "l", "o", ",", " ", "W", "o", "r", "l", "d", "!", "
 };
 
 printf("found 3rd element to be `%d`\n", [nth(my_list, 2)!]);
+
+let last_broken(lst: [any]): any = {
+    for (i in lst) {
+        i;
+    }
+};
+
+let bla = last_broken([1, 2, 3]);
+
+dump_var(bla);
