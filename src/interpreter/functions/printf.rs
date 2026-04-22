@@ -1,6 +1,17 @@
 use crate::interpreter::{engine::Engine, types::ILitType};
 use std::fmt::Write;
 
+/// Prints out unformatted text.
+///
+/// # Signature
+/// ```
+/// let ~internal puts(format: string): unit;
+/// ```
+///
+/// # Example
+/// ```
+/// puts("hello, console!");
+/// ```
 pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let ILitType::String(s) = &args[0] else {
         unreachable!("oopsies");
@@ -11,6 +22,34 @@ pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     Some(ILitType::Unit)
 }
 
+/// Prints out unformatted text.
+///
+/// # Signature
+/// ```
+/// let ~internal printf(format: string, args: [any]): integer;
+/// ```
+///
+/// # Details
+/// The following format specifiers are allowed:
+///
+/// | Format Specifier |     Type    |                    What it does                    |
+/// |:----------------:|:-----------:|:--------------------------------------------------:|
+/// | `%s`             |   `string`  |                                 Formats the string |
+/// | `%s`             | other types | Formats the string acccording to rust debug format |
+/// | `%d`/`%u`        |  `integer`  |                                Formats the integer |
+/// | `%f`             | `integer`   |                     Formats the integer as a float |
+/// | `%a`             | `[any]`     |          Formats the array as it would be assigned |
+/// | other            | `any`       |                 Formats the argument as `%{value}` |
+///
+/// Because Diamond does not have variadic arguments, `printf` uses an array a holder for
+/// arguments, not unlike [Zig](https://ziglang.org/documentation/master/#Hello-World:~:text=s%7D!%5Cn%22%2C-,.%7B%22World%22%7D,-\)%3B%0A%7D).
+///
+/// `printf` will return the length of the string printed to the console.
+///
+/// # Example
+/// ```
+/// printf("%s, %s!\n", ["Hello", "World"]);
+/// ```
 pub fn printf(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let ret = sprintf(engine, args);
     let Some(ILitType::String(s)) = ret else {
@@ -22,6 +61,20 @@ pub fn printf(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     Some(ILitType::Integer(s.len()))
 }
 
+/// Returns formatted text.
+///
+/// # Signature
+/// ```
+/// let ~internal sprintf(format: string, args: [any]): string;
+/// ```
+///
+/// # Details
+/// See [`printf`] for more information.
+///
+/// # Example
+/// ```
+/// let formatted = sprintf("%s, %s!\n", ["Hello", "World"]);
+/// ```
 pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let (fmt, args) = match args {
         [fmt] => (fmt, None),

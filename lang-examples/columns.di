@@ -32,7 +32,7 @@ let output = open(create(file("kvs.txt"))!)!; # ty : stream
 {
     let first_line = nth_stream(STREAM, 0)!; # ty : string
     let csv_header_split = split(first_line, ","); # ty : [string]
-    let csv_length = length(csv_header_split); # ty : integer
+    let csv_length = len(csv_header_split); # ty : integer
     let header = sprintf("%s\n", join_str(csv_header_split, ",")); # ty : string
     tee(output, header);
 

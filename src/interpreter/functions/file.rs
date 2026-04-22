@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     fs::{File, OpenOptions},
-    io::Write,
+    io::{Read, Write},
     path::PathBuf,
     rc::Rc,
 };
@@ -11,6 +11,20 @@ use crate::interpreter::{
     types::{ILitType, IResultBranch, IStreamHandle},
 };
 
+/// File type wrapper.
+///
+/// # Signature
+/// ```
+/// let ~internal file(path: string): file;
+/// ```
+///
+/// # Details
+/// Creates a file type from a string path.
+///
+/// # Example
+/// ```
+/// let file = file("some_file.txt");
+/// ```
 pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
@@ -22,6 +36,21 @@ pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     }
 }
 
+/// Create a file.
+///
+/// # Signature
+/// ```
+/// let ~internal create(path: file): result(file, string);
+/// ```
+///
+/// # Details
+/// Returns the file path if successfully created, or an error if not.
+///
+/// # Example
+/// ```
+/// let file = file("some_file.txt");
+/// let created = create(file)!;
+/// ```
 pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
@@ -40,6 +69,22 @@ pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     }
 }
 
+/// Open a file.
+///
+/// # Signature
+/// ```
+/// let ~internal open(path: file): result(stream, string);
+/// ```
+///
+/// # Details
+/// Returns the stream if successfully created, or an error if not.
+///
+/// # Example
+/// ```
+/// let file = file("some_file.txt");
+/// let created = open(file)!;
+/// let stream = create(created)!;
+/// ```
 pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
@@ -63,6 +108,23 @@ pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     }
 }
 
+/// Dump text to a stream.
+///
+/// # Signature
+/// ```
+/// let ~internal dump(stream: stream, contents: string): result(unit, string);
+/// ```
+///
+/// # Details
+/// Returns an error if it could not write to the stream.
+///
+/// # Example
+/// ```
+/// let file = file("some_file.txt");
+/// let created = open(file)!;
+/// let stream = create(created)!;
+/// dump(stream, "here is the text inside `some_file.txt`")!;
+/// ```
 pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 2);
 
@@ -80,5 +142,50 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
             )))),
         },
         _ => todo!("haven't done shit yet"),
+    }
+}
+
+/// Get lines of stream.
+///
+/// # Signature
+/// ```
+/// let ~internal lines(stream: stream): result([string], string);
+/// ```
+///
+/// # Details
+/// Returns lines on success, or error on failure.
+///
+/// # Example
+/// ```
+/// let stream = open(file("newline_list.txt"))!;
+/// for (i in lines(stream)!) {
+///     printf("%s\n", [i]);
+/// };
+/// ```
+pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+    debug_assert_eq!(args.len(), 1);
+
+    let [ILitType::Stream(stream)] = args else {
+        unreachable!("type checked");
+    };
+
+    let mut contents = String::new();
+
+    match stream {
+        IStreamHandle::File(handle) => match handle.borrow_mut().read_to_string(&mut contents) {
+            Ok(_) => Some(ILitType::Result(IResultBranch::Ok(Box::new(
+                ILitType::Array(
+                    contents
+                        .lines()
+                        .map(|s| ILitType::String(s.to_string()))
+                        .collect::<Vec<_>>()
+                        .into_boxed_slice(),
+                ),
+            )))),
+            Err(e) => Some(ILitType::Result(IResultBranch::Err(Box::new(
+                ILitType::String(e.to_string()),
+            )))),
+        },
+        _ => todo!("not done yet"),
     }
 }

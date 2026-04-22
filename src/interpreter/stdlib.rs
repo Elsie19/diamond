@@ -48,17 +48,27 @@ impl<'a> Functions<'a> {
         Self {
             funcs: stdlib! {
                 itoa => functions::itoa::itoa,
+
                 dump_var => functions::dump_var::dump_var,
+
                 sprintf => functions::printf::sprintf,
-                printf => functions::printf::printf,
-                puts => functions::printf::puts,
+                printf =>  functions::printf::printf,
+                puts =>    functions::printf::puts,
+
                 panic => functions::panic::panic,
+
                 testing_branch => functions::testing_branch::testing_branch,
-                nth => functions::nth::nth,
-                file => functions::file::file,
+
+                nth =>         functions::arrays::nth,
+                split =>       functions::arrays::split,
+                len =>         functions::arrays::len,
+                enumerate =>   functions::arrays::enumerate,
+
+                file =>   functions::file::file,
                 create => functions::file::create,
-                open => functions::file::open,
-                dump => functions::file::dump,
+                open =>   functions::file::open,
+                dump =>   functions::file::dump,
+                lines =>  functions::file::lines,
             },
         }
     }

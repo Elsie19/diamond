@@ -1,8 +1,11 @@
 //! <h1 style="color:#B9F2FF;"><b>Diamond</b></h1>
 //!
 //! <h2><i>Perl but it doesn't suck ass</i></h2>
+//!
+//! You should check out the standard library [here](interpreter::functions).
 
 /// Parsing Diamond code into an untyped AST.
+#[doc(hidden)]
 pub mod parse;
 /// Type checker.
 pub mod typing;
@@ -25,15 +28,19 @@ use crate::{
     },
 };
 
+#[doc(hidden)]
 const STDLIB_PATH: &str = "stdlib/headers.di";
+#[doc(hidden)]
 const STDLIB_HEADERS: &str = include_str!("stdlib/headers.di");
 
+#[doc(hidden)]
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
     input: PathBuf,
 }
 
+#[doc(hidden)]
 fn main() -> Result<()> {
     let args = Args::parse();
 
