@@ -8,3 +8,9 @@ let ~internal dump_var(var: any): unit = ();
 let ~internal testing_branch(int: integer): result(integer, integer) = ();
 let ~internal nth(arr: [any], nth: integer): result(any, string) = ();
 let ~internal file(path: string): file = ();
+
+let last(lst: [any]): any = {
+    for (i in lst) {
+        i
+    }
+};
