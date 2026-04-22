@@ -487,7 +487,7 @@ where
 
         let unwrap = func.has_unwrap();
 
-        if let Some(unwrap) = func.get_unwrap() {
+        if let Some(unwrap_span) = func.get_unwrap() {
             match ret_ty {
                 Type::Result(ok, _) => {
                     ret_ty = *ok;
@@ -496,7 +496,7 @@ where
                     return Err(TypeCheckError::VerifyError(
                         pass_one::VerifyError::UnwrapNonResult {
                             src: self.src(),
-                            bad_bit: unwrap.as_miette_span(),
+                            bad_bit: unwrap_span.as_miette_span(),
                         },
                     ));
                 }
