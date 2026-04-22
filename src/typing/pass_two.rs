@@ -168,7 +168,7 @@ where
 
         let unique = self.var_gen.fresh(**bind_name);
 
-        let bind = unique.to_string();
+        let bind = unique.clone();
 
         self.scopes
             .insert(bind_name.node, bind_name.span(), elem_ty, unique);
@@ -223,7 +223,7 @@ where
 
             let unique = self.var_gen.fresh(arm.res.name());
 
-            let unique = unique.to_string();
+            let unique = unique.clone();
 
             self.scopes
                 .insert(&arm.inner, arm.inner.span(), bind_ty, &unique);

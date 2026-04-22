@@ -18,7 +18,7 @@ pub enum Type {
 
 impl PartialEq for Type {
     fn eq(&self, other: &Self) -> bool {
-        use Type::*;
+        use Type::{Any, Array, File, Integer, Result, Stream, String, Unit, Unret};
 
         match (self, other) {
             // This allows unret types (panicking and stuff) to always work in places where it

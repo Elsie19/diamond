@@ -1,18 +1,3 @@
-let ~internal file(path: string): file = ();
-let ~internal printf(format: string, txt: string): unit = ();
-let ~internal sprintf(format: string, txt: string): string = ();
-let ~internal dump(stream: stream, txt: string): unit = ();
-let ~internal nth(arr: [string], nth: integer): result(string, string) = ();
-let ~internal nth_stream(stream: stream, nth: integer): result(string, string) = ();
-let ~internal panic(fmt: string): unret = ();
-let ~internal open(file: file): result(stream, string) = ();
-let ~internal create(file: file): result(file, string) = ();
-let ~internal split(line: string, char: string): [string] = ();
-let ~internal length(arr: [string]): integer = ();
-let ~internal join_str(arr: [string], char: string): string = ();
-let ~internal skip(arr: [string], skip: integer): [string] = ();
-let ~internal skip_stream(stream: stream, skip: integer): [string] = ();
-
 # returns unit type.
 let tee(file: stream, txt: string) = {
     printf("%s", txt);

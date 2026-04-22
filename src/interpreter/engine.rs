@@ -208,7 +208,7 @@ impl<'a> Engine<'a> {
                 }
             }
             IR::Integer(i) => Some(ILitType::Integer(*i)),
-            IR::String(s) => Some(ILitType::String(s.to_string())),
+            IR::String(s) => Some(ILitType::String(s.clone())),
             IR::Ident(ident) => Some(self.get_var(ident).cloned().expect("could not find ident")),
             IR::Array(irs) => {
                 let mut elems = Vec::with_capacity(irs.len());

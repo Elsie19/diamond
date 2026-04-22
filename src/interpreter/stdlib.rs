@@ -26,13 +26,13 @@ macro_rules! stdlib {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum RuntimeFunc<'a> {
+pub enum RuntimeFunc<'a> {
     User(UserFunc<'a>),
     Internal(fn(&mut Engine<'a>, &[ILitType]) -> Option<ILitType>),
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct UserFunc<'a> {
+pub struct UserFunc<'a> {
     pub args: Box<[(String, Type)]>,
     pub body: &'a [IR],
     pub ret: Type,
@@ -54,6 +54,7 @@ impl<'a> Functions<'a> {
                 puts => functions::printf::puts,
                 panic => functions::panic::panic,
                 testing_branch => functions::testing_branch::testing_branch,
+                nth => functions::nth::nth,
             },
         }
     }

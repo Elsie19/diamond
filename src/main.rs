@@ -25,6 +25,9 @@ use crate::{
     },
 };
 
+const STDLIB_PATH: &str = "stdlib/headers.di";
+const STDLIB_HEADERS: &str = include_str!("stdlib/headers.di");
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -38,11 +41,17 @@ fn main() -> Result<()> {
 
     let file = args.input.to_string_lossy();
 
-    let program = parse_di(&string, &file).map_err(|_| miette::miette!("parse failed"))?;
+    let stdlib_program =
+        parse_di(STDLIB_HEADERS, STDLIB_PATH).expect("failed parsing headers, fuck.");
+    let stdlib_walker = AstWalker::new(&stdlib_program);
+    let func_table = stdlib_walker.collect_function_defs();
+
+    let program = parse_di(&string, &file).map_err(|()| miette::miette!("parse failed"))?;
 
     let walker = AstWalker::new(&program);
 
-    let funcs = walker.collect_function_defs();
+    let mut funcs = walker.collect_function_defs();
+    funcs.extend(func_table);
 
     let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
     let _ = checker.check_program(&program)?;

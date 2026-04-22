@@ -37,7 +37,7 @@ impl VarGenInterpreter {
         str.to_ascii_lowercase()
             .replace('-', "_")
             .chars()
-            .filter(|c| c.is_ascii_alphabetic())
+            .filter(char::is_ascii_alphabetic)
             .collect()
     }
 }

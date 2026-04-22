@@ -175,4 +175,8 @@ impl FuncTable<'_> {
     pub fn lookup_ret(&self, name: &str) -> Option<&Type> {
         self.table.get(name).map(|val| &val.ret)
     }
+
+    pub fn extend(&mut self, rhs: Self) {
+        self.table.extend(rhs.table);
+    }
 }

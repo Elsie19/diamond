@@ -33,9 +33,8 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
         unreachable!("checked at type checking");
     };
 
-    let args = match &args.unwrap()[0] {
-        ILitType::Array(arr) => arr,
-        _ => unreachable!("type checked"),
+    let ILitType::Array(args) = &args.unwrap()[0] else {
+        unreachable!("type checked")
     };
 
     // We know at least this much is true.
@@ -80,6 +79,7 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
             ('s', ILitType::String(s)) => s.clone(),
             ('s', other) => format!("{other:?}"),
             ('d' | 'u', ILitType::Integer(i)) => i.to_string(),
+            #[allow(clippy::cast_precision_loss)]
             ('f', ILitType::Integer(i)) => (*i as f64).to_string(),
             ('a', ILitType::Array(a)) => {
                 let mut mini_buf = String::from("[");
@@ -88,7 +88,7 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
                     if idx > 0 {
                         buf.push_str(", ");
                     }
-                    let _ = write!(buf, "{:?}", v);
+                    let _ = write!(buf, "{v:?}");
                 }
 
                 mini_buf.push(']');
