@@ -56,6 +56,8 @@ impl<'a> Functions<'a> {
                 testing_branch => functions::testing_branch::testing_branch,
                 nth => functions::nth::nth,
                 file => functions::file::file,
+                create => functions::file::create,
+                open => functions::file::open,
             },
         }
     }
