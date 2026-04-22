@@ -1,4 +1,5 @@
 pub mod dump_var;
+pub mod file;
 pub mod itoa;
 pub mod nth;
 pub mod panic;
