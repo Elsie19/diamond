@@ -58,6 +58,7 @@ impl<'a> Functions<'a> {
                 file => functions::file::file,
                 create => functions::file::create,
                 open => functions::file::open,
+                dump => functions::file::dump,
             },
         }
     }

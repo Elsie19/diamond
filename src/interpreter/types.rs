@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc};
+use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub enum ILitType {
@@ -19,7 +19,7 @@ pub enum IResultBranch {
 
 #[derive(Debug, Clone)]
 pub enum IStreamHandle {
-    File(Rc<std::fs::File>),
+    File(Rc<RefCell<File>>),
     Stdout,
     Stdin,
     Buffer(Vec<u8>),

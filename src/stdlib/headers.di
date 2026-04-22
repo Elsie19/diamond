@@ -10,6 +10,7 @@ let ~internal nth(arr: [any], nth: integer): result(any, string) = ();
 let ~internal file(path: string): file = ();
 let ~internal create(path: file): result(file, string) = ();
 let ~internal open(path: file): result(stream, string) = ();
+let ~internal dump(stream: stream, contents: string): result(unit, string) = ();
 
 # Get last element of list.
 #
