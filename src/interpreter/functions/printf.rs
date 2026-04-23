@@ -87,7 +87,7 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
     };
 
     let ILitType::Array(args) = &args.unwrap()[0] else {
-        unreachable!("type checked")
+        unreachable!("type check failed. Make sure you are passing an array.")
     };
 
     // We know at least this much is true.

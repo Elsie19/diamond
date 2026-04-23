@@ -11,6 +11,8 @@ use crate::{
     },
 };
 
+type Val = Option<ILitType>;
+
 #[derive(Debug)]
 pub struct Engine<'a> {
     ir: &'a [IR],
@@ -37,20 +39,15 @@ impl<'a> Engine<'a> {
     }
 
     fn get_var(&self, name: &str) -> Option<&ILitType> {
-        for frame in self.frames.iter().rev() {
-            if let Some(v) = frame.vars.get(name) {
-                return Some(v);
-            }
-        }
-        None
+        self.frames.iter().rev().find_map(|f| f.vars.get(name))
     }
 
-    fn set_var<T: ToString>(&mut self, name: T, val: ILitType) {
+    fn set_var<T: Into<String>>(&mut self, name: T, val: ILitType) {
         self.frames
             .last_mut()
-            .unwrap()
+            .expect("popped top frame, ruh roh")
             .vars
-            .insert(name.to_string(), val);
+            .insert(name.into(), val);
     }
 
     fn push_frame(&mut self) {
@@ -67,7 +64,7 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval(&mut self, node: &'a IR) -> Option<ILitType> {
+    fn eval(&mut self, node: &'a IR) -> Val {
         match node {
             IR::FuncLet {
                 name,
@@ -90,29 +87,13 @@ impl<'a> Engine<'a> {
                 inner,
                 expr_end,
                 redirect,
-            } => {
-                self.push_frame();
-
-                if let Some((redir_ir, bind)) = redirect {
-                    let val = self
-                        .eval(redir_ir)
-                        .expect("redirect did not produce value!!!");
-                    self.set_var(bind, val);
-                }
-
-                for node in inner {
-                    self.eval(node);
-                }
-
-                let inner_val = match expr_end {
-                    Some(expr) => self.eval(expr),
-                    None => Some(ILitType::Unit),
-                };
-
-                self.pop_frame();
-
-                inner_val
-            }
+            } => self.eval_grouping(
+                inner,
+                expr_end.as_ref().map(|v| &**v),
+                redirect
+                    .as_ref()
+                    .map(|(ir, bind)| (ir.as_ref(), bind.as_str())),
+            ),
             IR::For { bind, iter, body } => self.eval_for_loop(bind, iter, body),
             IR::Let { name, ty: _, value } => {
                 debug_assert_eq!(value.len(), 1);
@@ -120,104 +101,17 @@ impl<'a> Engine<'a> {
                 self.set_var(name, val.clone());
                 Some(val)
             }
-            IR::Match { expr, arms } => {
-                let expr = self
-                    .eval(&expr[0])
-                    .expect("match expr did not produce value");
-
-                let ILitType::Result(result) = expr else {
-                    panic!("type checked");
-                };
-
-                for arm in arms {
-                    let (bind_name, is_ok, body) = {
-                        let IRMatchArm { bind, is_ok, body } = arm;
-                        (bind, is_ok, body)
-                    };
-
-                    let active = match (&result, is_ok) {
-                        (IResultBranch::Ok(v), true) => Some(v.clone()),
-                        (IResultBranch::Err(v), false) => Some(v.clone()),
-                        _ => None,
-                    };
-
-                    if let Some(val) = active {
-                        self.push_frame();
-                        self.set_var(bind_name, *val);
-
-                        let mut last = None;
-
-                        for node in body {
-                            last = self.eval(node);
-                        }
-
-                        self.pop_frame();
-                        return last;
-                    }
-                }
-
-                panic!("match didn't find an arm");
-            }
-            IR::FuncCall { name, args, unwrap } => {
-                let func = self
-                    .funcs
-                    .resolve(name)
-                    .cloned()
-                    .unwrap_or_else(|| panic!("function `{name}` not found!"));
-
-                let mut evaled_args = Vec::with_capacity(args.len());
-
-                for arg in args {
-                    let val = self.eval(arg).expect("arg produced no value");
-                    evaled_args.push(val);
-                }
-
-                let ret = match func {
-                    RuntimeFunc::Internal(f) => f(self, &evaled_args),
-                    RuntimeFunc::User(func) => {
-                        self.push_frame();
-
-                        for (i, (arg_name, _)) in func.args.iter().enumerate() {
-                            let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
-
-                            self.set_var(arg_name, val);
-                        }
-
-                        let mut last = None;
-
-                        for node in func.body {
-                            last = self.eval(node);
-                        }
-
-                        self.pop_frame();
-
-                        last
-                    }
-                };
-
-                if *unwrap {
-                    match ret.expect("return failed") {
-                        ILitType::Result(iresult_branch) => match iresult_branch {
-                            IResultBranch::Ok(ilit_type) => Some(*ilit_type),
-                            IResultBranch::Err(_) => panic!("found err branch"),
-                        },
-                        err => panic!("expected `result`, but got `{:?}`", err),
-                    }
-                } else {
-                    ret
-                }
-            }
+            IR::Match { expr, arms } => self.eval_match(expr, arms),
+            IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, args, *unwrap),
             IR::Integer(i) => Some(ILitType::Integer(*i)),
             IR::String(s) => Some(ILitType::String(s.clone())),
             IR::Ident(ident) => Some(self.get_var(ident).cloned().expect("could not find ident")),
             IR::Array(irs) => {
-                let mut elems = Vec::with_capacity(irs.len());
-                for elem in irs {
-                    let val = self
-                        .eval(elem)
-                        .expect("array element didn't provide a value");
-                    elems.push(val);
-                }
+                let elems = irs
+                    .iter()
+                    .map(|x| self.eval(x))
+                    .collect::<Option<Vec<_>>>()
+                    .expect("array did not return a value");
                 Some(ILitType::Array(elems.into_boxed_slice()))
             }
             IR::Unit => Some(ILitType::Unit),
@@ -227,7 +121,95 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval_for_loop(&mut self, bind: &str, iter: &'a [IR], body: &'a [IR]) -> Option<ILitType> {
+    fn eval_funccall(&mut self, name: &str, args: &'a [IR], unwrap: bool) -> Val {
+        let func = self
+            .funcs
+            .resolve(name)
+            .cloned()
+            .unwrap_or_else(|| panic!("function `{name}` not found!"));
+
+        let evaled_args = args
+            .iter()
+            .map(|x| self.eval(x))
+            .collect::<Option<Vec<_>>>()
+            .expect("arg produced no value");
+
+        let ret = match func {
+            RuntimeFunc::Internal(f) => f(self, &evaled_args),
+            RuntimeFunc::User(func) => {
+                self.push_frame();
+
+                for (i, (arg_name, _)) in func.args.iter().enumerate() {
+                    let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
+
+                    self.set_var(arg_name, val);
+                }
+
+                let mut last = None;
+
+                for node in func.body {
+                    last = self.eval(node);
+                }
+
+                self.pop_frame();
+
+                last
+            }
+        };
+
+        if unwrap {
+            match ret.expect("return failed") {
+                ILitType::Result(iresult_branch) => match iresult_branch {
+                    IResultBranch::Ok(ilit_type) => Some(*ilit_type),
+                    IResultBranch::Err(_) => panic!("found err branch"),
+                },
+                err => panic!("expected `result`, but got `{:?}`", err),
+            }
+        } else {
+            ret
+        }
+    }
+
+    fn eval_match(&mut self, expr: &'a [IR], arms: &'a [IRMatchArm]) -> Val {
+        let expr = self
+            .eval(&expr[0])
+            .expect("match expr did not produce value");
+
+        let ILitType::Result(result) = expr else {
+            panic!("type checked");
+        };
+
+        for arm in arms {
+            let (bind_name, is_ok, body) = {
+                let IRMatchArm { bind, is_ok, body } = arm;
+                (bind, is_ok, body)
+            };
+
+            let active = match (&result, is_ok) {
+                (IResultBranch::Ok(v), true) => Some(v.clone()),
+                (IResultBranch::Err(v), false) => Some(v.clone()),
+                _ => None,
+            };
+
+            if let Some(val) = active {
+                self.push_frame();
+                self.set_var(bind_name, *val);
+
+                let mut last = None;
+
+                for node in body {
+                    last = self.eval(node);
+                }
+
+                self.pop_frame();
+                return last;
+            }
+        }
+
+        panic!("match didn't find an arm");
+    }
+
+    fn eval_for_loop(&mut self, bind: &str, iter: &'a [IR], body: &'a [IR]) -> Val {
         debug_assert_eq!(iter.len(), 1);
 
         let iter = self.eval(&iter[0]).expect("iter did not produce value");
@@ -250,5 +232,34 @@ impl<'a> Engine<'a> {
         }
 
         last
+    }
+
+    fn eval_grouping(
+        &mut self,
+        inner: &'a [IR],
+        expr_end: Option<&'a IR>,
+        redirect: Option<(&'a IR, &'a str)>,
+    ) -> Val {
+        self.push_frame();
+
+        if let Some((redir_ir, bind)) = redirect {
+            let val = self
+                .eval(redir_ir)
+                .expect("redirect did not produce value!!!");
+            self.set_var(bind, val);
+        }
+
+        for node in inner {
+            self.eval(node);
+        }
+
+        let inner_val = match expr_end {
+            Some(expr) => self.eval(expr),
+            None => Some(ILitType::Unit),
+        };
+
+        self.pop_frame();
+
+        inner_val
     }
 }

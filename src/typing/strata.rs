@@ -13,7 +13,7 @@ pub trait VarGenerator {
         S: AsRef<str>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IR {
     FuncLet {
         name: String,
@@ -60,9 +60,9 @@ pub enum IR {
     Stmt(Box<Self>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IRMatchArm {
     pub bind: String,
     pub is_ok: bool,
-    pub body: Vec<IR>,
+    pub body: Box<[IR]>,
 }

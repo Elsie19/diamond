@@ -48,10 +48,19 @@ fn main() -> Result<()> {
 
     let file = args.input.to_string_lossy();
 
+    // PARSE STDLIB FIRST //
+
     let stdlib_program =
         parse_di(STDLIB_HEADERS, STDLIB_PATH).expect("failed parsing headers, fuck.");
     let stdlib_walker = AstWalker::new(&stdlib_program);
     let func_table = stdlib_walker.collect_function_defs();
+
+    let mut stdlib_checker = TypeChecker::<VarGenInterpreter>::new(&func_table, &file, &string);
+    let _ = stdlib_checker.check_program(&stdlib_program)?;
+
+    let mut total_ir = stdlib_checker.ir().to_vec();
+
+    // THEN PROGRAM //
 
     let program = parse_di(&string, &file).map_err(|()| miette::miette!("parse failed"))?;
 
@@ -63,7 +72,11 @@ fn main() -> Result<()> {
     let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
     let _ = checker.check_program(&program)?;
 
-    let mut engine = Engine::new(checker.ir(), &funcs);
+    let program_ir = checker.ir();
+
+    total_ir.extend(program_ir.to_vec());
+
+    let mut engine = Engine::new(&total_ir, &funcs);
 
     engine.run();
 

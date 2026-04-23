@@ -1,4 +1,3 @@
 let stream = open(file("Cargo.toml"))!;
-for (i in lines(stream)!) {
-    printf("%s\n", [i]);
-};
+let lines = lines(stream)!;
+printf("%s\n", [last(lines)]);

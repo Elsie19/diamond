@@ -238,7 +238,7 @@ where
             arms_ir.push(IRMatchArm {
                 bind: unique,
                 is_ok,
-                body: body_ir,
+                body: body_ir.into_boxed_slice(),
             });
 
             if let Some(got) = &result_ty {

@@ -100,32 +100,33 @@ impl<'a> ScopeStack<'a> {
             .expect("global scope popped. you're fucked");
     }
 
-    pub fn insert<T>(&mut self, name: &'a str, span: pest::Span<'a>, ty: Type, id: T) where T: ToString {
+    pub fn insert<T>(&mut self, name: &'a str, span: pest::Span<'a>, ty: Type, id: T)
+    where
+        T: ToString,
+    {
         let scope = self.scopes.last_mut().unwrap();
         scope.insert(name, (span, ty, id.to_string()));
     }
 
     pub fn get(&self, name: &str) -> Option<&Type> {
-        for scope in self.scopes.iter().rev() {
-            if let Some((_, ty, _)) = scope.get(name) {
-                return Some(ty);
-            }
-        }
-        None
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.get(name).map(|(_, ty, _)| ty))
     }
 
     pub fn get_span(&self, name: &str) -> Option<&pest::Span<'_>> {
-        for scope in self.scopes.iter().rev() {
-            if let Some((span, _, _)) = scope.get(name) {
-                return Some(span);
-            }
-        }
-        None
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.get(name).map(|(span, _, _)| span))
     }
 
     pub fn get_unique_ident(&self, name: &str) -> Option<(Type, String)> {
         self.scopes.iter().rev().find_map(|scope| {
-            scope.get(name).map(|(_, ty, unique)| (ty.clone(), unique.clone()))
+            scope
+                .get(name)
+                .map(|(_, ty, unique)| (ty.clone(), unique.clone()))
         })
     }
 }
