@@ -121,7 +121,10 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval_funccall(&mut self, name: &str, args: &'a [IR], unwrap: bool) -> Val {
+    fn eval_funccall<I>(&mut self, name: &str, args: I, unwrap: bool) -> Val
+    where
+        I: IntoIterator<Item = &'a IR>,
+    {
         let func = self
             .funcs
             .resolve(name)
@@ -129,7 +132,7 @@ impl<'a> Engine<'a> {
             .unwrap_or_else(|| panic!("function `{name}` not found!"));
 
         let evaled_args = args
-            .iter()
+            .into_iter()
             .map(|x| self.eval(x))
             .collect::<Option<Vec<_>>>()
             .expect("arg produced no value");
