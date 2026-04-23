@@ -112,7 +112,7 @@ impl<'a> Engine<'a> {
                     .map(|x| self.eval(x))
                     .collect::<Option<Vec<_>>>()
                     .expect("array did not return a value");
-                Some(ILitType::Array(elems.into_boxed_slice()))
+                Some(ILitType::Array(elems.into()))
             }
             IR::Unit => Some(ILitType::Unit),
             IR::Result { ok, err } => todo!("result"),
@@ -220,10 +220,10 @@ impl<'a> Engine<'a> {
 
         let mut last = None;
 
-        for rust_idx in iter {
+        for rust_idx in &*iter {
             self.push_frame();
 
-            self.set_var(bind, rust_idx);
+            self.set_var(bind, rust_idx.clone());
             for ir in body {
                 last = self.eval(ir);
             }

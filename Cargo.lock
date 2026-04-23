@@ -153,6 +153,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
+name = "collect_into_rc_slice"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a85f5250623e0e854eb49114dae2670b716bbbea30aebbe797ec062d20ae645f"
+
+[[package]]
 name = "colorchoice"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -182,6 +188,7 @@ name = "diamond"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "collect_into_rc_slice",
  "enum-as-inner",
  "miette",
  "pest",

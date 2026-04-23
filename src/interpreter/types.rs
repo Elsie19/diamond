@@ -6,7 +6,7 @@ pub enum ILitType {
     String(Rc<str>),
     Unit,
     Result(IResultBranch),
-    Array(Box<[Self]>),
+    Array(Rc<[Self]>),
     Stream(IStreamHandle),
     File(PathBuf),
 }

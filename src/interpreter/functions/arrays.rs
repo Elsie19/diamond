@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::interpreter::{
     engine::Engine,
     types::{ILitType, IResultBranch, IStreamHandle},
@@ -79,7 +81,7 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
         .map(|s| ILitType::String(s.into()))
         .collect::<Vec<_>>();
 
-    Some(ILitType::Array(split.into_boxed_slice()))
+    Some(ILitType::Array(split.into()))
 }
 
 /// Get length of parameter.
@@ -170,13 +172,13 @@ pub fn enumerate(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType
     let mut vec = Vec::with_capacity(iter.len());
 
     for (idx, elem) in iter.iter().enumerate() {
-        vec.push(ILitType::Array(Box::new([
+        vec.push(ILitType::Array(Rc::new([
             ILitType::Integer(idx),
             elem.clone(),
         ])));
     }
 
-    Some(ILitType::Array(vec.into_boxed_slice()))
+    Some(ILitType::Array(vec.into()))
 }
 
 /// Get last element of array.

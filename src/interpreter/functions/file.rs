@@ -6,6 +6,8 @@ use std::{
     rc::Rc,
 };
 
+use collect_into_rc_slice::CollectIntoRcSlice;
+
 use crate::interpreter::{
     engine::Engine,
     types::{ILitType, IResultBranch, IStreamHandle},
@@ -178,8 +180,7 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
                     contents
                         .lines()
                         .map(|s| ILitType::String(s.into()))
-                        .collect::<Vec<_>>()
-                        .into_boxed_slice(),
+                        .collect_into_rc_slice(),
                 ),
             )))),
             Err(e) => Some(ILitType::Result(IResultBranch::Err(Box::new(
