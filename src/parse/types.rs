@@ -5,7 +5,7 @@ pub mod grouping;
 pub mod let_;
 pub mod match_;
 
-use std::ops::Deref;
+use std::{ops::Deref, rc::Rc};
 
 use enum_as_inner::EnumAsInner;
 
@@ -103,6 +103,10 @@ impl<'a, T> Spanned<'a, T> {
 
     pub fn pretty_span(&self) -> String {
         format!("[{}..{}]", self.span().start(), self.span().end())
+    }
+
+    pub fn into_rc(self) -> Rc<T> {
+        Rc::new(self.node)
     }
 }
 

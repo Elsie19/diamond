@@ -34,7 +34,7 @@ pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     match elem {
         Some(found) => Some(ILitType::Result(IResultBranch::Ok(Box::new(found.clone())))),
         None => Some(ILitType::Result(IResultBranch::Err(Box::new(
-            ILitType::String(format!("invalid index `{}`", nth)),
+            ILitType::String(format!("invalid index `{}`", nth).into()),
         )))),
     }
 }
@@ -75,8 +75,8 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     };
 
     let split = string
-        .split(char)
-        .map(|s| ILitType::String(s.to_string()))
+        .split(char.as_ref())
+        .map(|s| ILitType::String(s.into()))
         .collect::<Vec<_>>();
 
     Some(ILitType::Array(split.into_boxed_slice()))

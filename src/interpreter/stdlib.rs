@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     interpreter::{engine::Engine, functions, types::ILitType},
@@ -33,7 +33,7 @@ pub enum RuntimeFunc<'a> {
 
 #[derive(Debug, Clone)]
 pub struct UserFunc<'a> {
-    pub args: Box<[(String, Type)]>,
+    pub args: Box<[(Rc<str>, Type)]>,
     pub body: &'a [IR],
     pub ret: Type,
 }

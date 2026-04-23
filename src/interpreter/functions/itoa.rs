@@ -5,7 +5,7 @@ pub fn itoa(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let arg = &args[0];
 
     if let ILitType::Integer(int) = arg {
-        Some(ILitType::String(int.to_string()))
+        Some(ILitType::String(int.to_string().into()))
     } else {
         None
     }

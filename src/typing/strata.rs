@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::typing::types::Type;
 
 /// Various ways of generating variable names.
@@ -8,7 +10,7 @@ pub trait VarGenerator {
     fn init() -> Self;
 
     /// Generate fresh variable name.
-    fn fresh<S>(&mut self, str: S) -> String
+    fn fresh<S>(&mut self, str: S) -> Rc<str>
     where
         S: AsRef<str>;
 }
@@ -17,7 +19,7 @@ pub trait VarGenerator {
 pub enum IR {
     FuncLet {
         name: String,
-        args: Vec<(String, Type)>,
+        args: Vec<(Rc<str>, Type)>,
         internal: bool,
         ret: Type,
         body: Vec<Self>,
@@ -26,15 +28,15 @@ pub enum IR {
         inner: Vec<Self>,
         expr_end: Option<Box<Self>>,
         /// Expression and binding name.
-        redirect: Option<(Box<Self>, String)>,
+        redirect: Option<(Box<Self>, Rc<str>)>,
     },
     For {
-        bind: String,
+        bind: Rc<str>,
         iter: Vec<Self>,
         body: Vec<Self>,
     },
     Let {
-        name: String,
+        name: Rc<str>,
         ty: Type,
         value: Vec<Self>,
     },
@@ -48,7 +50,7 @@ pub enum IR {
         unwrap: bool,
     },
     Integer(usize),
-    String(String),
+    String(Rc<str>),
     Ident(String),
     Array(Vec<Self>),
     Unit,
@@ -62,7 +64,7 @@ pub enum IR {
 
 #[derive(Debug, Clone)]
 pub struct IRMatchArm {
-    pub bind: String,
+    pub bind: Rc<str>,
     pub is_ok: bool,
     pub body: Box<[IR]>,
 }

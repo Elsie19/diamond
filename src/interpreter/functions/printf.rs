@@ -130,10 +130,10 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
 
         let out = match (spec, arg) {
             ('s', ILitType::String(s)) => s.clone(),
-            ('s', other) => format!("{other:?}"),
-            ('d' | 'u', ILitType::Integer(i)) => i.to_string(),
+            ('s', other) => format!("{other:?}").into(),
+            ('d' | 'u', ILitType::Integer(i)) => i.to_string().into(),
             #[allow(clippy::cast_precision_loss)]
-            ('f', ILitType::Integer(i)) => (*i as f64).to_string(),
+            ('f', ILitType::Integer(i)) => (*i as f64).to_string().into(),
             ('a', ILitType::Array(a)) => {
                 let mut mini_buf = String::from("[");
 
@@ -145,14 +145,14 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
                 }
 
                 mini_buf.push(']');
-                mini_buf
+                mini_buf.into()
             }
-            (unknown, _) => format!("%{unknown}"),
+            (unknown, _) => format!("%{unknown}").into(),
         };
 
         buf.push_str(&out);
         cur_arg += 1;
     }
 
-    Some(ILitType::String(buf))
+    Some(ILitType::String(buf.into()))
 }

@@ -519,7 +519,8 @@ where
                 Ok(Type::Integer)
             }
             PAtomic::String(s) => {
-                self.ir.push(IR::String(s.to_string()));
+                let str = **s;
+                self.ir.push(IR::String(str.into()));
                 Ok(Type::String)
             }
             PAtomic::Array(spanned) => {

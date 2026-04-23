@@ -30,7 +30,7 @@ pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let arg = &args[0];
 
     if let ILitType::String(path) = arg {
-        Some(ILitType::File(PathBuf::from(path)))
+        Some(ILitType::File(PathBuf::from(path.as_ref())))
     } else {
         None
     }
@@ -61,7 +61,7 @@ pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
                 ILitType::File(path.to_path_buf()),
             )))),
             Err(err) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(err.to_string()),
+                ILitType::String(err.to_string().into()),
             )))),
         }
     } else {
@@ -100,7 +100,7 @@ pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
                 ILitType::Stream(IStreamHandle::File(Rc::new(RefCell::new(stream)))),
             )))),
             Err(err) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(err.to_string()),
+                ILitType::String(err.to_string().into()),
             )))),
         }
     } else {
@@ -138,7 +138,7 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
                 ILitType::Unit,
             )))),
             Err(err) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(err.to_string()),
+                ILitType::String(err.to_string().into()),
             )))),
         },
         _ => todo!("haven't done shit yet"),
@@ -177,13 +177,13 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
                 ILitType::Array(
                     contents
                         .lines()
-                        .map(|s| ILitType::String(s.to_string()))
+                        .map(|s| ILitType::String(s.into()))
                         .collect::<Vec<_>>()
                         .into_boxed_slice(),
                 ),
             )))),
             Err(e) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(e.to_string()),
+                ILitType::String(e.to_string().into()),
             )))),
         },
         _ => todo!("not done yet"),

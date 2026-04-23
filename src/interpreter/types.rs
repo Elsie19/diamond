@@ -3,7 +3,7 @@ use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc};
 #[derive(Debug, Clone)]
 pub enum ILitType {
     Integer(usize),
-    String(String),
+    String(Rc<str>),
     Unit,
     Result(IResultBranch),
     Array(Box<[Self]>),

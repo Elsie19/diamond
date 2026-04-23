@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{borrow::Cow, collections::HashSet, rc::Rc};
 
 use crate::typing::strata::VarGenerator;
 
@@ -8,7 +8,7 @@ use crate::typing::strata::VarGenerator;
 /// end.
 #[derive(Debug, Default)]
 pub struct VarGenInterpreter {
-    store: HashSet<String>,
+    store: HashSet<Rc<str>>,
 }
 
 impl VarGenerator for VarGenInterpreter {
@@ -16,7 +16,7 @@ impl VarGenerator for VarGenInterpreter {
         Self::default()
     }
 
-    fn fresh<S>(&mut self, str: S) -> String
+    fn fresh<S>(&mut self, str: S) -> Rc<str>
     where
         S: AsRef<str>,
     {
@@ -24,6 +24,8 @@ impl VarGenerator for VarGenInterpreter {
         loop {
             num += 1;
             let id = format!("{}_{}", Self::normalize(str.as_ref()), num);
+
+            let id: Rc<str> = id.into();
 
             if self.store.insert(id.clone()) {
                 return id;
@@ -33,7 +35,9 @@ impl VarGenerator for VarGenInterpreter {
 }
 
 impl VarGenInterpreter {
-    fn normalize(str: &str) -> String {
+    // I know that `format!` will erase the usefulness of Cow, but if I can reduce even one
+    // allocation that'd be nice.
+    fn normalize(str: &str) -> Cow<'_, str> {
         str.to_ascii_lowercase()
             .replace('-', "_")
             .chars()

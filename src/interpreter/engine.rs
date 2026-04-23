@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     interpreter::{
@@ -25,7 +25,7 @@ pub struct Engine<'a> {
 
 #[derive(Debug, Clone, Default)]
 pub struct StackFrame {
-    vars: HashMap<String, ILitType>,
+    vars: HashMap<Rc<str>, ILitType>,
 }
 
 impl<'a> Engine<'a> {
@@ -42,7 +42,7 @@ impl<'a> Engine<'a> {
         self.frames.iter().rev().find_map(|f| f.vars.get(name))
     }
 
-    fn set_var<T: Into<String>>(&mut self, name: T, val: ILitType) {
+    fn set_var<T: Into<Rc<str>>>(&mut self, name: T, val: ILitType) {
         self.frames
             .last_mut()
             .expect("popped top frame, ruh roh")
@@ -92,19 +92,19 @@ impl<'a> Engine<'a> {
                 expr_end.as_ref().map(|v| &**v),
                 redirect
                     .as_ref()
-                    .map(|(ir, bind)| (ir.as_ref(), bind.as_str())),
+                    .map(|(ir, bind)| (ir.as_ref(), bind.as_ref())),
             ),
             IR::For { bind, iter, body } => self.eval_for_loop(bind, iter, body),
             IR::Let { name, ty: _, value } => {
                 debug_assert_eq!(value.len(), 1);
                 let val = self.eval(&value[0]).expect("did not produce value!!!");
-                self.set_var(name, val.clone());
+                self.set_var(Rc::clone(name), val.clone());
                 Some(val)
             }
             IR::Match { expr, arms } => self.eval_match(expr, arms),
             IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, args, *unwrap),
             IR::Integer(i) => Some(ILitType::Integer(*i)),
-            IR::String(s) => Some(ILitType::String(s.clone())),
+            IR::String(s) => Some(ILitType::String(Rc::clone(s))),
             IR::Ident(ident) => Some(self.get_var(ident).cloned().expect("could not find ident")),
             IR::Array(irs) => {
                 let elems = irs
@@ -142,7 +142,7 @@ impl<'a> Engine<'a> {
                 for (i, (arg_name, _)) in func.args.iter().enumerate() {
                     let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
 
-                    self.set_var(arg_name, val);
+                    self.set_var(Rc::clone(arg_name), val);
                 }
 
                 let mut last = None;
@@ -193,7 +193,7 @@ impl<'a> Engine<'a> {
 
             if let Some(val) = active {
                 self.push_frame();
-                self.set_var(bind_name, *val);
+                self.set_var(Rc::clone(bind_name), *val);
 
                 let mut last = None;
 

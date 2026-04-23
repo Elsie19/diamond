@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::typing::strata::VarGenerator;
 
 #[derive(Debug, Default)]
@@ -10,13 +12,13 @@ impl VarGenerator for QbeVarGen {
         Self::default()
     }
 
-    fn fresh<S>(&mut self, _str: S) -> String
+    fn fresh<S>(&mut self, _str: S) -> Rc<str>
     where
         S: AsRef<str>,
     {
         let ct = self.ct;
         let ret = format!(".{}", ct);
         self.ct += 1;
-        ret
+        ret.into()
     }
 }
