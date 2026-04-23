@@ -11,13 +11,13 @@ macro_rules! stdlib {
             $name:ident => $path:path
         ),* $(,)?
     ) => {{
-        let mut map: std::collections::HashMap<String, RuntimeFunc<'a>> =
-            std::collections::HashMap::new();
+        let mut map: ::std::collections::HashMap<::std::rc::Rc<str>, $crate::interpreter::stdlib::RuntimeFunc<'a>> =
+            ::std::collections::HashMap::new();
 
         $(
             map.insert(
-                stringify!($name).to_string(),
-                RuntimeFunc::Internal($path),
+                stringify!($name).to_string().into(),
+                $crate::interpreter::stdlib::RuntimeFunc::Internal($path),
             );
         )*
 
@@ -40,7 +40,7 @@ pub struct UserFunc<'a> {
 
 #[derive(Debug)]
 pub struct Functions<'a> {
-    funcs: HashMap<String, RuntimeFunc<'a>>,
+    funcs: HashMap<Rc<str>, RuntimeFunc<'a>>,
 }
 
 impl<'a> Functions<'a> {
@@ -73,8 +73,8 @@ impl<'a> Functions<'a> {
         }
     }
 
-    pub fn insert<T: ToString>(&mut self, name: &T, func: RuntimeFunc<'a>) {
-        self.funcs.insert(name.to_string(), func);
+    pub fn insert<T: Into<Rc<str>>>(&mut self, name: T, func: RuntimeFunc<'a>) {
+        self.funcs.insert(name.into(), func);
     }
 
     pub fn resolve<S: AsRef<str>>(&self, name: S) -> Option<&RuntimeFunc<'a>> {

@@ -223,10 +223,8 @@ where
 
             let unique = self.var_gen.fresh(arm.res.name());
 
-            let unique = unique.clone();
-
             self.scopes
-                .insert(&arm.inner, arm.inner.span(), bind_ty, &unique);
+                .insert(&arm.inner, arm.inner.span(), bind_ty, &*unique);
 
             let cur = arm.expr.span();
 
@@ -279,7 +277,7 @@ where
         let name = let_.name_raw();
         let unique = self.var_gen.fresh(**name);
 
-        self.scopes.insert(name, name.span(), ty.clone(), &unique);
+        self.scopes.insert(name, name.span(), ty.clone(), &*unique);
 
         self.ir.push(IR::Let {
             name: unique,
@@ -306,7 +304,7 @@ where
                 let unique = self.var_gen.fresh(*arg.name);
 
                 self.scopes
-                    .insert(&arg.name, arg.name.span(), arg.ty.clone().into(), &unique);
+                    .insert(&arg.name, arg.name.span(), arg.ty.clone().into(), &*unique);
 
                 lowered_args.push((unique, arg.ty.clone().into()));
             }
@@ -335,7 +333,7 @@ where
         self.scopes.pop();
 
         self.ir.push(IR::FuncLet {
-            name: funclet.name().to_string(),
+            name: funclet.name().into(),
             args: lowered_args,
             internal: false,
             ret: expected.clone(),
@@ -374,7 +372,7 @@ where
             let unique = self.var_gen.fresh(stream_name);
 
             self.scopes
-                .insert(stream_name, expr.span(), Type::Stream, &unique);
+                .insert(stream_name, expr.span(), Type::Stream, &*unique);
 
             Some((Box::new(ir), unique))
         } else {
@@ -504,7 +502,7 @@ where
         }
 
         self.ir.push(IR::FuncCall {
-            name: func.name().to_string(),
+            name: func.name().into(),
             args: args_ir,
             unwrap,
         });

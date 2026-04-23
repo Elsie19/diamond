@@ -79,7 +79,7 @@ impl<'a> Engine<'a> {
                     ret: ret.clone(),
                 });
 
-                self.funcs.insert(name, func);
+                self.funcs.insert(Rc::clone(name), func);
 
                 None
             }

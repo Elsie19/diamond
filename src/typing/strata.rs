@@ -18,7 +18,7 @@ pub trait VarGenerator {
 #[derive(Debug, Clone)]
 pub enum IR {
     FuncLet {
-        name: String,
+        name: Rc<str>,
         args: Vec<(Rc<str>, Type)>,
         internal: bool,
         ret: Type,
@@ -45,13 +45,13 @@ pub enum IR {
         arms: Vec<IRMatchArm>,
     },
     FuncCall {
-        name: String,
+        name: Rc<str>,
         args: Vec<Self>,
         unwrap: bool,
     },
     Integer(usize),
     String(Rc<str>),
-    Ident(String),
+    Ident(Rc<str>),
     Array(Vec<Self>),
     Unit,
     Result {

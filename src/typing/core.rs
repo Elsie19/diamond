@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     parse::{grammar::UntypedAst, types::PVal},
@@ -76,7 +76,7 @@ impl<'a> AstWalker<'a> {
 
 #[derive(Debug)]
 pub struct ScopeStack<'a> {
-    scopes: Vec<HashMap<&'a str, (pest::Span<'a>, Type, String)>>,
+    scopes: Vec<HashMap<&'a str, (pest::Span<'a>, Type, Rc<str>)>>,
 }
 
 impl<'a> ScopeStack<'a> {
@@ -102,10 +102,10 @@ impl<'a> ScopeStack<'a> {
 
     pub fn insert<T>(&mut self, name: &'a str, span: pest::Span<'a>, ty: Type, id: T)
     where
-        T: ToString,
+        T: Into<Rc<str>>,
     {
         let scope = self.scopes.last_mut().unwrap();
-        scope.insert(name, (span, ty, id.to_string()));
+        scope.insert(name, (span, ty, id.into()));
     }
 
     pub fn get(&self, name: &str) -> Option<&Type> {
@@ -122,11 +122,11 @@ impl<'a> ScopeStack<'a> {
             .find_map(|scope| scope.get(name).map(|(span, _, _)| span))
     }
 
-    pub fn get_unique_ident(&self, name: &str) -> Option<(Type, String)> {
+    pub fn get_unique_ident(&self, name: &str) -> Option<(Type, Rc<str>)> {
         self.scopes.iter().rev().find_map(|scope| {
             scope
                 .get(name)
-                .map(|(_, ty, unique)| (ty.clone(), unique.clone()))
+                .map(|(_, ty, unique)| (ty.clone(), Rc::clone(unique)))
         })
     }
 }
