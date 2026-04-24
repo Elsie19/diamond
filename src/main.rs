@@ -43,6 +43,12 @@ struct Args {
     args: Vec<String>,
 }
 
+/*
+* How this works is we parse the standard library and turn that into IR, then we parse the users
+* code, turn that into IR, then join the two, with the stdlib coming first, then executing it all.
+* Could this be made so it doesn't have to parse the standard library every time? Sure. Do I have
+* the time to do that? Not really.
+*/
 #[doc(hidden)]
 fn main() -> Result<()> {
     let args = Args::parse();
