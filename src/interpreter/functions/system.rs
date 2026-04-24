@@ -17,6 +17,12 @@ pub fn exit(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     }
 }
 
+/// Panic with message.
+///
+/// # Signature
+/// ```
+/// let ~internal panic(msg: string): unret;
+/// ```
 pub fn panic(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let ret = sprintf(engine, args);
 
