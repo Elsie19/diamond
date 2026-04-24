@@ -1,4 +1,4 @@
-program = { SOI ~ stmt* ~ EOI }
+program = { SOI ~ (stmt | expr)* ~ EOI }
 
 stmt = { expr ~ ";" }
 expr = {

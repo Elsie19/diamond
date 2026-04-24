@@ -2,9 +2,27 @@
 
 <h1>💎</h1>
 
+- [Introduction](#introduction)
+- [Getting Started](#getting-started)
+    - [The Commandline](#the-commandline)
+    - [Hello, World!](#hello-world)
+        - [The Usual](#the-usual)
+        - [Printf](#printf)
+        - [Characters](#characters)
+    - [Type System](#type-system)
+        - [Strings](#string)
+        - [Arrays](#array)
+        - [Unit](#unit)
+        - [Results](#result)
+        - [Files](#files)
+        - [Streams](#streams)
+        - [Any](#any)
+        - [Unret](#unret)
+    - [Syntax](#syntax)
+
 ## Introduction
 
-Diamond is a minimalistic, streaming and string oriented DSL. There are no structures, no if statements, etc. Its purpose is to take input from files and transform it into some output, where the output can be a couple different things; more on that later.
+Diamond is a minimalistic, stream and string oriented DSL. There are no structures, no if statements, etc. Its purpose is to take input from files and transform it into some output, where the output can be a couple different things; more on that later.
 
 It is minimalistic in the sense that except for function declarations, there are no explicit types at all.
 
@@ -14,6 +32,7 @@ Putting all of this into a list (+ some extra stuff I'll talk about later):
 
 * Immutable
 * Strongly typed
+* Not explicitly typed as much as possible
 * <img src="https://i.imgflip.com/aq2r57.jpg" width="400" height="300" />
 
 ## Getting Started
@@ -52,7 +71,7 @@ for (char in chars(string)) {
 printf("\n", []);
 ```
 
-## Type System
+### Type System
 
 Diamond has only 7[^2] types:
 
@@ -71,7 +90,7 @@ and *technically*:
 
 We are now going to go over each type in detail.
 
-### String
+#### String
 
 Strings are the backbone of Diamond. They are UTF-8 encoded, and internally immutable.
 
@@ -88,11 +107,11 @@ let return_string(): string = {
 <details>
 <summary><i>Click here to learn more about the design choices of string.</i></summary>
 
-#### Internal Representation
+##### Internal Representation
 
 Internally, `string` is stored as an [`Rc<str>`](`std::rc::Rc<str>`). This has a couple benefits over a plain [`String`]:
 
-##### Sizing
+###### Sizing
 
 A Rust `String` has three components, which you can check [here](std::string::String#representation), but because I know you didn't click, they are the pointer to the data, the capacity, and the length (*hint, it's literally just a dynamic array*). This is not ideal for a DSL that statically stores known values, without mutability. Thus, if we can get rid of the capacity field alone (because we will never be modifying that string), we can save 8 bytes, for the [`usize`] that we are no longer going to need. If you don't believe me, you can run this code to check:
 
@@ -109,7 +128,7 @@ Here's a table also:
 |  `String` |    ✅   |     ✅   |    ✅  |  24  |
 | `Rc<str>` |    ❌   |     ❌   |    ✅  |  16  |
 
-##### Who Has Access?
+###### Who Has Access?
 
 Arguably, this is the most important part of why `Rc<str>` is being used over `String`. Because strings are immutable, they should be able to be owned by any piece of code that can get ahold of it, but that's not allowed in Rust. Things cannot statically have multiple owners. If we used `String`, we would have to clone everywhere we wanted to use that string, but it's not going anywhere!!!! `Rc` allows us to use reference counting for cheap cloning, because now instead of `my_string.clone()`, we can do `Rc::clone(&my_string)`, and we'll get back an "owned value", but we haven't actually moved the string anywhere nor done any reallocations. This also means that:
 
@@ -120,7 +139,7 @@ Is actually not fully copying the string! It's just a pointer to that first stri
 
 </details>
 
-### Integer
+#### Integer
 
 The integer type is what I consider a "*secondary type*". Very few functions will to output them, but many will accept them. They are stored as [`usize`], or for C people, that's a `size_t`. There are no floats, or doubles, or anything else.
 
@@ -133,7 +152,7 @@ let return_integer(): integer = {
 };
 ```
 
-### Array
+#### Array
 
 Arrays can be non-homogenous (*although I don't recommend that, more later*).
 
@@ -147,7 +166,7 @@ let my_nested_arr = [
 ];
 ```
 
-#### Please please don't do non-homogenous arrays I'm begging you please don't
+##### Please please don't do non-homogenous arrays I'm begging you please don't
 
 I had to make a concession in the type system to accomodate the [`any`](#any) type, specifically arrays of `any`, so `[any]`. The bad news is that I no longer type check array homogenity, so this code passes type-checking:
 
@@ -167,7 +186,7 @@ The reason why I had to make this concession was for [`printf`](crate::interpret
 printf("string => %s\nnumber => %d\n", ["hello", 420]);
 ```
 
-### Unit
+#### Unit
 
 Unit types are inspired directly by Rust and OCaml. They generally indicate an absence of a value, while still being a value itself. If you are coming from C, you can think about it as `void`, except you can instantiate them as well as pass them to functions. Functions that do not return anything will implicitly return units.
 
@@ -187,7 +206,7 @@ let return_nothing_also_smaller() = ();
 let return_not_butter(): unit = puts("I can't believe it's not butter!\n");
 ```
 
-### Result
+#### Result
 
 Result types are borrowed from Rust. They can contain either a success or an error value. As of right now (5/24/26), you cannot construct a result type in Diamond, but functions can return them.
 
@@ -199,7 +218,7 @@ let some_result_function(): result(integer, string) = {
 
 Later, I will show you how to [`match`](#match) them, so you can operate on the possible success or error value, along with how to *unwrap* them.
 
-### File
+#### File
 
 The `file` type can be thought of as an intermediary between `string` and `stream`, so:
 
@@ -213,7 +232,7 @@ let my_file = file("names.csv");
 
 Think of them as tentative `stream`s almost.
 
-### Stream
+#### Stream
 
 Streams are wrappers around the Rust [`File`](`std::fs::File`) type. You can both read and write to and from them.
 
@@ -223,7 +242,7 @@ let my_stream = open(my_file)!;
 dump(my_stream, "appended!");
 ```
 
-### Any
+#### Any
 
 This type only exists at the type-checking level. It's an escape hatch for functions that need to take any type (*duh*), but since I ain't doing generics in a DSL, this was the next best thing. All types match on the `any` type, so if `T = "any type"`, the relation is `T <: any`. You cannot construct an `any`, but you can pass it along:
 
@@ -233,9 +252,24 @@ let return_any(val: any): any = val;
 
 For functions that you haven't defined yourself that *do* return or accept `any`, check their docs. I'm sure I gave a layout of what they return.
 
-### Unret
+#### Unret
 
 `unret` has the exact same semantics as `any`, except that the function will never return back control flow. Think of it as an early return from anywhere, that happens to match whatever type it needs to in order to pass type-checking.
+
+### Syntax
+
+If you want the full syntax, you can look at the [grammar file](../../../../src/parse/grammar.pest), but that's probably super boring for you, so here goes.
+
+* Function definitions
+* Function calling
+* Assignments
+* For loops
+* Match expressions
+* Groupings
+* Expressions
+* Statements
+
+#### Function Definitions
 
 [^1]: Streams could be considered mutable, but for the purposes of learning, don't worry about it.
 
