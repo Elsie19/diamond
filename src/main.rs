@@ -1,11 +1,16 @@
 //! <h1 style="color:#B9F2FF;"><b>Diamond</b></h1>
 //!
-//! <h2><i>Perl but it doesn't suck ass</i></h2>
+//! <q>A lightweight DSL focused on file manipulation with I/O.</q>
+//!
+//! ## Learning Diamond
+//!
+//! Check out the [parsing module](`parse`) for more information.
+//!
+//! ## Standard Library
 //!
 //! You should check out the standard library [here](interpreter::functions).
 
-/// Parsing Diamond code into an untyped AST.
-#[doc(hidden)]
+#[doc = include_str!("../docs/language.md")]
 pub mod parse;
 /// Type checker.
 pub mod typing;
@@ -33,12 +38,15 @@ const STDLIB_PATH: &str = "stdlib/headers.di";
 #[doc(hidden)]
 const STDLIB_HEADERS: &str = include_str!("stdlib/headers.di");
 
+/// A text-parsing DSL.
 #[doc(hidden)]
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Diamond program file.
     input: PathBuf,
 
+    /// Arguments to pass into Diamond.
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     args: Vec<String>,
 }

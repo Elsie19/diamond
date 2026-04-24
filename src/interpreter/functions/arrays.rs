@@ -84,6 +84,44 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     Some(ILitType::Array(split.into()))
 }
 
+/// Split string into individual characters.
+///
+/// # Signature
+/// ```
+/// let ~internal chars(string: string): [string];
+/// ```
+///
+/// # Example
+/// ```
+/// let my_string = "hello";
+/// let split = chars(my_string);
+/// for (part in split) {
+///     printf("%s\n", [part]);
+/// }
+/// ```
+///
+/// ```text
+/// h
+/// e
+/// l
+/// l
+/// o
+/// ```
+pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+    debug_assert_eq!(args.len(), 1);
+
+    let [ILitType::String(string)] = args else {
+        unreachable!("type checked");
+    };
+
+    let split = string
+        .chars()
+        .map(|s| ILitType::String(s.to_string().into()))
+        .collect::<Vec<_>>();
+
+    Some(ILitType::Array(split.into()))
+}
+
 /// Get length of parameter.
 ///
 /// # Signature

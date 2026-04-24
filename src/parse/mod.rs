@@ -1,4 +1,4 @@
-/// Diamond's grammar.
+#[doc(hidden)]
 pub mod grammar;
-/// AST types.
+#[doc(hidden)]
 pub mod types;

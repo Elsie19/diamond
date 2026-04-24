@@ -1,10 +1,5 @@
-let args = args();
-
-for (i in args) {
-    printf("arg => %s\n", [i]);
+let string = "Hello, World!";
+for (char in chars(string)) {
+    printf("%s", [char]);
 };
-
-let stream = open(file("Cargo.toml"))!;
-for (line in lines(stream)!) {
-    printf("%s\n", [line]);
-};
+printf("\n", []);
