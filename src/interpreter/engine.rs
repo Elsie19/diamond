@@ -21,6 +21,7 @@ pub struct Engine<'a> {
     // need to have stack frames for recursion in function calls.
     frames: Vec<StackFrame>,
     funcs: Functions<'a>,
+    argv: Rc<[ILitType]>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -29,13 +30,26 @@ pub struct StackFrame {
 }
 
 impl<'a> Engine<'a> {
-    pub fn new(ir: &'a [IR], func_table: &'a FuncTable<'a>) -> Self {
+    pub fn new<I, T>(ir: &'a [IR], func_table: &'a FuncTable<'a>, args: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<String>,
+    {
         Self {
             ir,
             func_table,
             frames: vec![StackFrame::default()],
             funcs: Functions::stdlib(),
+            argv: args
+                .into_iter()
+                .map(|s| ILitType::String(s.into().into()))
+                .collect::<Vec<_>>()
+                .into(),
         }
+    }
+
+    pub fn args(&self) -> &Rc<[ILitType]> {
+        &self.argv
     }
 
     fn get_var(&self, name: &str) -> Option<&ILitType> {

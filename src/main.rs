@@ -38,6 +38,9 @@ const STDLIB_HEADERS: &str = include_str!("stdlib/headers.di");
 #[command(version, about, long_about = None)]
 struct Args {
     input: PathBuf,
+
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    args: Vec<String>,
 }
 
 #[doc(hidden)]
@@ -76,7 +79,7 @@ fn main() -> Result<()> {
 
     total_ir.extend(program_ir.to_vec());
 
-    let mut engine = Engine::new(&total_ir, &funcs);
+    let mut engine = Engine::new(&total_ir, &funcs, &args.args);
 
     engine.run();
 

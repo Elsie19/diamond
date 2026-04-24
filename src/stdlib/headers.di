@@ -32,6 +32,7 @@ let ~internal split(string: string, char: string): [string] = ();
 #    SYSTEM       #
 ###################
 let ~internal exit(code: integer): unret = ();
+let ~internal args(): [string] = ();
 
 # Get size of something.
 #

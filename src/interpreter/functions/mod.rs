@@ -18,6 +18,7 @@
 //!     - [`sprintf`](printf::sprintf)
 //!     - [`puts`](printf::puts)
 //! * system
+//!     - [`args`](system::args)
 //!     - [`exit`](system::exit)
 //!     - [`panic`](system::panic)
 

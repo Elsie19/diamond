@@ -1,6 +1,10 @@
+let args = args();
+
+for (i in args) {
+    printf("arg => %s\n", [i]);
+};
+
 let stream = open(file("Cargo.toml"))!;
-let lines = skip(stream, 1)!;
-for (line in lines) {
+for (line in lines(stream)!) {
     printf("%s\n", [line]);
 };
-# printf("%s\n", [last(lines)]);
