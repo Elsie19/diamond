@@ -55,7 +55,6 @@ impl<'a> Functions<'a> {
                 printf =>  functions::printf::printf,
                 puts =>    functions::printf::puts,
 
-                panic => functions::panic::panic,
 
                 testing_branch => functions::testing_branch::testing_branch,
 
@@ -69,6 +68,10 @@ impl<'a> Functions<'a> {
                 open =>   functions::file::open,
                 dump =>   functions::file::dump,
                 lines =>  functions::file::lines,
+                skip =>   functions::file::skip,
+
+                panic =>  functions::system::panic,
+                exit =>   functions::system::exit,
             },
         }
     }

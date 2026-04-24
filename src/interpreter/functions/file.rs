@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     fs::{File, OpenOptions},
-    io::{Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     path::PathBuf,
     rc::Rc,
 };
@@ -171,21 +171,64 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 
     let mut contents = String::new();
 
-    match stream {
+    Some(ILitType::Result(match stream {
         IStreamHandle::File(handle) => match handle.borrow_mut().read_to_string(&mut contents) {
-            Ok(_) => Some(ILitType::Result(IResultBranch::Ok(Box::new(
-                ILitType::Array(
-                    contents
-                        .lines()
-                        .map(|s| ILitType::String(s.into()))
-                        .collect::<Vec<_>>()
-                        .into(),
-                ),
-            )))),
-            Err(e) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(e.to_string().into()),
-            )))),
+            Ok(_) => IResultBranch::Ok(Box::new(ILitType::Array(
+                contents
+                    .lines()
+                    .map(|s| ILitType::String(s.into()))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ))),
+            Err(e) => IResultBranch::Err(Box::new(ILitType::String(e.to_string().into()))),
         },
+        _ => todo!("not done yet"),
+    }))
+}
+
+/// Skip `n` amount of lines in stream.
+///
+/// # Signature
+/// ```
+/// let ~internal skip(stream: stream, n: integer): result([string], string);
+/// ```
+///
+/// # Details
+/// Returns lines on success, or error on failure.
+///
+/// # Example
+/// ```
+/// let stream = open(file("people.csv"))!;
+/// for (i in skip(stream, 1)!) {
+///     printf("%s\n", [i]);
+/// };
+/// ```
+///
+/// ```csv
+/// Ainsley,5-29-05,female
+/// Sam,10-21-07,male
+/// ```
+pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+    debug_assert_eq!(args.len(), 2);
+
+    let [ILitType::Stream(stream), ILitType::Integer(skip)] = args else {
+        unreachable!("type checked");
+    };
+
+    match stream {
+        IStreamHandle::File(handle) => {
+            let file = &*handle.borrow_mut();
+            let buf = BufReader::new(file);
+            let lines = buf
+                .lines()
+                .skip(*skip)
+                .map(|line| line.map(|s| ILitType::String(s.into())))
+                .collect::<Result<Vec<_>, _>>();
+            Some(ILitType::Result(match lines {
+                Ok(lines) => IResultBranch::Ok(Box::new(ILitType::Array(lines.into()))),
+                Err(err) => IResultBranch::Err(Box::new(ILitType::String(err.to_string().into()))),
+            }))
+        }
         _ => todo!("not done yet"),
     }
 }

@@ -6,6 +6,7 @@ let ~internal create(path: file): result(file, string) = ();
 let ~internal open(path: file): result(stream, string) = ();
 let ~internal dump(stream: stream, contents: string): result(unit, string) = ();
 let ~internal lines(stream: stream): result([string], string) = ();
+let ~internal skip(stream: stream, n: integer): result([string], string) = ();
 
 ################
 #    PRINTF    #
@@ -26,6 +27,11 @@ let ~internal itoa(str: integer): string = ();
 ###################
 let ~internal nth(arr: [any], nth: integer): result(any, string) = ();
 let ~internal split(string: string, char: string): [string] = ();
+
+###################
+#    SYSTEM       #
+###################
+let ~internal exit(code: integer): unret = ();
 
 # Get size of something.
 #

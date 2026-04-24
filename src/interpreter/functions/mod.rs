@@ -12,10 +12,14 @@
 //!     - [`open`](file::open)
 //!     - [`dump`](file::dump)
 //!     - [`lines`](file::lines)
+//!     - [`skip`](file::skip)
 //! * printf and friends
 //!     - [`printf`](printf::printf)
 //!     - [`sprintf`](printf::sprintf)
 //!     - [`puts`](printf::puts)
+//! * system
+//!     - [`exit`](system::exit)
+//!     - [`panic`](system::panic)
 
 /// Array functions.
 pub mod arrays;
@@ -29,10 +33,10 @@ pub mod file;
 /// Conversions.
 pub mod itoa;
 
-/// System utilities.
-pub mod panic;
-
 /// Printing to stdout.
 pub mod printf;
+
+/// System related stuff.
+pub mod system;
 
 pub mod testing_branch;
