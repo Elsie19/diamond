@@ -1,8 +1,10 @@
 use std::borrow::Cow;
 
+use enum_as_inner::EnumAsInner;
+
 use crate::parse::types::PType;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, EnumAsInner)]
 pub enum Type {
     String,
     Integer,
@@ -39,6 +41,13 @@ impl PartialEq for Type {
 }
 
 impl Type {
+    pub fn is_any_array(&self) -> bool {
+        match self {
+            Self::Array(inner) => matches!(&**inner, Self::Any),
+            _ => false,
+        }
+    }
+
     pub fn as_display_ty(&self) -> Cow<'_, str> {
         match self {
             Type::String => Cow::Borrowed("string"),

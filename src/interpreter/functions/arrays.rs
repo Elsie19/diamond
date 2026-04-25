@@ -79,9 +79,9 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let split = string
         .split(char.as_ref())
         .map(|s| ILitType::String(s.into()))
-        .collect::<Vec<_>>();
+        .collect();
 
-    Some(ILitType::Array(split.into()))
+    Some(ILitType::Array(split))
 }
 
 /// Split string into individual characters.
@@ -117,9 +117,9 @@ pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     let split = string
         .chars()
         .map(|s| ILitType::String(s.to_string().into()))
-        .collect::<Vec<_>>();
+        .collect();
 
-    Some(ILitType::Array(split.into()))
+    Some(ILitType::Array(split))
 }
 
 /// Get length of parameter.
@@ -207,16 +207,13 @@ pub fn enumerate(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType
         unreachable!("type checked");
     };
 
-    let mut vec = Vec::with_capacity(iter.len());
+    let combo = iter
+        .iter()
+        .enumerate()
+        .map(|(idx, elem)| ILitType::Array(Rc::new([ILitType::Integer(idx), elem.clone()])))
+        .collect();
 
-    for (idx, elem) in iter.iter().enumerate() {
-        vec.push(ILitType::Array(Rc::new([
-            ILitType::Integer(idx),
-            elem.clone(),
-        ])));
-    }
-
-    Some(ILitType::Array(vec.into()))
+    Some(ILitType::Array(combo))
 }
 
 /// Get last element of array.
@@ -237,4 +234,38 @@ pub fn enumerate(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType
 /// ```
 pub fn last(_lst: &[ILitType]) -> ILitType {
     ILitType::Unit
+}
+
+/// Yield back only the first `up_to` elements of an array.
+///
+/// # Signature
+/// ```
+/// let ~internal only(arr: [any], up_to: integer): [any];
+/// ```
+///
+/// # Details
+/// Yields an empty array if `arr` is empty.
+///
+/// # Example
+/// ```
+/// let my_string = "Mary had a little lamb";
+/// let split = split(my_string, " ");
+/// let arr = only(split, 2);
+/// for (i in arr) printf("%s\n", [i]);
+/// ```
+///
+/// ```text
+/// Mary
+/// had
+/// ```
+pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+    debug_assert_eq!(args.len(), 2);
+
+    let [ILitType::Array(iter), ILitType::Integer(up_to)] = args else {
+        unreachable!("type checked");
+    };
+
+    let up_to = *up_to.min(&iter.len());
+
+    Some(ILitType::Array(Rc::from(&iter[..up_to])))
 }

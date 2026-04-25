@@ -28,6 +28,7 @@ let ~internal itoa(str: integer): string = ();
 let ~internal nth(arr: [any], nth: integer): result(any, string) = ();
 let ~internal split(string: string, char: string): [string] = ();
 let ~internal chars(string: string): [string] = ();
+let ~internal only(arr: [any], up_to: integer): [any] = ();
 
 ###################
 #    SYSTEM       #

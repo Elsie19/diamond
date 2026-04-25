@@ -184,7 +184,11 @@ impl<'a> Engine<'a> {
             match ret.expect("return failed") {
                 ILitType::Result(iresult_branch) => match iresult_branch {
                     IResultBranch::Ok(ilit_type) => Some(*ilit_type),
-                    IResultBranch::Err(_) => panic!("found err branch"),
+                    IResultBranch::Err(ilit_type) => {
+                        use crate::interpreter::functions::system::panic as internal_panic;
+                        internal_panic(self, &[*ilit_type, ILitType::Array(Rc::new([]))]);
+                        unreachable!("panicked above???");
+                    }
                 },
                 err => panic!("expected `result`, but got `{:?}`", err),
             }

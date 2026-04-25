@@ -27,6 +27,7 @@
         - [Groupings](#groupings)
         - [Expressions](#expressions)
         - [Statements](#statements)
+- [What's Next?](#whats-next)
 
 ## Introduction
 
@@ -162,7 +163,7 @@ let return_integer(): integer = {
 
 #### Array
 
-Arrays can be non-homogenous (*although I don't recommend that, more later*).
+Arrays are typically homogenous elements, however, in very specific circumstances, they can be non-homogenous.
 
 ```rust
 let my_str_arr = ["Hello", ",", " ", "World", "!"];
@@ -174,21 +175,34 @@ let my_nested_arr = [
 ];
 ```
 
-##### Please please don't do non-homogenous arrays I'm begging you please don't
+##### Non-Homogeneity
 
-I had to make a concession in the type system to accomodate the [`any`](#any) type, specifically arrays of `any`, so `[any]`. The bad news is that I no longer type check array homogenity, so this code passes type-checking:
+The only time that the type-checker will relax homogeneity rules is when directly using a non-homogenous array as a parameter that is expecting `[any]`. For example:
 
-```rust
-let some_function(arr: [string]) = ();
-
-let my_stupid_arr = ["hello", 67, ()];
-
-some_function(my_stupid_arr);
+```compile_fail
+let arr = [1, "two"];
+printf("%d and %s\n", arr);
 ```
 
-Some functions, namely [`enumerate`](crate::interpreter::functions::arrays::enumerate), do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated, and can be considered safe to use.
+But:
 
-The reason why I had to make this concession was for [`printf`](crate::interpreter::functions::printf::printf)'s second argument, which is an array that can take anything inside it, so you can do things like:
+```rust
+printf("%d and %s\n", [1, "two"]);
+```
+
+Will work just fine.
+
+User-made functions are not allowed to return non-homogenous arrays, for instance:
+
+```compile_fail
+let wrong(): [any] = {
+    [1, "two"]
+}
+```
+
+However, some functions, namely [`enumerate`](crate::interpreter::functions::arrays::enumerate), do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated[^3], and can be considered safe to use.
+
+The original reason why I had to make this rule was for [`printf`](crate::interpreter::functions::printf::printf)'s second argument, which is an array that can take anything inside it, so you can do things like:
 
 ```rust
 printf("string => %s\nnumber => %d\n", ["hello", 420]);
@@ -427,6 +441,10 @@ my_func(works);
 my_func(doesnt_work);
 ```
 
+## What's Next?
+
+Go check out some [practice problems](`crate::interpreter::engine`) to get more comfortable with Diamond!
+
 [^1]: Streams could be considered mutable, but for the purposes of learning, don't worry about it.
 
 [^2]: Diamond technically has two more types:
@@ -436,3 +454,5 @@ my_func(doesnt_work);
     9. Unret
 
     But these are type erased after type-checking, and thus only exist at the parsing and type-checking level, and not the interpreting level. So a more accurate wording of "Diamond only has 7 types" would be, "Diamond only has 7 types that are used when interpreting, but has 9 for type-checking"
+
+[^3]: Because of the `~internal` attribute on `enumerate`, Diamond will skip type-checking the body of the function and assume that it is safe. This has to be done because the `enumerate` function cannot be defined in Diamond itself. That is why it is allowed to return non-homogenous arrays.

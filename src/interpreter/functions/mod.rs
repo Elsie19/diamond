@@ -7,6 +7,7 @@
 //!     - [`enumerate`](arrays::enumerate)
 //!     - [`last`](arrays::last)
 //!     - [`chars`](arrays::chars)
+//!     - [`only`](arrays::only)
 //! * files
 //!     - [`file`](file::file)
 //!     - [`create`](file::create)

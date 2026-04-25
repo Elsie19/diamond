@@ -28,6 +28,7 @@ pub struct TypeChecker<'a, G> {
     scopes: ScopeStack<'a>,
     source: NamedSource<String>,
     var_gen: G,
+    attrs: Attributes,
     ir: Vec<IR>,
 }
 
@@ -35,6 +36,29 @@ pub struct TypeChecker<'a, G> {
 struct TypeAndIR {
     ty: Type,
     ir: Vec<IR>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Attributes {
+    array_homogeneity_required: bool,
+}
+
+impl Default for Attributes {
+    fn default() -> Self {
+        Self {
+            array_homogeneity_required: true,
+        }
+    }
+}
+
+impl Attributes {
+    pub fn homo_arrays_allowed(&self) -> bool {
+        self.array_homogeneity_required
+    }
+
+    pub fn hetero_arrays_allowed(&self) -> bool {
+        !self.homo_arrays_allowed()
+    }
 }
 
 impl TypeAndIR {
@@ -105,6 +129,7 @@ where
             scopes: ScopeStack::new(),
             source: NamedSource::new(file_name, prog_text.to_string()).with_language("diamond"),
             var_gen: G::init(),
+            attrs: Attributes::default(),
             ir: Vec::new(),
         }
     }
@@ -140,6 +165,16 @@ where
 
     fn check_node(&mut self, node: &'a SpannedPVal<'a>) -> Result<TypeAndIR, TypeCheckError> {
         self.check_inner(&node.node, node.span())
+    }
+
+    fn get_span_of_ident(&self, val: &PVal) -> Option<SourceSpan> {
+        if let PVal::Atomic(spanned) = val
+            && let PAtomic::Ident(name) = &**spanned
+        {
+            self.scopes.get_span(name.node).map(|span| self.span(*span))
+        } else {
+            None
+        }
     }
 
     fn check_inner(
@@ -179,13 +214,7 @@ where
             // We can get a little clever here. If what's trying to be used as an
             // iterable is not a constant, but an identifier, we can go find its span
             // and have even nicer error messages.
-            let defined_here = if let PVal::Atomic(spanned) = &***loop_expr
-                && let PAtomic::Ident(name) = &**spanned
-            {
-                self.scopes.get_span(name.node).map(|span| self.span(*span))
-            } else {
-                None
-            };
+            let defined_here = self.get_span_of_ident(loop_expr);
 
             return Err(TypeCheckError::VerifyError(
                 pass_one::VerifyError::NonIterable {
@@ -448,11 +477,19 @@ where
         let mut args_ir = Vec::with_capacity(args.len());
 
         for (slot, (arg_expr, expected)) in args.iter().zip(&def.args).enumerate() {
-            let got = self.check_node(arg_expr)?;
-
             let expected = expected.clone();
 
-            if *got.ty() != expected {
+            let old_homo = self.attrs.array_homogeneity_required;
+            if expected.is_any_array() {
+                self.attrs.array_homogeneity_required = false;
+            }
+
+            let got = self.check_node(arg_expr)?;
+
+            self.attrs.array_homogeneity_required = old_homo;
+
+            if !expected.is_any() && *got.ty() != expected {
+                let defined_here = self.get_span_of_ident(arg_expr);
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::ArgumentTypeMismatch {
                         slot,
@@ -460,15 +497,7 @@ where
                         got: got.into_ty(),
                         src: self.src(),
                         bad_bit: arg_expr.as_miette_span(),
-                        defined_here: if let PVal::Atomic(atomic) = &**arg_expr
-                            && let PAtomic::Ident(ident) = &**atomic
-                        {
-                            self.scopes
-                                .get_span(ident.node)
-                                .map(|span| self.span(*span))
-                        } else {
-                            None
-                        },
+                        defined_here,
                     },
                 ));
             }
@@ -528,9 +557,11 @@ where
                         ir: vec![IR::Array(vec![])],
                     }),
                     [first, rest @ ..] => {
+                        let heterorrays = self.attrs.hetero_arrays_allowed();
+
                         let first = self.check_node(first)?;
 
-                        let mut ir = vec![];
+                        let mut ir = Vec::with_capacity(1 + rest.len());
                         ir.extend(first.ir);
 
                         let expected = first.ty;
@@ -538,15 +569,15 @@ where
                         for elem in rest {
                             let got = self.check_node(elem)?;
 
-                            if *got.ty() != expected {
-                                /* return Err(TypeCheckError::VerifyError(
+                            if !heterorrays && *got.ty() != expected {
+                                return Err(TypeCheckError::VerifyError(
                                     pass_one::VerifyError::MismatchedArrayElements {
                                         expected,
-                                        got,
+                                        got: got.into_ty(),
                                         src: self.src(),
                                         bad_bit: elem.as_miette_span(),
                                     },
-                                )); */
+                                ));
                             }
 
                             ir.extend(got.ir);

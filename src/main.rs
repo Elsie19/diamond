@@ -73,7 +73,7 @@ fn main() -> Result<()> {
     let func_table = stdlib_walker.collect_function_defs();
 
     let mut stdlib_checker = TypeChecker::<VarGenInterpreter>::new(&func_table, &file, &string);
-    let _ = stdlib_checker.check_program(&stdlib_program)?;
+    stdlib_checker.check_program(&stdlib_program)?;
 
     let mut total_ir = stdlib_checker.ir().to_vec();
 
@@ -87,7 +87,7 @@ fn main() -> Result<()> {
     funcs.extend(func_table);
 
     let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
-    let _ = checker.check_program(&program)?;
+    checker.check_program(&program)?;
 
     let program_ir = checker.ir();
 

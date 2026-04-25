@@ -64,6 +64,7 @@ impl<'a> Functions<'a> {
                 len =>       functions::arrays::len,
                 enumerate => functions::arrays::enumerate,
                 chars =>     functions::arrays::chars,
+                only =>      functions::arrays::only,
 
                 file =>   functions::file::file,
                 create => functions::file::create,
