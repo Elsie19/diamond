@@ -57,13 +57,13 @@ pub enum IR {
         ok: Box<Self>,
         err: Box<Self>,
     },
-    Expr(Box<Self>),
-    Stmt(Box<Self>),
+    Expr(Vec<Self>),
+    Stmt(Vec<Self>),
 }
 
 #[derive(Debug, Clone)]
 pub struct IRMatchArm {
     pub bind: Rc<str>,
     pub is_ok: bool,
-    pub body: Box<[IR]>,
+    pub body: Box<IR>,
 }

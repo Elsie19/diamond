@@ -31,6 +31,34 @@ pub struct TypeChecker<'a, G> {
     ir: Vec<IR>,
 }
 
+#[derive(Debug)]
+struct TypeAndIR {
+    ty: Type,
+    ir: Vec<IR>,
+}
+
+impl TypeAndIR {
+    fn new(ty: Type, ir: Vec<IR>) -> Self {
+        Self { ty, ir }
+    }
+
+    fn ty(&self) -> &Type {
+        &self.ty
+    }
+
+    fn ir(&self) -> &[IR] {
+        &self.ir
+    }
+
+    fn into_ty(self) -> Type {
+        self.ty
+    }
+
+    fn into_ir(self) -> Vec<IR> {
+        self.ir
+    }
+}
+
 #[derive(Debug, Error, Diagnostic)]
 pub enum TypeCheckError {
     #[error(transparent)]
@@ -93,19 +121,24 @@ where
         &self.ir
     }
 
-    pub fn check_program(&mut self, program: &'a UntypedAst<'a>) -> Result<&[IR], TypeCheckError> {
+    pub fn check_program(&mut self, program: &'a UntypedAst<'a>) -> Result<(), TypeCheckError> {
+        let mut ir = vec![];
+
         for node in program {
-            self.check_node(node)?;
+            let result = self.check_node(node)?;
+            ir.extend(result.ir);
         }
 
-        Ok(&self.ir)
+        self.ir = ir;
+
+        Ok(())
     }
 
-    fn inner(&mut self, sp: &'a Spanned<'a, Box<PVal<'a>>>) -> Result<Type, TypeCheckError> {
+    fn inner(&mut self, sp: &'a Spanned<'a, Box<PVal<'a>>>) -> Result<TypeAndIR, TypeCheckError> {
         self.check_inner(&sp.node, sp.span())
     }
 
-    fn check_node(&mut self, node: &'a SpannedPVal<'a>) -> Result<Type, TypeCheckError> {
+    fn check_node(&mut self, node: &'a SpannedPVal<'a>) -> Result<TypeAndIR, TypeCheckError> {
         self.check_inner(&node.node, node.span())
     }
 
@@ -113,7 +146,7 @@ where
         &mut self,
         node: &'a PVal<'a>,
         span: pest::Span<'a>,
-    ) -> Result<Type, TypeCheckError> {
+    ) -> Result<TypeAndIR, TypeCheckError> {
         match &node {
             PVal::FuncLet(funclet) => self.check_funclet(funclet),
             PVal::Atomic(spanned) => self.check_atomic(&spanned.node),
@@ -125,21 +158,23 @@ where
             PVal::Expr(spanned) => self.check_inner(&spanned.node, spanned.span()),
             // Type check everything inside but it still returns a [`Type::Unit`] by design.
             PVal::Stmt(spanned) => {
-                let _ = self.check_inner(&spanned.node, spanned.span())?;
-                Ok(Type::Unit)
+                // BUG: This doesn't wrap the IR with Stmt.
+                let ir_and_val = self.check_inner(&spanned.node, spanned.span())?;
+
+                Ok(TypeAndIR {
+                    ty: Type::Unit,
+                    ir: vec![IR::Stmt(ir_and_val.into_ir())],
+                })
             }
         }
     }
 
-    fn check_for(&mut self, for_: &'a For<'a>) -> Result<Type, TypeCheckError> {
+    fn check_for(&mut self, for_: &'a For<'a>) -> Result<TypeAndIR, TypeCheckError> {
         let loop_expr = for_.loop_raw().expr_raw();
 
-        let prev_iter_len = self.ir.len();
-        let iter_ty = self.inner(loop_expr)?;
+        let iter_res = self.inner(loop_expr)?;
 
-        let iter_ir = self.ir.drain(prev_iter_len..).collect::<Vec<_>>();
-
-        let elem_ty = if let Type::Array(inner) = iter_ty {
+        let elem_ty = if let Type::Array(inner) = iter_res.ty {
             *inner
         } else {
             // We can get a little clever here. If what's trying to be used as an
@@ -168,34 +203,29 @@ where
 
         let unique = self.var_gen.fresh(**bind_name);
 
-        let bind = unique.clone();
-
         self.scopes
-            .insert(bind_name.node, bind_name.span(), elem_ty, unique);
+            .insert(bind_name.node, bind_name.span(), elem_ty, unique.clone());
 
-        let prev_body_len = self.ir.len();
-        let for_ret_ty = self.inner(for_.body_raw())?;
-        let body_ir = self.ir.drain(prev_body_len..).collect::<Vec<_>>();
+        let body_res = self.inner(for_.body_raw())?;
 
         self.scopes.pop();
 
-        self.ir.push(IR::For {
-            bind,
-            iter: iter_ir,
-            body: body_ir,
-        });
-
-        Ok(for_ret_ty)
+        Ok(TypeAndIR {
+            ty: body_res.ty,
+            ir: vec![IR::For {
+                bind: unique,
+                iter: iter_res.ir,
+                body: body_res.ir,
+            }],
+        })
     }
 
-    fn check_match(&mut self, match_: &'a Match<'a>) -> Result<Type, TypeCheckError> {
+    fn check_match(&mut self, match_: &'a Match<'a>) -> Result<TypeAndIR, TypeCheckError> {
         let expr_raw = match_.expr_raw();
 
-        let prev_expr_len = self.ir.len();
-        let expr_ty = self.inner(expr_raw)?;
-        let expr_ir = self.ir.drain(prev_expr_len..).collect::<Vec<_>>();
+        let expr_res = self.inner(expr_raw)?;
 
-        let (ok_ty, err_ty) = match expr_ty {
+        let (ok_ty, err_ty) = match expr_res.ty {
             Type::Result(ok, err) => (*ok, *err),
             _ => {
                 return Err(TypeCheckError::VerifyError(
@@ -214,8 +244,6 @@ where
         for arm in match_.arms_raw() {
             self.scopes.push();
 
-            let prev_arm_len = self.ir.len();
-
             let (bind_ty, is_ok) = match &arm.res {
                 PMatchCase::Ok(_) => (ok_ty.clone(), true),
                 PMatchCase::Err(_) => (err_ty.clone(), false),
@@ -226,73 +254,73 @@ where
             self.scopes
                 .insert(&arm.inner, arm.inner.span(), bind_ty, &*unique);
 
-            let cur = arm.expr.span();
-
-            let expected = self.inner(&arm.expr)?;
-            let body_ir = self.ir.drain(prev_arm_len..).collect::<Vec<_>>();
+            let arm_res = self.inner(&arm.expr)?;
 
             self.scopes.pop();
 
             arms_ir.push(IRMatchArm {
                 bind: unique,
                 is_ok,
-                body: body_ir.into_boxed_slice(),
+                body: Box::new(arm_res.ir[0].clone()),
             });
 
             if let Some(got) = &result_ty {
-                if *got != expected {
+                if *got != arm_res.ty {
                     let got = got.clone();
                     return Err(TypeCheckError::VerifyError(
                                 pass_one::VerifyError::MismatchedMatchArms {
-                                    expected,
+                                    expected: arm_res.ty.clone(),
                                     got,
                                     src: self.src(),
-                                    cur_branch: self.span(cur),
+                                    cur_branch: self.span(arm.expr.span()),
                                     prev_branch: self.span(last_span.expect("how are we failing on a current branch if we don't have a previous")),
                                 },
                             ));
                 }
             } else {
-                last_span = Some(cur);
-                result_ty = Some(expected);
+                last_span = Some(arm.expr.span());
+                result_ty = Some(arm_res.ty);
             }
         }
 
-        self.ir.push(IR::Match {
-            expr: expr_ir,
-            arms: arms_ir,
-        });
-
-        Ok(result_ty.unwrap_or_default())
+        Ok(TypeAndIR {
+            ty: result_ty.unwrap_or_default(),
+            ir: vec![IR::Match {
+                expr: expr_res.ir,
+                arms: arms_ir,
+            }],
+        })
     }
 
-    fn check_let(&mut self, let_: &'a Let<'a>) -> Result<Type, TypeCheckError> {
-        let prev_len = self.ir.len();
-        let ty = self.inner(let_.expr_raw())?;
+    fn check_let(&mut self, let_: &'a Let<'a>) -> Result<TypeAndIR, TypeCheckError> {
+        let expr_res = self.inner(let_.expr_raw())?;
 
-        let expr_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
-
-        debug_assert_eq!(expr_ir.len(), 1);
+        debug_assert_eq!(expr_res.ir().len(), 1);
 
         let name = let_.name_raw();
         let unique = self.var_gen.fresh(**name);
 
-        self.scopes.insert(name, name.span(), ty.clone(), &*unique);
+        self.scopes
+            .insert(name, name.span(), expr_res.ty.clone(), &*unique);
 
-        self.ir.push(IR::Let {
-            name: unique,
-            ty: ty.clone(),
-            value: expr_ir,
-        });
-
-        Ok(ty)
+        Ok(TypeAndIR {
+            ty: expr_res.ty.clone(),
+            ir: vec![IR::Let {
+                name: unique,
+                ty: expr_res.ty,
+                value: expr_res.ir,
+            }],
+        })
     }
 
-    fn check_funclet(&mut self, funclet: &'a FuncLet<'a>) -> Result<Type, TypeCheckError> {
+    fn check_funclet(&mut self, funclet: &'a FuncLet<'a>) -> Result<TypeAndIR, TypeCheckError> {
         let expected = funclet.ret().cloned().map_or(Type::Unit, Type::from);
 
         if funclet.is_internal() {
-            return Ok(expected);
+            return Ok(TypeAndIR {
+                ty: expected,
+                ir: vec![IR::Unit],
+            });
         }
 
         self.scopes.push();
@@ -310,17 +338,15 @@ where
             }
         }
 
-        let prev_len = self.ir.len();
-
         let body = funclet.body_raw();
         let got = self.inner(body)?;
 
-        if got != expected {
+        if *got.ty() != expected {
             self.scopes.pop();
             return Err(TypeCheckError::VerifyError(
                 pass_one::VerifyError::InvalidReturnType {
                     expected,
-                    got,
+                    got: got.ty,
                     src: self.src(),
                     bad_bit: body.as_miette_span(),
                     decl: self.span(funclet.ret().unwrap().span()),
@@ -328,45 +354,39 @@ where
             ));
         }
 
-        let body_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
-
         self.scopes.pop();
 
-        self.ir.push(IR::FuncLet {
-            name: funclet.name().into(),
-            args: lowered_args,
-            internal: false,
-            ret: expected.clone(),
-            body: body_ir,
-        });
-
-        Ok(expected)
+        Ok(TypeAndIR {
+            ty: expected.clone(),
+            ir: vec![IR::FuncLet {
+                name: funclet.name().into(),
+                args: lowered_args,
+                internal: false,
+                ret: expected,
+                body: got.ir,
+            }],
+        })
     }
 
-    fn check_grouping(&mut self, group: &'a Grouping<'a>) -> Result<Type, TypeCheckError> {
+    fn check_grouping(&mut self, group: &'a Grouping<'a>) -> Result<TypeAndIR, TypeCheckError> {
         self.scopes.push();
 
-        let prev_len = self.ir.len();
+        let mut inner_ir = vec![];
+        let mut last_val_ty = Type::Unit;
 
         let redirect_ir = if let Some(expr) = group.redirect() {
-            let prev_len_redirect = self.ir.len();
             let got = self.inner(expr)?;
 
-            if !matches!(got, Type::Stream) {
+            if got.ty != Type::Stream {
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::MismatchedType {
                         expected: Type::Stream,
-                        got,
+                        got: got.ty,
                         src: self.src(),
                         bad_bit: expr.as_miette_span(),
                     },
                 ));
             }
-
-            let mut drained = self.ir.drain(prev_len_redirect..).collect::<Vec<_>>();
-            let ir = drained
-                .pop()
-                .expect("redirect produced no IR but we found one above?");
 
             let stream_name = "STREAM";
             let unique = self.var_gen.fresh(stream_name);
@@ -374,43 +394,33 @@ where
             self.scopes
                 .insert(stream_name, expr.span(), Type::Stream, &*unique);
 
-            Some((Box::new(ir), unique))
+            Some((Box::new(got.ir[0].clone()), unique))
         } else {
             None
         };
 
-        let stmts = group.stmts_raw();
-
-        let mut last_val_ty = Type::Unit;
-
-        match stmts {
-            [] => {
-                last_val_ty = Type::Unit;
-            }
-            other => {
-                for stmt in other {
-                    last_val_ty = self.check_node(stmt)?;
-                }
-            }
+        for stmt in group.stmts_raw() {
+            let res = self.check_node(stmt)?;
+            last_val_ty = res.ty;
+            inner_ir.extend(res.ir);
         }
-
-        let inner_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
 
         self.scopes.pop();
 
-        self.ir.push(IR::Grouping {
-            inner: inner_ir,
-            redirect: redirect_ir,
-        });
-
-        Ok(last_val_ty)
+        Ok(TypeAndIR {
+            ty: last_val_ty,
+            ir: vec![IR::Grouping {
+                inner: inner_ir,
+                redirect: redirect_ir,
+            }],
+        })
     }
 
     fn check_funccall(
         &mut self,
         func: &'a FuncCall<'a>,
         span: pest::Span<'a>,
-    ) -> Result<Type, TypeCheckError> {
+    ) -> Result<TypeAndIR, TypeCheckError> {
         let def =
             self.funcs
                 .lookup(func.name())
@@ -439,21 +449,16 @@ where
         let mut args_ir = Vec::with_capacity(args.len());
 
         for (slot, (arg_expr, expected)) in args.iter().zip(&def.args).enumerate() {
-            let prev_len = self.ir.len();
-
             let got = self.check_node(arg_expr)?;
-
-            let arg_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
-            args_ir.extend(arg_ir);
 
             let expected = expected.clone();
 
-            if got != expected {
+            if *got.ty() != expected {
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::ArgumentTypeMismatch {
                         slot,
                         expected,
-                        got,
+                        got: got.ty,
                         src: self.src(),
                         bad_bit: arg_expr.as_miette_span(),
                         defined_here: if let PVal::Atomic(atomic) = &**arg_expr
@@ -468,6 +473,8 @@ where
                     },
                 ));
             }
+
+            args_ir.extend(got.ir);
         }
 
         let mut ret_ty = def.ret.clone();
@@ -490,43 +497,49 @@ where
             }
         }
 
-        self.ir.push(IR::FuncCall {
-            name: func.name().into(),
-            args: args_ir,
-            unwrap,
-        });
-
-        Ok(ret_ty)
+        Ok(TypeAndIR {
+            ty: ret_ty,
+            ir: vec![IR::FuncCall {
+                name: func.name().into(),
+                args: args_ir,
+                unwrap,
+            }],
+        })
     }
 
-    fn check_atomic(&mut self, atom: &'a PAtomic<'a>) -> Result<Type, TypeCheckError> {
+    fn check_atomic(&mut self, atom: &'a PAtomic<'a>) -> Result<TypeAndIR, TypeCheckError> {
         match atom {
-            PAtomic::Integer(i) => {
-                self.ir.push(IR::Integer(**i));
-                Ok(Type::Integer)
-            }
+            PAtomic::Integer(i) => Ok(TypeAndIR {
+                ty: Type::Integer,
+                ir: vec![IR::Integer(**i)],
+            }),
             PAtomic::String(s) => {
                 let str = **s;
-                self.ir.push(IR::String(str.into()));
-                Ok(Type::String)
+                Ok(TypeAndIR {
+                    ty: Type::String,
+                    ir: vec![IR::String(str.into())],
+                })
             }
             PAtomic::Array(spanned) => {
                 let elems = &spanned.node.node;
 
                 match elems.iter().as_slice() {
-                    [] => {
-                        self.ir.push(IR::Array(vec![]));
-                        Ok(Type::Array(Box::new(Type::Any)))
-                    }
+                    [] => Ok(TypeAndIR {
+                        ty: Type::Array(Box::new(Type::Any)),
+                        ir: vec![IR::Array(vec![])],
+                    }),
                     [first, rest @ ..] => {
-                        let prev_len = self.ir.len();
+                        let first = self.check_node(first)?;
 
-                        let expected = self.check_node(first)?;
+                        let mut ir = vec![];
+                        ir.extend(first.ir);
+
+                        let expected = first.ty;
 
                         for elem in rest {
                             let got = self.check_node(elem)?;
 
-                            if got != expected {
+                            if *got.ty() != expected {
                                 /* return Err(TypeCheckError::VerifyError(
                                     pass_one::VerifyError::MismatchedArrayElements {
                                         expected,
@@ -536,13 +549,14 @@ where
                                     },
                                 )); */
                             }
+
+                            ir.extend(got.ir);
                         }
 
-                        let elems_ir = self.ir.drain(prev_len..).collect::<Vec<_>>();
-
-                        self.ir.push(IR::Array(elems_ir));
-
-                        Ok(Type::Array(Box::new(expected)))
+                        Ok(TypeAndIR {
+                            ty: Type::Array(Box::new(expected)),
+                            ir: vec![IR::Array(ir)],
+                        })
                     }
                 }
             }
@@ -557,31 +571,26 @@ where
                     }
                 })?;
 
-                self.ir.push(IR::Ident(unique));
-
-                Ok(ty)
+                Ok(TypeAndIR {
+                    ty,
+                    ir: vec![IR::Ident(unique)],
+                })
             }
-            PAtomic::Unit(_) => {
-                self.ir.push(IR::Unit);
-                Ok(Type::Unit)
-            }
+            PAtomic::Unit(_) => Ok(TypeAndIR {
+                ty: Type::Unit,
+                ir: vec![IR::Unit],
+            }),
             PAtomic::Result(spanned) => {
-                let prev_len = self.ir.len();
+                let ok_res = self.check_atomic(&spanned.0)?;
+                let err_res = self.check_atomic(&spanned.1)?;
 
-                let ok_ty = self.check_atomic(&spanned.0)?;
-                let err_ty = self.check_atomic(&spanned.1)?;
-
-                let mut parts = self.ir.drain(prev_len..).collect::<Vec<_>>();
-
-                let err_ir = parts.pop().expect("missing err IR");
-                let ok_ir = parts.pop().expect("missing ok IR");
-
-                self.ir.push(IR::Result {
-                    ok: Box::new(ok_ir),
-                    err: Box::new(err_ir),
-                });
-
-                Ok(Type::Result(Box::new(ok_ty), Box::new(err_ty)))
+                Ok(TypeAndIR {
+                    ty: Type::Result(Box::new(ok_res.ty), Box::new(err_res.ty)),
+                    ir: vec![IR::Result {
+                        ok: Box::new(ok_res.ir[0].clone()),
+                        err: Box::new(err_res.ir[0].clone()),
+                    }],
+                })
             }
         }
     }

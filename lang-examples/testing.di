@@ -1,3 +1,4 @@
-let doesnt_work = { "value"; };
-
-dump_var(doesnt_work);
+let string = "hello, world!";
+for (char in chars(string)) {
+    printf("%s\n", [char]);
+}

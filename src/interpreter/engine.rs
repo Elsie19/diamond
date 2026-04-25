@@ -125,9 +125,17 @@ impl<'a> Engine<'a> {
             }
             IR::Unit => Some(ILitType::Unit),
             IR::Result { ok, err } => todo!("result"),
-            IR::Expr(ir) => Some(self.eval(ir)?),
+            IR::Expr(ir) => {
+                let mut final_res = ILitType::Unit;
+                for indiv in ir {
+                    final_res = self.eval(indiv)?;
+                }
+                Some(final_res)
+            }
             IR::Stmt(ir) => {
-                self.eval(ir)?;
+                for indiv in ir {
+                    self.eval(indiv)?;
+                }
                 Some(ILitType::Unit)
             }
         }
@@ -210,11 +218,7 @@ impl<'a> Engine<'a> {
                 self.push_frame();
                 self.set_var(Rc::clone(bind_name), *val);
 
-                let mut last = None;
-
-                for node in body {
-                    last = self.eval(node);
-                }
+                let last = self.eval(body);
 
                 self.pop_frame();
                 return last;
