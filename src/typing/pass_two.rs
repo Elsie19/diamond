@@ -381,26 +381,16 @@ where
 
         let stmts = group.stmts_raw();
 
-        #[allow(unused_assignments) /* I KNOW CLIPPY OMFG */]
         let mut last_val_ty = Type::Unit;
-        let mut last_expr_end = None;
 
         match stmts {
             [] => {
                 last_val_ty = Type::Unit;
             }
-            [rest @ .., last] => {
-                #[allow(unused_assignments) /* I'm gonna shoot you, Clippy */]
-                for stmt in rest {
+            other => {
+                for stmt in other {
                     last_val_ty = self.check_node(stmt)?;
                 }
-
-                let before = self.ir.len();
-                last_val_ty = self.check_node(last)?;
-
-                let mut emitted = self.ir.drain(before..).collect::<Vec<_>>();
-
-                last_expr_end = emitted.pop();
             }
         }
 
@@ -410,7 +400,6 @@ where
 
         self.ir.push(IR::Grouping {
             inner: inner_ir,
-            expr_end: last_expr_end.map(Box::new),
             redirect: redirect_ir,
         });
 

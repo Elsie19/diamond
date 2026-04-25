@@ -8,6 +8,7 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
 pub struct AstWalker<'a> {
     ast: &'a UntypedAst<'a>,
 }

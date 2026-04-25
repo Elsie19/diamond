@@ -19,6 +19,14 @@
         - [Any](#any)
         - [Unret](#unret)
     - [Syntax](#syntax)
+        - [Function Definitions](#function-definitions)
+        - [Function Calling](#function-callig)
+        - [Assignments](#assignments)
+        - [For Loops](#for-loops)
+        - [Match Expressions](#match-expressions)
+        - [Groupings](#groupings)
+        - [Expressions](#expressions)
+        - [Statements](#statements)
 
 ## Introduction
 
@@ -67,7 +75,7 @@ printf("%s, %s!\n", ["Hello", "World"]);
 let string = "Hello, World!";
 for (char in chars(string)) {
     printf("%s", [char]);
-};
+}
 printf("\n", []);
 ```
 
@@ -101,7 +109,7 @@ let my_string = "Hello!";
 
 let return_string(): string = {
     "hello"
-};
+}
 ```
 
 <details>
@@ -195,11 +203,11 @@ let unit = ();
 
 let return_nothing(): unit = {
     puts("returned nothing");
-};
+}
 
 let return_nothing_also() = {
     ()
-};
+}
 
 let return_nothing_also_smaller() = ();
 
@@ -213,7 +221,7 @@ Result types are borrowed from Rust. They can contain either a success or an err
 ```rust
 let some_result_function(): result(integer, string) = {
     some_function_that_returns_result()
-};
+}
 ```
 
 Later, I will show you how to [`match`](#match) them, so you can operate on the possible success or error value, along with how to *unwrap* them.
@@ -364,7 +372,18 @@ But please don't. Your coworkers will ✨*hate you*✨!
 
 Sometimes, you don't care about what a function returns, so you can end it with a semicolon so that the value is "swallowed" into a [`unit`](#unit).
 
-If you've noticed above, I never added a semicolon to the examples, and that's because those are expressions, but yeah, just add a semicolon if you don't care about the value of something.
+Expressions will still evaluate to values, but adding a semicolon will make the *whole* expression return `unit`. For instance:
+
+```rust
+let my_func(str: string) = ();
+
+let works = "value";
+
+let doesnt_work = { "value"; };
+
+my_func(works);
+my_func(doesnt_work);
+```
 
 [^1]: Streams could be considered mutable, but for the purposes of learning, don't worry about it.
 
@@ -374,4 +393,4 @@ If you've noticed above, I never added a semicolon to the examples, and that's b
 
     9. Unret
 
-    But these are type erased after type-checking, and thus only exist at the parsing and type-checking level, and not the interpreting level. So a more accurate wording of "Diamond only has 7 types" would be, "Diamond only has 7 types that are used when interpreting".
+    But these are type erased after type-checking, and thus only exist at the parsing and type-checking level, and not the interpreting level. So a more accurate wording of "Diamond only has 7 types" would be, "Diamond only has 7 types that are used when interpreting, but has 9 for type-checking"

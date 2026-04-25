@@ -97,13 +97,8 @@ impl<'a> Engine<'a> {
 
                 None
             }
-            IR::Grouping {
+            IR::Grouping { inner, redirect } => self.eval_grouping(
                 inner,
-                expr_end,
-                redirect,
-            } => self.eval_grouping(
-                inner,
-                expr_end.as_ref().map(|v| &**v),
                 redirect
                     .as_ref()
                     .map(|(ir, bind)| (ir.as_ref(), bind.as_ref())),
@@ -130,8 +125,11 @@ impl<'a> Engine<'a> {
             }
             IR::Unit => Some(ILitType::Unit),
             IR::Result { ok, err } => todo!("result"),
-            IR::Expr(ir) => todo!("expr"),
-            IR::Stmt(ir) => todo!("stmt"),
+            IR::Expr(ir) => Some(self.eval(ir)?),
+            IR::Stmt(ir) => {
+                self.eval(ir)?;
+                Some(ILitType::Unit)
+            }
         }
     }
 
@@ -251,12 +249,7 @@ impl<'a> Engine<'a> {
         last
     }
 
-    fn eval_grouping(
-        &mut self,
-        inner: &'a [IR],
-        expr_end: Option<&'a IR>,
-        redirect: Option<(&'a IR, &'a str)>,
-    ) -> Val {
+    fn eval_grouping(&mut self, inner: &'a [IR], redirect: Option<(&'a IR, &'a str)>) -> Val {
         self.push_frame();
 
         if let Some((redir_ir, bind)) = redirect {
@@ -266,17 +259,14 @@ impl<'a> Engine<'a> {
             self.set_var(bind, val);
         }
 
-        for node in inner {
-            self.eval(node);
-        }
+        let mut last_val = Some(ILitType::Unit);
 
-        let inner_val = match expr_end {
-            Some(expr) => self.eval(expr),
-            None => Some(ILitType::Unit),
-        };
+        for node in inner {
+            last_val = self.eval(node);
+        }
 
         self.pop_frame();
 
-        inner_val
+        last_val
     }
 }
