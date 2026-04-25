@@ -158,7 +158,6 @@ where
             PVal::Expr(spanned) => self.check_inner(&spanned.node, spanned.span()),
             // Type check everything inside but it still returns a [`Type::Unit`] by design.
             PVal::Stmt(spanned) => {
-                // BUG: This doesn't wrap the IR with Stmt.
                 let ir_and_val = self.check_inner(&spanned.node, spanned.span())?;
 
                 Ok(TypeAndIR {
