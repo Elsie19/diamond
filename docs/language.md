@@ -271,6 +271,101 @@ If you want the full syntax, you can look at the [grammar file](../../../../src/
 
 #### Function Definitions
 
+Function definitions have this basic syntax:
+
+```text
+let $name($args) (: $ret) = $expr
+```
+
+An example would be:
+
+```rust
+let my_function(my: string, list: [integer], of: unit, args: result(integer, string)): integer = $some_expr_here
+```
+
+#### Function Calling
+
+Exactly like C languages:
+
+```rust
+my_function(args)
+
+my_function_empty()
+```
+
+#### Assignments
+
+You can also chain together assignments:
+
+```rust
+let foo = let bar = let baz = "hello"
+```
+
+We'll go over why this works (it's not a special way of assigning) in [expressions](#expressions).
+
+#### For Loops
+
+For loops work similar to Bash, except only the array part:
+
+```rust
+for (idx in some_iterable) $expr
+```
+
+#### Match Expressions
+
+Matches are sort of like matching in Rust. Unlike Rust though, matching only works in `result`:
+
+```rust
+match (func_returns_result()) {
+    ok o = o,
+    err e = panic(e),
+}
+```
+
+The two branches, `ok` and `err`, both take a variable binding, `o` and `e`, respectively. Those are available on the other side of the `=`.
+
+#### Groupings
+
+Groupings are a scoping tool used to group a bunch of statements and expressions, and an optional redirect.
+
+```text
+{
+    list;
+    of;
+    statements;
+    or;
+    a;
+    final;
+    expression
+} < and_a_redirect_if_you_want()
+```
+
+If you add a final expression, the value of the entire grouping will return that expression.
+
+You can optionaly add a redirect, which the type must be `stream`, and it will inject the variable `STREAM` into the grouping.
+
+#### Expressions
+
+Everything above is an expression, which means it returns a value of some kind. Because Diamond knows expression syntax boundaries, you could write a program like:
+
+```rust
+letstring="Hello, World!"for(char in chars(string))printf("%s", [char])printf("\n", [])
+```
+
+But please don't. Your coworkers will ✨*hate you*✨!
+
+| Thing      | What it returns                                          | Why                                            |
+|------------|----------------------------------------------------------|------------------------------------------------|
+| assignment | Value assigned to it                                     | Duh                                            |
+| for loops  | The last value in the inner expression                   | It's the only value that makes sense to return |
+| groupings  | Last expression in the list if it's the last thing in it | Duh                                            |
+
+#### Statements
+
+Sometimes, you don't care about what a function returns, so you can end it with a semicolon so that the value is "swallowed" into a [`unit`](#unit).
+
+If you've noticed above, I never added a semicolon to the examples, and that's because those are expressions, but yeah, just add a semicolon if you don't care about the value of something.
+
 [^1]: Streams could be considered mutable, but for the purposes of learning, don't worry about it.
 
 [^2]: Diamond technically has two more types:

@@ -55,7 +55,7 @@ impl DIParser {
 
     fn program(input: Node) -> DResult<Vec<SpannedPVal>> {
         Ok(match_nodes!(input.into_children();
-            [stmt(stmts).., EOI(())] => stmts.collect(),
+            [stmt_or_expr(stmts).., EOI(())] => stmts.collect(),
         ))
     }
 
