@@ -35,25 +35,13 @@ let ~internal chars(string: string): [string] = ();
 let ~internal exit(code: integer): unret = ();
 let ~internal args(): [string] = ();
 
-# Get size of something.
-#
-# Arrays:  size of array.
-# Integer: integer size.
-# String:  string length.
-# Unit:    0.
-# Result:  1.
-# Stream:  length of file.
-# File:    length of filepath.
 let ~internal len(probs_arr: any): integer = ();
 let ~internal enumerate(arr: [any]): [[any]] = ();
 
 let ~internal panic(format: string, args: [any]): unret = ();
 let ~internal dump_var(var: any): unit = ();
-let ~internal testing_branch(int: integer): result(integer, integer) = ();
 
-# Get last element of list.
-#
-# This works because for loops are
-# expressions that return the last
-# element.
+let ~internal max(fst: integer, snd: integer): integer = ();
+let ~internal min(fst: integer, snd: integer): integer = ();
+
 let last(lst: [any]): any = for (i in lst) i;

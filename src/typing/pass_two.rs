@@ -279,7 +279,7 @@ where
                 }
             } else {
                 last_span = Some(arm.expr.span());
-                result_ty = Some(arm_res.ty);
+                result_ty = Some(arm_res.into_ty());
             }
         }
 
@@ -377,11 +377,11 @@ where
         let redirect_ir = if let Some(expr) = group.redirect() {
             let got = self.inner(expr)?;
 
-            if got.ty != Type::Stream {
+            if *got.ty() != Type::Stream {
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::MismatchedType {
                         expected: Type::Stream,
-                        got: got.ty,
+                        got: got.into_ty(),
                         src: self.src(),
                         bad_bit: expr.as_miette_span(),
                     },
@@ -458,7 +458,7 @@ where
                     pass_one::VerifyError::ArgumentTypeMismatch {
                         slot,
                         expected,
-                        got: got.ty,
+                        got: got.into_ty(),
                         src: self.src(),
                         bad_bit: arg_expr.as_miette_span(),
                         defined_here: if let PVal::Atomic(atomic) = &**arg_expr

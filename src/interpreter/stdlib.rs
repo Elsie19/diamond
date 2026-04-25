@@ -48,6 +48,10 @@ impl<'a> Functions<'a> {
         Self {
             funcs: stdlib! {
                 itoa => functions::itoa::itoa,
+                atoi => functions::itoa::atoi,
+
+                max => functions::math::max,
+                min => functions::math::min,
 
                 dump_var => functions::dump_var::dump_var,
 
@@ -55,14 +59,11 @@ impl<'a> Functions<'a> {
                 printf =>  functions::printf::printf,
                 puts =>    functions::printf::puts,
 
-
-                testing_branch => functions::testing_branch::testing_branch,
-
-                nth =>         functions::arrays::nth,
-                split =>       functions::arrays::split,
-                len =>         functions::arrays::len,
-                enumerate =>   functions::arrays::enumerate,
-                chars =>       functions::arrays::chars,
+                nth =>       functions::arrays::nth,
+                split =>     functions::arrays::split,
+                len =>       functions::arrays::len,
+                enumerate => functions::arrays::enumerate,
+                chars =>     functions::arrays::chars,
 
                 file =>   functions::file::file,
                 create => functions::file::create,
@@ -71,9 +72,9 @@ impl<'a> Functions<'a> {
                 lines =>  functions::file::lines,
                 skip =>   functions::file::skip,
 
-                panic =>  functions::system::panic,
-                exit =>   functions::system::exit,
-                args =>   functions::system::args,
+                panic => functions::system::panic,
+                exit =>  functions::system::exit,
+                args =>  functions::system::args,
             },
         }
     }

@@ -18,6 +18,12 @@
 //!     - [`printf`](printf::printf)
 //!     - [`sprintf`](printf::sprintf)
 //!     - [`puts`](printf::puts)
+//! * conversions
+//!     - [`itoa`](itoa::itoa)
+//!     - [`atoi`](itoa::atoi)
+//! * numbers
+//!     - [`max`](math::max)
+//!     - [`min`](math::min)
 //! * system
 //!     - [`args`](system::args)
 //!     - [`exit`](system::exit)
@@ -41,4 +47,5 @@ pub mod printf;
 /// System related stuff.
 pub mod system;
 
-pub mod testing_branch;
+/// Basic math.
+pub mod math;
