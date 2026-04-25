@@ -319,6 +319,40 @@ For loops work similar to Bash, except only the array part:
 for (idx in some_iterable) $expr
 ```
 
+For example:
+
+```rust
+let string = "need for speed";
+for (char in chars(string)) {
+    printf("%s\n", [char]);
+}
+```
+
+Or even:
+
+```rust
+let string = "need for speed";
+for (char in chars(string)) printf("%s\n", [char]);
+```
+
+Just a sneak peak, but since for loops are just expressions, what do they return?
+
+<details>
+    <summary>Click here to check your answer!</summary>
+
+They return the last expression in the loop! See if you can write your own `last` function doing this.
+
+<details>
+    <summary>Click here for the answer!</summary>
+
+```rust
+let last(lst: [any]): any = for (i in lst) i;
+```
+
+This is actually the exact function used in the standard library!
+</details>
+</details>
+
 #### Match Expressions
 
 Matches are sort of like matching in Rust. Unlike Rust though, matching only works in `result`:
@@ -331,6 +365,12 @@ match (func_returns_result()) {
 ```
 
 The two branches, `ok` and `err`, both take a variable binding, `o` and `e`, respectively. Those are available on the other side of the `=`.
+
+There is also a quicker way to do exactly the example above, which is to return the value if it's `ok`, and `panic` if it's `err`:
+
+```rust
+func_returns_result()!
+```
 
 #### Groupings
 
@@ -362,19 +402,21 @@ letstring="Hello, World!"for(char in chars(string))printf("%s", [char])printf("\
 
 But please don't. Your coworkers will ✨*hate you*✨!
 
-| Thing      | What it returns                                          | Why                                            |
-|------------|----------------------------------------------------------|------------------------------------------------|
-| assignment | Value assigned to it                                     | Duh                                            |
-| for loops  | The last value in the inner expression                   | It's the only value that makes sense to return |
-| groupings  | Last expression in the list if it's the last thing in it | Duh                                            |
-
+| Thing                | What it returns                        | Why                                                                                                           |
+|----------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| assignment           | Value assigned to it                   | Duh                                                                                                           |
+| for loops            | The last value in the inner expression | It's the only value that makes sense to return                                                                |
+| groupings            | Final expression in the list           | Duh                                                                                                           |
+| function definitions | `unit` if you can somehow get it       | function definitions are not variables, so while technically it returns a `unit`, good luck getting it anyhow |
+| match expressions    | inner value                            | Duh                                                                                                           |
+| statements           | `unit`                                 | Duh                                                                                                           |
 #### Statements
 
 Sometimes, you don't care about what a function returns, so you can end it with a semicolon so that the value is "swallowed" into a [`unit`](#unit).
 
 Expressions will still evaluate to values, but adding a semicolon will make the *whole* expression return `unit`. For instance:
 
-```rust
+```compile_fail
 let my_func(str: string) = ();
 
 let works = "value";

@@ -56,8 +56,4 @@ let ~internal testing_branch(int: integer): result(integer, integer) = ();
 # This works because for loops are
 # expressions that return the last
 # element.
-let last(lst: [any]): any = {
-    for (i in lst) {
-        i
-    }
-};
+let last(lst: [any]): any = for (i in lst) i;

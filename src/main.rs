@@ -1,4 +1,4 @@
-//! <h1 style="color:#B9F2FF;"><b>Diamond</b></h1>
+//! <h1 style="color:#B9F2FF;"><b>💎 Diamond 💎</b></h1>
 //!
 //! <q>A lightweight DSL focused on file manipulation with I/O.</q>
 //!

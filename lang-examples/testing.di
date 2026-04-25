@@ -1,4 +1,2 @@
-let string = "hello, world!";
-for (char in chars(string)) {
-    printf("%s\n", [char]);
-}
+let string = "need for speed";
+for (char in chars(string)) printf("%s\n", [char]);
