@@ -52,6 +52,8 @@ impl<'a> Functions<'a> {
 
                 max => functions::math::max,
                 min => functions::math::min,
+                add => functions::math::add,
+                sub => functions::math::sub,
 
                 dump_var => functions::dump_var::dump_var,
 

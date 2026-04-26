@@ -43,6 +43,8 @@ let ~internal dump_var(var: any): unit = ();
 
 let ~internal max(fst: integer, snd: integer): integer = ();
 let ~internal min(fst: integer, snd: integer): integer = ();
+let ~internal add(fst: integer, snd: integer): integer = ();
+let ~internal sub(fst: integer, snd: integer): integer = ();
 
 ################
 #    RESULT    #

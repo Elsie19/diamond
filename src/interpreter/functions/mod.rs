@@ -25,6 +25,8 @@
 //! * numbers
 //!     - [`max`](math::max)
 //!     - [`min`](math::min)
+//!     - [`add`](math::add)
+//!     - [`sub`](math::sub)
 //! * system
 //!     - [`args`](system::args)
 //!     - [`exit`](system::exit)
