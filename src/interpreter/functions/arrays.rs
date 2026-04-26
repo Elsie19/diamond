@@ -1,8 +1,11 @@
 use std::rc::Rc;
 
-use crate::interpreter::{
-    engine::Engine,
-    types::{ILitType, IResultBranch, IStreamHandle},
+use crate::{
+    interpreter::{
+        engine::Engine,
+        types::{ILitType, IStreamHandle},
+    },
+    res,
 };
 
 /// Get value from array based on index.
@@ -33,12 +36,10 @@ pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 
     let elem = arr.get(*nth);
 
-    match elem {
-        Some(found) => Some(ILitType::Result(IResultBranch::Ok(Box::new(found.clone())))),
-        None => Some(ILitType::Result(IResultBranch::Err(Box::new(
-            ILitType::String(format!("invalid index `{}`", nth).into()),
-        )))),
-    }
+    Some(ILitType::Result(match elem {
+        Some(found) => res!(Ok, any => found.clone()),
+        None => res!(Err, str_dy => format!("invalid index `{nth}`")),
+    }))
 }
 
 /// Split an array by a pattern.

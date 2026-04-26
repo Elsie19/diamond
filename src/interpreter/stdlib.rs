@@ -74,6 +74,7 @@ impl<'a> Functions<'a> {
                 dump =>   functions::file::dump,
                 lines =>  functions::file::lines,
                 skip =>   functions::file::skip,
+                fpop =>   functions::file::fpop,
 
                 panic => functions::system::panic,
                 exit =>  functions::system::exit,

@@ -230,7 +230,7 @@ let return_not_butter(): unit = puts("I can't believe it's not butter!\n");
 
 #### Result
 
-Result types are borrowed from Rust. They can contain either a success or an error value. You can use the `ok` and `err` functions to construct branches:
+Result types are borrowed from Rust. They can contain either a success or an error value. You can use the [`ok`](crate::interpreter::functions::result::ok) and [`err`](crate::interpreter::functions::result::ok) functions to construct branches:
 
 ```rust
 let ok_val = ok(1);
@@ -250,11 +250,7 @@ Later, I will show you how to [`match`](#match) them, so you can operate on the 
 
 #### File
 
-The `file` type can be thought of as an intermediary between `string` and `stream`, so:
-
-```text
-string ~> file ~> stream
-```
+The `file` type can be thought of as an intermediary between `string` and `stream`, and is instantiated with the [`file`](crate::interpreter::functions::file::file) function.
 
 ```rust
 let my_file = file("names.csv");

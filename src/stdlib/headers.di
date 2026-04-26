@@ -7,6 +7,7 @@ let ~internal open(path: file): result(stream, string) = ();
 let ~internal dump(stream: stream, contents: string): result(unit, string) = ();
 let ~internal lines(stream: stream): result([string], string) = ();
 let ~internal skip(stream: stream, n: integer): result([string], string) = ();
+let ~internal fpop(path: file): result(file, string) = ();
 
 ################
 #    PRINTF    #

@@ -6,9 +6,12 @@ use std::{
     rc::Rc,
 };
 
-use crate::interpreter::{
-    engine::Engine,
-    types::{ILitType, IResultBranch, IStreamHandle},
+use crate::{
+    interpreter::{
+        engine::Engine,
+        types::{ILitType, IResultBranch, IStreamHandle},
+    },
+    res,
 };
 
 /// File type wrapper.
@@ -29,11 +32,11 @@ pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
 
-    if let ILitType::String(path) = arg {
-        Some(ILitType::File(PathBuf::from(path.as_ref())))
-    } else {
-        None
-    }
+    let ILitType::String(path) = arg else {
+        unreachable!("type checked");
+    };
+
+    Some(ILitType::File(PathBuf::from(path.as_ref())))
 }
 
 /// Create a file.
@@ -55,18 +58,14 @@ pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
 
-    if let ILitType::File(path) = arg {
-        match File::create(path) {
-            Ok(_) => Some(ILitType::Result(IResultBranch::Ok(Box::new(
-                ILitType::File(path.to_path_buf()),
-            )))),
-            Err(err) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(err.to_string().into()),
-            )))),
-        }
-    } else {
-        None
-    }
+    let ILitType::File(path) = arg else {
+        unreachable!("type checked");
+    };
+
+    Some(ILitType::Result(match File::create(path) {
+        Ok(_) => res!(Ok, file => path.to_path_buf()),
+        Err(err) => res!(Err, str_dy => err.to_string()),
+    }))
 }
 
 /// Open a file.
@@ -89,23 +88,21 @@ pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
 
-    if let ILitType::File(path) = arg {
+    let ILitType::File(path) = arg else {
+        unreachable!("type checked");
+    };
+
+    Some(ILitType::Result(
         match OpenOptions::new()
             .read(true)
             .append(true)
             .create(false)
             .open(path)
         {
-            Ok(stream) => Some(ILitType::Result(IResultBranch::Ok(Box::new(
-                ILitType::Stream(IStreamHandle::File(Rc::new(RefCell::new(stream)))),
-            )))),
-            Err(err) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(err.to_string().into()),
-            )))),
-        }
-    } else {
-        None
-    }
+            Ok(stream) => res!(Ok, stream => stream),
+            Err(err) => res!(Err, str_dy => err.to_string()),
+        },
+    ))
 }
 
 /// Dump text to a stream.
@@ -132,17 +129,13 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
         unreachable!("type checked");
     };
 
-    match stream {
+    Some(ILitType::Result(match stream {
         IStreamHandle::File(file) => match file.borrow_mut().write_all(contents.as_bytes()) {
-            Ok(_) => Some(ILitType::Result(IResultBranch::Ok(Box::new(
-                ILitType::Unit,
-            )))),
-            Err(err) => Some(ILitType::Result(IResultBranch::Err(Box::new(
-                ILitType::String(err.to_string().into()),
-            )))),
+            Ok(_) => res!(Ok, unit),
+            Err(err) => res!(Err, str_dy => err.to_string()),
         },
         _ => todo!("haven't done shit yet"),
-    }
+    }))
 }
 
 /// Get lines of stream.
@@ -173,14 +166,10 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 
     Some(ILitType::Result(match stream {
         IStreamHandle::File(handle) => match handle.borrow_mut().read_to_string(&mut contents) {
-            Ok(_) => IResultBranch::Ok(Box::new(ILitType::Array(
-                contents
-                    .lines()
-                    .map(|s| ILitType::String(s.into()))
-                    .collect::<Vec<_>>()
-                    .into(),
-            ))),
-            Err(e) => IResultBranch::Err(Box::new(ILitType::String(e.to_string().into()))),
+            Ok(_) => {
+                res!(Ok, arr => contents.lines().map(|s| ILitType::String(s.into())).collect::<Vec<_>>())
+            }
+            Err(e) => res!(Err, str_dy => e.to_string()),
         },
         _ => todo!("not done yet"),
     }))
@@ -225,10 +214,43 @@ pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
                 .map(|line| line.map(|s| ILitType::String(s.into())))
                 .collect::<Result<Vec<_>, _>>();
             Some(ILitType::Result(match lines {
-                Ok(lines) => IResultBranch::Ok(Box::new(ILitType::Array(lines.into()))),
-                Err(err) => IResultBranch::Err(Box::new(ILitType::String(err.to_string().into()))),
+                Ok(lines) => res!(Ok, arr => lines),
+                Err(err) => res!(Err, str_dy => err.to_string()),
             }))
         }
         _ => todo!("not done yet"),
     }
+}
+
+/// Pop last path from path.
+///
+/// # Signature
+/// ```
+/// let ~internal fpop(path: file): result(file, string);
+/// ```
+///
+/// # Details
+/// Returns truncated file on success, or error if the path has no parent.
+///
+/// # Example
+/// ```
+/// let popped = fpop(file("path/to/thing.csv"))!;
+/// printf("%s\n", [popped]);
+/// ```
+///
+/// ```text
+/// path/to
+/// ```
+pub fn fpop(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+    debug_assert_eq!(args.len(), 1);
+
+    let [ILitType::File(file)] = args else {
+        unreachable!("type checked");
+    };
+
+    let mut path = file.clone();
+    Some(ILitType::Result(match path.pop() {
+        true => res!(Ok, file => path),
+        false => res!(Err, str => "file has no parent"),
+    }))
 }

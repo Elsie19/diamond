@@ -1,6 +1,6 @@
-use crate::interpreter::{
-    engine::Engine,
-    types::{ILitType, IResultBranch},
+use crate::{
+    interpreter::{engine::Engine, types::ILitType},
+    res,
 };
 
 /// Convert `integer` to `string`.
@@ -23,11 +23,11 @@ pub fn itoa(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
 
-    if let ILitType::Integer(int) = arg {
-        Some(ILitType::String(int.to_string().into()))
-    } else {
-        None
-    }
+    let ILitType::Integer(int) = arg else {
+        unreachable!("type checked");
+    };
+
+    Some(ILitType::String(int.to_string().into()))
 }
 
 /// Convert `string` to `integer`.
@@ -59,7 +59,7 @@ pub fn atoi(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     };
 
     Some(ILitType::Result(match num.parse::<usize>() {
-        Ok(num) => IResultBranch::Ok(Box::new(ILitType::Integer(num))),
-        Err(e) => IResultBranch::Err(Box::new(ILitType::String(e.to_string().into()))),
+        Ok(num) => res!(Ok, int_dy => num),
+        Err(e) => res!(Err, str_dy => e.to_string()),
     }))
 }

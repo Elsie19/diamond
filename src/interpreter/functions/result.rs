@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
-use crate::interpreter::{
-    engine::Engine,
-    types::{ILitType, IResultBranch, IStreamHandle},
+use crate::{
+    interpreter::{engine::Engine, types::ILitType},
+    res,
 };
 
 /// Return an `ok` value.
@@ -20,7 +18,7 @@ pub fn ok(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
 
-    Some(ILitType::Result(IResultBranch::Ok(Box::new(arg.clone()))))
+    Some(ILitType::Result(res!(Ok, any => arg.clone())))
 }
 
 /// Return an `err` value.
@@ -38,5 +36,5 @@ pub fn err(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     debug_assert_eq!(args.len(), 1);
     let arg = &args[0];
 
-    Some(ILitType::Result(IResultBranch::Err(Box::new(arg.clone()))))
+    Some(ILitType::Result(res!(Err, any => arg.clone())))
 }
