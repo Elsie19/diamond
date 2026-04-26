@@ -60,6 +60,8 @@ pub mod math;
 /// Result type.
 pub mod result;
 
+/// Branching tool for results.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! res {
     ($kind:ident, str => $s:literal) => {
