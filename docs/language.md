@@ -230,7 +230,15 @@ let return_not_butter(): unit = puts("I can't believe it's not butter!\n");
 
 #### Result
 
-Result types are borrowed from Rust. They can contain either a success or an error value. As of right now (5/24/26), you cannot construct a result type in Diamond, but functions can return them.
+Result types are borrowed from Rust. They can contain either a success or an error value. You can use the `ok` and `err` functions to construct branches:
+
+```rust
+let ok_val = ok(1);
+```
+
+```rust
+let err_val = err("failed to make number");
+```
 
 ```rust
 let some_result_function(): result(integer, string) = {

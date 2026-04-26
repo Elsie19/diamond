@@ -29,6 +29,9 @@
 //!     - [`args`](system::args)
 //!     - [`exit`](system::exit)
 //!     - [`panic`](system::panic)
+//! * result
+//!     - [`ok`](result::ok)
+//!     - [`err`](result::err)
 
 /// Array functions.
 pub mod arrays;
@@ -50,3 +53,6 @@ pub mod system;
 
 /// Basic math.
 pub mod math;
+
+/// Result type.
+pub mod result;

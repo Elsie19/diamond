@@ -145,11 +145,9 @@ impl<'a> Engine<'a> {
     where
         I: IntoIterator<Item = &'a IR>,
     {
-        let func = self
-            .funcs
-            .resolve(name)
-            .cloned()
-            .unwrap_or_else(|| panic!("function `{name}` not found!"));
+        let func = self.funcs.resolve(name).cloned().unwrap_or_else(|| {
+            panic!("function `{name}` not found! Did you add the internal function yet?")
+        });
 
         let evaled_args = args
             .into_iter()

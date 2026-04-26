@@ -82,9 +82,7 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
         [] => unreachable!("how did we get here?"),
     };
 
-    let ILitType::String(fmt) = fmt else {
-        unreachable!("checked at type checking");
-    };
+    let fmt = fmt.as_string_rep();
 
     let ILitType::Array(args) = &args.unwrap()[0] else {
         unreachable!("type check failed. Make sure you are passing an array.")
@@ -139,7 +137,7 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
 
                 for (idx, v) in a.iter().enumerate() {
                     if idx > 0 {
-                        buf.push_str(", ");
+                        mini_buf.push_str(", ");
                     }
                     let _ = write!(buf, "{v:?}");
                 }

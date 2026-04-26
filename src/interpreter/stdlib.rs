@@ -76,6 +76,9 @@ impl<'a> Functions<'a> {
                 panic => functions::system::panic,
                 exit =>  functions::system::exit,
                 args =>  functions::system::args,
+
+                ok =>  functions::result::ok,
+                err => functions::result::err,
             },
         }
     }

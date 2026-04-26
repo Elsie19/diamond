@@ -44,4 +44,10 @@ let ~internal dump_var(var: any): unit = ();
 let ~internal max(fst: integer, snd: integer): integer = ();
 let ~internal min(fst: integer, snd: integer): integer = ();
 
+################
+#    RESULT    #
+################
+let ~internal ok(val: any): result(any, any) = ();
+let ~internal err(val: any): result(any, any) = ();
+
 let last(lst: [any]): any = for (i in lst) i;
