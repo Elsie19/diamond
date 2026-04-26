@@ -210,7 +210,7 @@ printf("string => %s\nnumber => %d\n", ["hello", 420]);
 
 #### Unit
 
-Unit types are inspired directly by Rust and OCaml. They generally indicate an absence of a value, while still being a value itself. If you are coming from C, you can think about it as `void`, except you can instantiate them as well as pass them to functions. Functions that do not return anything will implicitly return units.
+Unit types are inspired directly by [Rust](unit) and [OCaml](https://ocaml.org/docs/basic-data-types#unit). They generally indicate an absence of a value, while still being a value itself. If you are coming from C, you can think about it as `void`, except you can instantiate them as well as pass them to functions. Functions that do not return anything will implicitly return units.
 
 ```rust
 let unit = ();
