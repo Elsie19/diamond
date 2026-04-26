@@ -29,15 +29,14 @@ let ~internal nth(arr: [any], nth: integer): result(any, string) = ();
 let ~internal split(string: string, char: string): [string] = ();
 let ~internal chars(string: string): [string] = ();
 let ~internal only(arr: [any], up_to: integer): [any] = ();
+let ~internal len(probs_arr: any): integer = ();
+let ~internal enumerate(arr: [any]): [[any]] = ();
 
 ###################
 #    SYSTEM       #
 ###################
 let ~internal exit(code: integer): unret = ();
 let ~internal args(): [string] = ();
-
-let ~internal len(probs_arr: any): integer = ();
-let ~internal enumerate(arr: [any]): [[any]] = ();
 
 let ~internal panic(format: string, args: [any]): unret = ();
 let ~internal dump_var(var: any): unit = ();
