@@ -235,8 +235,12 @@ where
 
         let unique = self.var_gen.fresh(**bind_name);
 
-        self.scopes
-            .insert(bind_name.node, bind_name.span(), elem_ty, unique.clone());
+        self.scopes.insert(
+            bind_name.node,
+            bind_name.span(),
+            elem_ty,
+            Rc::clone(&unique),
+        );
 
         let body_res = self.inner(for_.body_raw())?;
 
@@ -432,7 +436,7 @@ where
             self.scopes
                 .insert(stream_name, expr.span(), Type::Stream, &*unique);
 
-            Some((Box::new(got.ir.clone()), unique))
+            Some((Box::new(got.ir), unique))
         } else {
             None
         };
@@ -487,8 +491,6 @@ where
         let mut args_ir = Vec::with_capacity(args.len());
 
         for (slot, (arg_expr, expected)) in args.iter().zip(&def.args).enumerate() {
-            let expected = expected.clone();
-
             let old_homo = self.attrs.array_homogeneity_required;
             if expected.is_any_array() {
                 self.attrs.array_homogeneity_required = false;
@@ -498,12 +500,12 @@ where
 
             self.attrs.array_homogeneity_required = old_homo;
 
-            if !expected.is_any() && *got.ty() != expected {
+            if !expected.is_any() && *got.ty() != *expected {
                 let defined_here = self.get_span_of_ident(arg_expr);
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::ArgumentTypeMismatch {
                         slot,
-                        expected,
+                        expected: expected.clone(),
                         got: got.into_ty(),
                         src: self.src(),
                         bad_bit: arg_expr.as_miette_span(),
