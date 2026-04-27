@@ -22,7 +22,7 @@ pub enum IR {
         args: Vec<(Rc<str>, Type)>,
         internal: bool,
         ret: Type,
-        body: Vec<Self>,
+        body: Rc<Self>,
     },
     Grouping {
         inner: Vec<Self>,
@@ -32,15 +32,15 @@ pub enum IR {
     For {
         bind: Rc<str>,
         iter: Vec<Self>,
-        body: Vec<Self>,
+        body: Rc<Self>,
     },
     Let {
         name: Rc<str>,
         ty: Type,
-        value: Vec<Self>,
+        value: Rc<Self>,
     },
     Match {
-        expr: Vec<Self>,
+        expr: Rc<Self>,
         arms: Vec<IRMatchArm>,
     },
     FuncCall {
@@ -57,8 +57,8 @@ pub enum IR {
         ok: Box<Self>,
         err: Box<Self>,
     },
-    Expr(Vec<Self>),
-    Stmt(Vec<Self>),
+    Expr(Rc<Self>),
+    Stmt(Rc<Self>),
 }
 
 #[derive(Debug, Clone)]

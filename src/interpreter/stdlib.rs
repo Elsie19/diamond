@@ -34,7 +34,7 @@ pub enum RuntimeFunc<'a> {
 #[derive(Debug, Clone)]
 pub struct UserFunc<'a> {
     pub args: Box<[(Rc<str>, Type)]>,
-    pub body: &'a [IR],
+    pub body: &'a IR,
     pub ret: Type,
 }
 

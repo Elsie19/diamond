@@ -105,8 +105,7 @@ impl<'a> Engine<'a> {
             ),
             IR::For { bind, iter, body } => self.eval_for_loop(bind, iter, body),
             IR::Let { name, ty: _, value } => {
-                debug_assert_eq!(value.len(), 1);
-                let val = self.eval(&value[0]).expect("did not produce value!!!");
+                let val = self.eval(&value).expect("did not produce value!!!");
                 self.set_var(Rc::clone(name), val.clone());
                 Some(val)
             }
@@ -125,13 +124,7 @@ impl<'a> Engine<'a> {
             }
             IR::Unit => Some(ILitType::Unit),
             IR::Result { ok, err } => todo!("result"),
-            IR::Expr(ir) => {
-                let mut final_res = ILitType::Unit;
-                for indiv in ir {
-                    final_res = self.eval(indiv)?;
-                }
-                Some(final_res)
-            }
+            IR::Expr(ir) => Some(self.eval(ir)?),
             IR::Stmt(ir) => {
                 for indiv in ir {
                     self.eval(indiv)?;
