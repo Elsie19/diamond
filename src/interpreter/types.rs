@@ -50,8 +50,8 @@ impl ILitType {
             }
             ILitType::Stream(handle) => match handle {
                 IStreamHandle::File(file_handle) => {
-                    let ptr: *const _ = &file_handle;
-                    Cow::Owned(format!("{:p}", ptr))
+                    let ptr: *const _ = &raw const file_handle;
+                    Cow::Owned(format!("{ptr:p}"))
                 }
                 IStreamHandle::Stdout => todo!(),
                 IStreamHandle::Stdin => todo!(),

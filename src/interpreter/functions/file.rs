@@ -63,7 +63,7 @@ pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     };
 
     Some(ILitType::Result(match File::create(path) {
-        Ok(_) => res!(Ok, file => path.to_path_buf()),
+        Ok(_) => res!(Ok, file => path.clone()),
         Err(err) => res!(Err, str_dy => err.to_string()),
     }))
 }
@@ -131,7 +131,7 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 
     Some(ILitType::Result(match stream {
         IStreamHandle::File(file) => match file.borrow_mut().write_all(contents.as_bytes()) {
-            Ok(_) => res!(Ok, unit),
+            Ok(()) => res!(Ok, unit),
             Err(err) => res!(Err, str_dy => err.to_string()),
         },
         _ => todo!("haven't done shit yet"),
@@ -249,8 +249,9 @@ pub fn fpop(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
     };
 
     let mut path = file.clone();
-    Some(ILitType::Result(match path.pop() {
-        true => res!(Ok, file => path),
-        false => res!(Err, str => "file has no parent"),
+    Some(ILitType::Result(if path.pop() {
+        res!(Ok, file => path)
+    } else {
+        res!(Err, str => "file has no parent")
     }))
 }

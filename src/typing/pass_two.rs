@@ -52,11 +52,11 @@ impl Default for Attributes {
 }
 
 impl Attributes {
-    pub fn homo_arrays_allowed(&self) -> bool {
+    pub fn homo_arrays_allowed(self) -> bool {
         self.array_homogeneity_required
     }
 
-    pub fn hetero_arrays_allowed(&self) -> bool {
+    pub fn hetero_arrays_allowed(self) -> bool {
         !self.homo_arrays_allowed()
     }
 }
