@@ -201,14 +201,11 @@ impl<'a> Engine<'a> {
             .expect("match expr did not produce value");
 
         let ILitType::Result(result) = expr else {
-            panic!("type checked");
+            unreachable!("type checked");
         };
 
         for arm in arms {
-            let (bind_name, is_ok, body) = {
-                let IRMatchArm { bind, is_ok, body } = arm;
-                (bind, is_ok, body)
-            };
+            let IRMatchArm { bind, is_ok, body } = arm;
 
             let active = match (&result, is_ok) {
                 (IResultBranch::Ok(v), true) => Some(v.clone()),
@@ -218,7 +215,7 @@ impl<'a> Engine<'a> {
 
             if let Some(val) = active {
                 self.push_frame();
-                self.set_var(Rc::clone(bind_name), *val);
+                self.set_var(Rc::clone(bind), *val);
 
                 let last = self.eval(body);
 
@@ -227,7 +224,7 @@ impl<'a> Engine<'a> {
             }
         }
 
-        panic!("match didn't find an arm");
+        unreachable!("match didn't find an arm");
     }
 
     fn eval_for_loop(&mut self, bind: &str, iter: &'a [IR], body: &'a [IR]) -> Val {
