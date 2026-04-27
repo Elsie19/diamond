@@ -31,7 +31,7 @@ pub enum IR {
     },
     For {
         bind: Rc<str>,
-        iter: Vec<Self>,
+        iter: Rc<Self>,
         body: Rc<Self>,
     },
     Let {

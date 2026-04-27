@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
@@ -35,7 +37,7 @@ pub struct TypeChecker<'a, G> {
 #[derive(Debug)]
 struct TypeAndIR {
     ty: Type,
-    ir: Vec<IR>,
+    ir: IR,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -62,7 +64,7 @@ impl Attributes {
 }
 
 impl TypeAndIR {
-    fn new(ty: Type, ir: Vec<IR>) -> Self {
+    fn new(ty: Type, ir: IR) -> Self {
         Self { ty, ir }
     }
 
@@ -70,7 +72,7 @@ impl TypeAndIR {
         &self.ty
     }
 
-    fn ir(&self) -> &[IR] {
+    fn ir(&self) -> &IR {
         &self.ir
     }
 
@@ -78,7 +80,7 @@ impl TypeAndIR {
         self.ty
     }
 
-    fn into_ir(self) -> Vec<IR> {
+    fn into_ir(self) -> IR {
         self.ir
     }
 }
@@ -153,7 +155,7 @@ where
 
         for node in program {
             let result = self.check_node(node)?;
-            ir.extend(result.ir);
+            ir.push(result.into_ir());
         }
 
         self.ir = ir;
@@ -199,7 +201,7 @@ where
 
                 Ok(TypeAndIR {
                     ty: Type::Unit,
-                    ir: vec![IR::Stmt(ir_and_val.into_ir())],
+                    ir: IR::Stmt(Rc::new(ir_and_val.into_ir())),
                 })
             }
         }
@@ -242,11 +244,11 @@ where
 
         Ok(TypeAndIR {
             ty: body_res.ty,
-            ir: vec![IR::For {
+            ir: IR::For {
                 bind: unique,
-                iter: iter_res.ir,
-                body: body_res.ir,
-            }],
+                iter: Rc::new(iter_res.ir),
+                body: Rc::new(body_res.ir),
+            },
         })
     }
 
@@ -294,7 +296,7 @@ where
             arms_ir.push(IRMatchArm {
                 bind: unique,
                 is_ok,
-                body: Box::new(arm_res.ir[0].clone()),
+                body: Box::new(arm_res.ir.clone()),
             });
 
             if let Some(got) = &result_ty {
@@ -318,17 +320,15 @@ where
 
         Ok(TypeAndIR {
             ty: result_ty.unwrap_or_default(),
-            ir: vec![IR::Match {
-                expr: expr_res.ir,
+            ir: IR::Match {
+                expr: Rc::new(expr_res.ir),
                 arms: arms_ir,
-            }],
+            },
         })
     }
 
     fn check_let(&mut self, let_: &'a Let<'a>) -> Result<TypeAndIR, TypeCheckError> {
         let expr_res = self.inner(let_.expr_raw())?;
-
-        debug_assert_eq!(expr_res.ir().len(), 1);
 
         let name = let_.name_raw();
         let unique = self.var_gen.fresh(**name);
@@ -338,11 +338,11 @@ where
 
         Ok(TypeAndIR {
             ty: expr_res.ty.clone(),
-            ir: vec![IR::Let {
+            ir: IR::Let {
                 name: unique,
                 ty: expr_res.ty,
-                value: expr_res.ir,
-            }],
+                value: Rc::new(expr_res.ir),
+            },
         })
     }
 
@@ -352,7 +352,7 @@ where
         if funclet.is_internal() {
             return Ok(TypeAndIR {
                 ty: expected,
-                ir: vec![IR::Unit],
+                ir: IR::Unit,
             });
         }
 
@@ -396,13 +396,13 @@ where
 
         Ok(TypeAndIR {
             ty: expected.clone(),
-            ir: vec![IR::FuncLet {
+            ir: IR::FuncLet {
                 name: funclet.name().into(),
                 args: lowered_args,
                 internal: false,
                 ret: expected,
-                body: got.ir,
-            }],
+                body: Rc::new(got.ir),
+            },
         })
     }
 
@@ -432,7 +432,7 @@ where
             self.scopes
                 .insert(stream_name, expr.span(), Type::Stream, &*unique);
 
-            Some((Box::new(got.ir[0].clone()), unique))
+            Some((Box::new(got.ir.clone()), unique))
         } else {
             None
         };
@@ -440,17 +440,17 @@ where
         for stmt in group.stmts_raw() {
             let res = self.check_node(stmt)?;
             last_val_ty = res.ty;
-            inner_ir.extend(res.ir);
+            inner_ir.push(res.ir);
         }
 
         self.scopes.pop();
 
         Ok(TypeAndIR {
             ty: last_val_ty,
-            ir: vec![IR::Grouping {
+            ir: IR::Grouping {
                 inner: inner_ir,
                 redirect: redirect_ir,
-            }],
+            },
         })
     }
 
@@ -512,7 +512,7 @@ where
                 ));
             }
 
-            args_ir.extend(got.ir);
+            args_ir.push(got.ir);
         }
 
         let mut ret_ty = def.ret.clone();
@@ -537,11 +537,11 @@ where
 
         Ok(TypeAndIR {
             ty: ret_ty,
-            ir: vec![IR::FuncCall {
+            ir: IR::FuncCall {
                 name: func.name().into(),
                 args: args_ir,
                 unwrap,
-            }],
+            },
         })
     }
 
@@ -549,13 +549,13 @@ where
         match atom {
             PAtomic::Integer(i) => Ok(TypeAndIR {
                 ty: Type::Integer,
-                ir: vec![IR::Integer(**i)],
+                ir: IR::Integer(**i),
             }),
             PAtomic::String(s) => {
                 let str = **s;
                 Ok(TypeAndIR {
                     ty: Type::String,
-                    ir: vec![IR::String(str.into())],
+                    ir: IR::String(str.into()),
                 })
             }
             PAtomic::Array(spanned) => {
@@ -564,7 +564,7 @@ where
                 match elems.iter().as_slice() {
                     [] => Ok(TypeAndIR {
                         ty: Type::Array(Box::new(Type::Any)),
-                        ir: vec![IR::Array(vec![])],
+                        ir: IR::Array(Vec::with_capacity(0)),
                     }),
                     [first, rest @ ..] => {
                         let heterorrays = self.attrs.hetero_arrays_allowed();
@@ -572,7 +572,7 @@ where
                         let first = self.check_node(first)?;
 
                         let mut ir = Vec::with_capacity(1 + rest.len());
-                        ir.extend(first.ir);
+                        ir.push(first.ir);
 
                         let expected = first.ty;
 
@@ -590,12 +590,12 @@ where
                                 ));
                             }
 
-                            ir.extend(got.ir);
+                            ir.push(got.ir);
                         }
 
                         Ok(TypeAndIR {
                             ty: Type::Array(Box::new(expected)),
-                            ir: vec![IR::Array(ir)],
+                            ir: IR::Array(ir),
                         })
                     }
                 }
@@ -613,12 +613,12 @@ where
 
                 Ok(TypeAndIR {
                     ty,
-                    ir: vec![IR::Ident(unique)],
+                    ir: IR::Ident(unique),
                 })
             }
             PAtomic::Unit(_) => Ok(TypeAndIR {
                 ty: Type::Unit,
-                ir: vec![IR::Unit],
+                ir: IR::Unit,
             }),
             PAtomic::Result(spanned) => {
                 let ok_res = self.check_atomic(&spanned.0)?;
@@ -626,10 +626,10 @@ where
 
                 Ok(TypeAndIR {
                     ty: Type::Result(Box::new(ok_res.ty), Box::new(err_res.ty)),
-                    ir: vec![IR::Result {
-                        ok: Box::new(ok_res.ir[0].clone()),
-                        err: Box::new(err_res.ir[0].clone()),
-                    }],
+                    ir: IR::Result {
+                        ok: Box::new(ok_res.ir.clone()),
+                        err: Box::new(err_res.ir.clone()),
+                    },
                 })
             }
         }

@@ -126,9 +126,7 @@ impl<'a> Engine<'a> {
             IR::Result { ok, err } => todo!("result"),
             IR::Expr(ir) => Some(self.eval(ir)?),
             IR::Stmt(ir) => {
-                for indiv in ir {
-                    self.eval(indiv)?;
-                }
+                self.eval(ir)?;
                 Some(ILitType::Unit)
             }
         }
@@ -159,11 +157,7 @@ impl<'a> Engine<'a> {
                     self.set_var(Rc::clone(arg_name), val);
                 }
 
-                let mut last = None;
-
-                for node in func.body {
-                    last = self.eval(node);
-                }
+                let last = self.eval(func.body);
 
                 self.pop_frame();
 
@@ -188,10 +182,8 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval_match(&mut self, expr: &'a [IR], arms: &'a [IRMatchArm]) -> Val {
-        let expr = self
-            .eval(&expr[0])
-            .expect("match expr did not produce value");
+    fn eval_match(&mut self, expr: &'a IR, arms: &'a [IRMatchArm]) -> Val {
+        let expr = self.eval(&expr).expect("match expr did not produce value");
 
         let ILitType::Result(result) = expr else {
             unreachable!("type checked");
@@ -220,10 +212,8 @@ impl<'a> Engine<'a> {
         unreachable!("match didn't find an arm");
     }
 
-    fn eval_for_loop(&mut self, bind: &str, iter: &'a [IR], body: &'a [IR]) -> Val {
-        debug_assert_eq!(iter.len(), 1);
-
-        let iter = self.eval(&iter[0]).expect("iter did not produce value");
+    fn eval_for_loop(&mut self, bind: &str, iter: &'a IR, body: &'a IR) -> Val {
+        let iter = self.eval(&iter).expect("iter did not produce value");
 
         let ILitType::Array(iter) = iter else {
             unreachable!("arrays are the only iterable thing");
@@ -235,9 +225,7 @@ impl<'a> Engine<'a> {
             self.push_frame();
 
             self.set_var(bind, rust_idx.clone());
-            for ir in body {
-                last = self.eval(ir);
-            }
+            last = self.eval(body);
 
             self.pop_frame();
         }
