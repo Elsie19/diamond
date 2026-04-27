@@ -111,7 +111,7 @@ pub enum TypeCheckError {
         #[source_code]
         src: NamedSource<String>,
 
-        #[label(primary, "used here")]
+        #[label("used here")]
         bad_bit: SourceSpan,
     },
 }

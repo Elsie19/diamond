@@ -63,10 +63,10 @@ pub enum VerifyError {
         #[source_code]
         src: NamedSource<String>,
 
-        #[label("but defined here as `{}`", expected.as_display_ty())]
+        #[label("but here returns `{}`", expected.as_display_ty())]
         cur_branch: SourceSpan,
 
-        #[label("previous branch defined here as `{}`", got.as_display_ty())]
+        #[label("previous branch returns `{}`", got.as_display_ty())]
         prev_branch: SourceSpan,
     },
 
@@ -83,9 +83,6 @@ pub enum VerifyError {
         #[label("defined here")]
         defined_here: Option<SourceSpan>,
     },
-
-    #[error("cannot infer type from empty array")]
-    EmptyArrayInfer,
 
     #[error("expected `{}`, found `{}`", expected.as_display_ty(), got.as_display_ty())]
     #[diagnostic(code(type_checking::array::homogenous::verify))]
@@ -126,7 +123,7 @@ pub enum VerifyError {
         #[source_code]
         src: NamedSource<String>,
 
-        #[label("used here")]
+        #[label("{} used here", got.as_display_ty())]
         bad_bit: SourceSpan,
 
         #[label("defined here")]
