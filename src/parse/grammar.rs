@@ -489,15 +489,17 @@ impl DIParser {
     fn func_sigil_and_name(input: Node) -> DResult<SpannedPVal> {
         let span = input.as_span();
         Ok(match_nodes!(input.into_children();
-            [ident(name)] =>
+            [ident(name)] => {
+                let name_span = name.span();
                 Spanned::new(
                     PVal::Atomic(
                         Spanned::new( // ident
-                            name.clone(),
-                            name.span()
+                            name,
+                            name_span
                         )
                     ),
                 span) // sigil and ident
+            }
         ))
     }
 
