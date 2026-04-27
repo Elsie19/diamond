@@ -1,3 +1,5 @@
+use sig_macro::signature;
+
 use crate::{
     interpreter::{engine::Engine, types::ILitType},
     res,
@@ -20,13 +22,8 @@ use crate::{
 /// ```
 /// 4
 /// ```
+#[signature(args => str: string)]
 pub fn trim(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::String(str)] = args else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::String(str.trim().into()))
 }
 
@@ -47,13 +44,8 @@ pub fn trim(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```
 /// 4
 /// ```
+#[signature(args => str: string)]
 pub fn trim_left(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::String(str)] = args else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::String(str.trim_start().into()))
 }
 
@@ -74,13 +66,8 @@ pub fn trim_left(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType
 /// ```
 /// 4
 /// ```
+#[signature(args => str: string)]
 pub fn trim_right(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::String(str)] = args else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::String(str.trim_end().into()))
 }
 
@@ -101,13 +88,8 @@ pub fn trim_right(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitTyp
 /// ```text
 /// HELLO
 /// ```
+#[signature(args => str: string)]
 pub fn upper(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::String(str)] = args else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::String(str.to_uppercase().into()))
 }
 
@@ -128,13 +110,8 @@ pub fn upper(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```text
 /// hello
 /// ```
+#[signature(args => str: string)]
 pub fn lower(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::String(str)] = args else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::String(str.to_lowercase().into()))
 }
 
@@ -155,18 +132,8 @@ pub fn lower(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```text
 /// Hey Joe!
 /// ```
+#[signature(args => str: string, from: string, to: string)]
 pub fn replace(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 3);
-
-    let [
-        ILitType::String(str),
-        ILitType::String(from),
-        ILitType::String(to),
-    ] = args
-    else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::String(str.replace(&**from, to).into()))
 }
 
@@ -189,13 +156,8 @@ pub fn replace(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
 /// ```text
 /// Hey Bob!
 /// ```
+#[signature(args => str: string, mid: integer)]
 pub fn split_at(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 2);
-
-    let [ILitType::String(str), ILitType::Integer(mid)] = args else {
-        unreachable!("type checked");
-    };
-
     let split_at = str.split_at_checked(*mid);
 
     Some(ILitType::Result(match split_at {

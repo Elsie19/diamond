@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use sig_macro::signature;
+
 use crate::{
     interpreter::{
         engine::Engine,
@@ -27,13 +29,8 @@ use crate::{
 /// ```text
 /// This is my world
 /// ```
+#[signature(args => arr: [any], nth: integer)]
 pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 2);
-
-    let [ILitType::Array(arr), ILitType::Integer(nth)] = args else {
-        unreachable!("type checked");
-    };
-
     let elem = arr.get(*nth);
 
     Some(ILitType::Result(match elem {
@@ -70,13 +67,8 @@ pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// little
 /// lamb
 /// ```
+#[signature(args => string: string, char: string)]
 pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 2);
-
-    let [ILitType::String(string), ILitType::String(char)] = args else {
-        unreachable!("type checked");
-    };
-
     let split = string
         .split(char.as_ref())
         .map(|s| ILitType::String(s.into()))
@@ -108,13 +100,8 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// l
 /// o
 /// ```
+#[signature(args => string: string)]
 pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::String(string)] = args else {
-        unreachable!("type checked");
-    };
-
     let split = string
         .chars()
         .map(|s| ILitType::String(s.to_string().into()))
@@ -153,10 +140,9 @@ pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```text
 /// 4
 /// ```
+#[signature(args => probs_arr: any)]
 pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    Some(ILitType::Integer(match &args[0] {
+    Some(ILitType::Integer(match probs_arr {
         ILitType::Array(arr) => arr.len(),
         ILitType::Integer(int) => *int,
         ILitType::String(str) => str.len(),
@@ -201,14 +187,9 @@ pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 ///    printf("%d: %s\n", [idx, elem]);
 /// };
 /// ```
+#[signature(args => arr: [any])]
 pub fn enumerate(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::Array(iter)] = args else {
-        unreachable!("type checked");
-    };
-
-    let combo = iter
+    let combo = arr
         .iter()
         .enumerate()
         .map(|(idx, elem)| ILitType::Array(Rc::new([ILitType::Integer(idx), elem.clone()])))
@@ -259,14 +240,9 @@ pub fn last(_lst: &[ILitType]) -> ILitType {
 /// Mary
 /// had
 /// ```
+#[signature(args => arr: [any], up_to: integer)]
 pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 2);
+    let up_to = *up_to.min(&arr.len());
 
-    let [ILitType::Array(iter), ILitType::Integer(up_to)] = args else {
-        unreachable!("type checked");
-    };
-
-    let up_to = *up_to.min(&iter.len());
-
-    Some(ILitType::Array(Rc::from(&iter[..up_to])))
+    Some(ILitType::Array(Rc::from(&arr[..up_to])))
 }

@@ -1,3 +1,5 @@
+use sig_macro::signature;
+
 use crate::interpreter::{engine::Engine, types::ILitType};
 use std::fmt::Write;
 
@@ -12,12 +14,9 @@ use std::fmt::Write;
 /// ```
 /// puts("hello, console!");
 /// ```
+#[signature(args => format: string)]
 pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    let ILitType::String(s) = &args[0] else {
-        unreachable!("oopsies");
-    };
-
-    print!("{s}");
+    print!("{format}");
 
     Some(ILitType::Unit)
 }

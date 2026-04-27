@@ -1,3 +1,5 @@
+use sig_macro::signature;
+
 use crate::{
     interpreter::{engine::Engine, types::ILitType},
     res,
@@ -19,15 +21,9 @@ use crate::{
 /// ```text
 /// My number as a string is: 99
 /// ```
+#[signature(args => num: integer)]
 pub fn itoa(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-    let arg = &args[0];
-
-    let ILitType::Integer(int) = arg else {
-        unreachable!("type checked");
-    };
-
-    Some(ILitType::String(int.to_string().into()))
+    Some(ILitType::String(num.to_string().into()))
 }
 
 /// Convert `string` to `integer`.
@@ -50,14 +46,8 @@ pub fn itoa(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```text
 /// My number is: 99
 /// ```
+#[signature(args => num: string)]
 pub fn atoi(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-    let arg = &args[0];
-
-    let ILitType::String(num) = arg else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::Result(match num.parse::<usize>() {
         Ok(num) => res!(Ok, int_dy => num),
         Err(e) => res!(Err, str_dy => e.to_string()),

@@ -186,6 +186,7 @@ dependencies = [
  "miette",
  "pest",
  "pest_consume",
+ "sig_macro",
  "thiserror",
  "typed-builder",
 ]
@@ -510,6 +511,15 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "sig_macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]

@@ -4,6 +4,8 @@ use std::{
     path::PathBuf,
 };
 
+use sig_macro::signature;
+
 use crate::{
     interpreter::{
         engine::Engine,
@@ -26,14 +28,8 @@ use crate::{
 /// ```
 /// let file = file("some_file.txt");
 /// ```
+#[signature(args => path: string)]
 pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-    let arg = &args[0];
-
-    let ILitType::String(path) = arg else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::File(PathBuf::from(path.as_ref())))
 }
 
@@ -52,14 +48,8 @@ pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// let file = file("some_file.txt");
 /// let created = create(file)!;
 /// ```
+#[signature(args => path: file)]
 pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-    let arg = &args[0];
-
-    let ILitType::File(path) = arg else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::Result(match File::create(path) {
         Ok(_) => res!(Ok, file => path.clone()),
         Err(err) => res!(Err, str_dy => err.to_string()),
@@ -82,14 +72,8 @@ pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// let created = open(file)!;
 /// let stream = create(created)!;
 /// ```
+#[signature(args => path: file)]
 pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-    let arg = &args[0];
-
-    let ILitType::File(path) = arg else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::Result(
         match OpenOptions::new()
             .read(true)
@@ -120,13 +104,8 @@ pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// let stream = create(created)!;
 /// dump(stream, "here is the text inside `some_file.txt`")!;
 /// ```
+#[signature(args => stream: stream, contents: string)]
 pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 2);
-
-    let [ILitType::Stream(stream), ILitType::String(contents)] = args else {
-        unreachable!("type checked");
-    };
-
     Some(ILitType::Result(match stream {
         IStreamHandle::File(file) => match file.borrow_mut().write_all(contents.as_bytes()) {
             Ok(()) => res!(Ok, unit),
@@ -153,13 +132,8 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 ///     printf("%s\n", [i]);
 /// };
 /// ```
+#[signature(args => stream: stream)]
 pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::Stream(stream)] = args else {
-        unreachable!("type checked");
-    };
-
     let mut contents = String::new();
 
     Some(ILitType::Result(match stream {
@@ -195,20 +169,15 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// Ainsley,5-29-05,female
 /// Sam,10-21-07,male
 /// ```
+#[signature(args => stream: stream, n: integer)]
 pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 2);
-
-    let [ILitType::Stream(stream), ILitType::Integer(skip)] = args else {
-        unreachable!("type checked");
-    };
-
     match stream {
         IStreamHandle::File(handle) => {
             let file = &*handle.borrow_mut();
             let buf = BufReader::new(file);
             let lines = buf
                 .lines()
-                .skip(*skip)
+                .skip(*n)
                 .map(|line| line.map(|s| ILitType::String(s.into())))
                 .collect::<Result<Vec<_>, _>>();
             Some(ILitType::Result(match lines {
@@ -239,14 +208,9 @@ pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```text
 /// path/to
 /// ```
+#[signature(args => path: file)]
 pub fn fpop(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-
-    let [ILitType::File(file)] = args else {
-        unreachable!("type checked");
-    };
-
-    let mut path = file.clone();
+    let mut path = path.clone();
     Some(ILitType::Result(if path.pop() {
         res!(Ok, file => path)
     } else {

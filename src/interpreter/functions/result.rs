@@ -1,3 +1,5 @@
+use sig_macro::signature;
+
 use crate::{
     interpreter::{engine::Engine, types::ILitType},
     res,
@@ -14,11 +16,9 @@ use crate::{
 /// ```
 /// let ok_val = ok([1, 2, 3]);
 /// ```
+#[signature(args => val: any)]
 pub fn ok(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-    let arg = &args[0];
-
-    Some(ILitType::Result(res!(Ok, any => arg.clone())))
+    Some(ILitType::Result(res!(Ok, any => val.clone())))
 }
 
 /// Return an `err` value.
@@ -32,9 +32,7 @@ pub fn ok(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```
 /// let oops = err("failed to do something");
 /// ```
+#[signature(args => val: any)]
 pub fn err(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert_eq!(args.len(), 1);
-    let arg = &args[0];
-
-    Some(ILitType::Result(res!(Err, any => arg.clone())))
+    Some(ILitType::Result(res!(Err, any => val.clone())))
 }
