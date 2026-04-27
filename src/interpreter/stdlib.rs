@@ -82,6 +82,10 @@ impl<'a> Functions<'a> {
 
                 ok =>  functions::result::ok,
                 err => functions::result::err,
+
+                trim =>       functions::strings::trim,
+                trim_left =>  functions::strings::trim_left,
+                trim_right => functions::strings::trim_right,
             },
         }
     }

@@ -35,6 +35,10 @@
 //! * result
 //!     - [`ok`](result::ok)
 //!     - [`err`](result::err)
+//! * strings
+//!     - [`trim`](strings::trim)
+//!     - [`trim_left`](strings::trim_left)
+//!     - [`trim_right`](string::trim_right)
 
 /// Array functions.
 pub mod arrays;
@@ -59,6 +63,9 @@ pub mod math;
 
 /// Result type.
 pub mod result;
+
+/// Strings.
+pub mod strings;
 
 /// Branching tool for results.
 #[doc(hidden)]

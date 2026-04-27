@@ -127,9 +127,7 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
         let arg = args.get(cur_arg).unwrap_or(&ILitType::Unit);
 
         let out = match (spec, arg) {
-            ('s', ILitType::String(s)) => s.clone(),
-            ('s', ILitType::File(s)) => s.as_os_str().to_string_lossy().into(),
-            ('s', other) => format!("{other:?}").into(),
+            ('s', any) => any.as_string_rep(),
             ('d' | 'u', ILitType::Integer(i)) => i.to_string().into(),
             #[allow(clippy::cast_precision_loss)]
             ('f', ILitType::Integer(i)) => (*i as f64).to_string().into(),
