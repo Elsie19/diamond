@@ -11,17 +11,17 @@ macro_rules! stdlib {
             $name:ident => $path:path
         ),* $(,)?
     ) => {{
-        let mut map: ::std::collections::HashMap<::std::rc::Rc<str>, $crate::interpreter::stdlib::RuntimeFunc<'a>> =
-            ::std::collections::HashMap::new();
-
-        $(
-            map.insert(
-                stringify!($name).to_string().into(),
-                $crate::interpreter::stdlib::RuntimeFunc::Internal($path),
-            );
-        )*
-
-        map
+        ::std::collections::HashMap::<
+            ::std::rc::Rc<str>,
+            $crate::interpreter::stdlib::RuntimeFunc
+        >::from([
+            $(
+                (
+                    ::std::rc::Rc::from(stringify!($name)),
+                    $crate::interpreter::stdlib::RuntimeFunc::Internal($path),
+                ),
+            )*
+        ])
     }};
 }
 
