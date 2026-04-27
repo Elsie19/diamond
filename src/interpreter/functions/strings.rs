@@ -134,3 +134,35 @@ pub fn lower(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 
     Some(ILitType::String(str.to_lowercase().into()))
 }
+
+/// Replace a pattern with text.
+///
+/// # Signature
+/// ```
+/// let ~internal replace(str: string, from: string, to: string): string;
+/// ```
+///
+/// # Example
+/// ```
+/// let string = "Hey Bob!";
+/// let replaced = replace(string, "Bob", "Joe");
+/// printf("%s\n", [replaced]);
+/// ```
+///
+/// ```text
+/// Hey Joe!
+/// ```
+pub fn replace(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+    debug_assert_eq!(args.len(), 3);
+
+    let [
+        ILitType::String(str),
+        ILitType::String(from),
+        ILitType::String(to),
+    ] = args
+    else {
+        unreachable!("type checked");
+    };
+
+    Some(ILitType::String(str.replace(&**from, to).into()))
+}

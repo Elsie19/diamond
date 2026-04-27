@@ -41,6 +41,7 @@
 //!     - [`trim_right`](strings::trim_right)
 //!     - [`upper`](strings::upper)
 //!     - [`lower`](strings::lower)
+//!     - [`replace`](strings::replace)
 
 /// Array functions.
 pub mod arrays;

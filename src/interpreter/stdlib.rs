@@ -88,6 +88,7 @@ impl<'a> Functions<'a> {
                 trim_right => functions::strings::trim_right,
                 upper =>      functions::strings::upper,
                 lower =>      functions::strings::lower,
+                replace =>    functions::strings::replace,
             },
         }
     }
