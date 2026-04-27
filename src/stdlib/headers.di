@@ -56,5 +56,7 @@ let ~internal err(val: any): result(any, any) = ();
 let ~internal trim(str: string): string = ();
 let ~internal trim_left(str: string): string = ();
 let ~internal trim_right(str: string): string = ();
+let ~internal upper(str: string): string = ();
+let ~internal lower(str: string): string = ();
 
 let last(lst: [any]): any = for (i in lst) i;

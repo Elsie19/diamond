@@ -38,7 +38,9 @@
 //! * strings
 //!     - [`trim`](strings::trim)
 //!     - [`trim_left`](strings::trim_left)
-//!     - [`trim_right`](string::trim_right)
+//!     - [`trim_right`](strings::trim_right)
+//!     - [`upper`](strings::upper)
+//!     - [`lower`](strings::lower)
 
 /// Array functions.
 pub mod arrays;
