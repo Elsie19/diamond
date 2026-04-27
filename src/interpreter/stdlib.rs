@@ -89,6 +89,7 @@ impl<'a> Functions<'a> {
                 upper =>      functions::strings::upper,
                 lower =>      functions::strings::lower,
                 replace =>    functions::strings::replace,
+                split_at =>   functions::strings::split_at,
             },
         }
     }

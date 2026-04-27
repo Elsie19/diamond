@@ -42,6 +42,7 @@
 //!     - [`upper`](strings::upper)
 //!     - [`lower`](strings::lower)
 //!     - [`replace`](strings::replace)
+//!     - [`split_at`](strings::split_at)
 
 /// Array functions.
 pub mod arrays;

@@ -59,5 +59,6 @@ let ~internal trim_right(str: string): string = ();
 let ~internal upper(str: string): string = ();
 let ~internal lower(str: string): string = ();
 let ~internal replace(str: string, from: string, to: string): string = ();
+let ~internal split_at(str: string, mid: integer): result([string], string) = ();
 
 let last(lst: [any]): any = for (i in lst) i;
