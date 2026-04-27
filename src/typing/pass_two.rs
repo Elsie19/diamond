@@ -147,7 +147,9 @@ where
     }
 
     pub fn check_program(&mut self, program: &'a UntypedAst<'a>) -> Result<(), TypeCheckError> {
-        let mut ir = vec![];
+        // We don't know exactly how much it'll generate, but at least one per AST branch is a good
+        // guess.
+        let mut ir = Vec::with_capacity(program.len());
 
         for node in program {
             let result = self.check_node(node)?;
@@ -267,9 +269,12 @@ where
 
         let mut result_ty: Option<Type> = None;
         let mut last_span = None;
-        let mut arms_ir = vec![];
 
-        for arm in match_.arms_raw() {
+        let arms = match_.arms_raw();
+
+        let mut arms_ir = Vec::with_capacity(arms.len());
+
+        for arm in arms {
             self.scopes.push();
 
             let (bind_ty, is_ok) = match &arm.res {
@@ -353,9 +358,14 @@ where
 
         self.scopes.push();
 
-        let mut lowered_args = vec![];
+        let args = funclet.args_raw();
 
-        if let Some(args) = &funclet.args_raw() {
+        let mut lowered_args = Vec::with_capacity(match args {
+            Some(o) => o.len(),
+            None => 0,
+        });
+
+        if let Some(args) = args {
             for arg in &args.node {
                 let unique = self.var_gen.fresh(*arg.name);
 
