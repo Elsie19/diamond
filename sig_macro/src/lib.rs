@@ -7,19 +7,40 @@ use syn::{
     punctuated::Punctuated,
 };
 
+/// Generate signature matching code.
+///
+/// # Example
+/// If you have a function header like this:
+///
+/// ```text
+/// let ~internal func(arr: [integer], string: string);
+/// ```
+///
+/// You can use the proc macro like this:
+///
+/// ```
+/// #[signature(args => arr: [integer], string: string)]
+/// ```
+///
+/// Where `args` refers to the actual rust function's argument list.
+///
+/// # Current Issues
+/// * Arrays do not type check internally. `[integer]` is the same as `[any]`.
 #[proc_macro_attribute]
 pub fn signature(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sig = parse_macro_input!(attr as SignatureInput);
     let mut func = parse_macro_input!(item as ItemFn);
 
     let destructure = sig.to_pattern();
+    let array_checking = sig.array_checking();
 
-    func.block.stmts.insert(
-        0,
-        syn::parse_quote! {
-            #destructure
-        },
-    );
+    let stmt: syn::Stmt = syn::parse2(destructure).unwrap();
+    func.block.stmts.insert(0, stmt);
+
+    if !array_checking.is_empty() {
+        let stmt: syn::Stmt = syn::parse2(array_checking).unwrap();
+        func.block.stmts.insert(1, stmt);
+    }
 
     quote!(#func).into()
 }
@@ -39,10 +60,33 @@ enum SigType {
     String,
     Unit,
     Result,
-    Array,
+    Array(Box<Self>),
     Stream,
     File,
     Any,
+}
+
+impl SigType {
+    fn matches(&self, var: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+        match self {
+            Self::Integer => quote! { matches!(#var, ILitType::Integer(_)) },
+            Self::String => quote! { matches!(#var, ILitType::String(_)) },
+            Self::Unit => quote! { matches!(#var, ILitType::Unit) },
+            Self::Result => quote! { matches!(#var, ILitType::Result(_)) },
+            Self::Stream => quote! { matches!(#var, ILitType::Stream(_)) },
+            Self::File => quote! { matches!(#var, ILitType::File(_)) },
+            Self::Any => quote! { true },
+            Self::Array(sig_type) => {
+                let inner_check = sig_type.matches(&quote! { v });
+                quote! {
+                    match #var {
+                        ILitType::Array(arr) => arr.iter().all(|v| #inner_check),
+                        _ => false,
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Parse for SignatureInput {
@@ -74,8 +118,8 @@ impl Parse for SigType {
         if input.peek(syn::token::Bracket) {
             let content;
             syn::bracketed!(content in input);
-            let _inner: SigType = content.parse()?;
-            Ok(Self::Array)
+            let inner: SigType = content.parse()?;
+            Ok(Self::Array(Box::new(inner)))
         } else {
             let ident: Ident = input.parse()?;
 
@@ -112,7 +156,7 @@ impl SignatureInput {
             let name = &arg.name;
 
             match &arg.ty {
-                SigType::Array => {
+                SigType::Array(_) => {
                     quote! { ILitType::Array(#name) }
                 }
                 SigType::Integer => {
@@ -143,6 +187,28 @@ impl SignatureInput {
             let [#(#patterns),*] = #var_name else {
                 unreachable!("type checked");
             };
+        }
+    }
+
+    fn array_checking(&self) -> proc_macro2::TokenStream {
+        let checks = self.args.iter().filter_map(|arg| {
+            let name = &arg.name;
+
+            if let SigType::Array(inner) = &arg.ty {
+                let check = inner.matches(&quote! { v });
+
+                Some(quote! {
+                    if !#name.iter().all(|v| #check) {
+                        unreachable!("type checked");
+                    }
+                })
+            } else {
+                None
+            }
+        });
+
+        quote! {
+            #(#checks)*
         }
     }
 }
