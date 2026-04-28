@@ -31,6 +31,9 @@ pub fn signature(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sig = parse_macro_input!(attr as SignatureInput);
     let mut func = parse_macro_input!(item as ItemFn);
 
+    let args_name = &sig.input_ident;
+    let arg_len = sig.args.len();
+
     let destructure = sig.to_pattern();
     let array_checking = sig.array_checking();
 
@@ -41,6 +44,13 @@ pub fn signature(attr: TokenStream, item: TokenStream) -> TokenStream {
         let stmt: syn::Stmt = syn::parse2(array_checking).unwrap();
         func.block.stmts.insert(1, stmt);
     }
+
+    func.block.stmts.insert(
+        0,
+        syn::parse_quote! {
+            debug_assert_eq!(#args_name.len(), #arg_len);
+        },
+    );
 
     quote!(#func).into()
 }
