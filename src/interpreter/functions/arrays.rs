@@ -150,7 +150,7 @@ pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
         ILitType::Result(_) => 1,
         ILitType::Stream(f) => match f {
             IStreamHandle::File(handle) => handle.borrow().metadata().unwrap().len() as usize,
-            _ => todo!("not yet kitten whiskers"),
+            _ => unimplemented!("not yet kitten whiskers, daddy will discuss it later"),
         },
         ILitType::File(f) => f.as_os_str().len(),
     }))
