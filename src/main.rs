@@ -12,8 +12,7 @@
 //! You should check out the standard library [here](interpreter::functions).
 
 use std::{
-    fs,
-    io::{self, Write},
+    io::Write,
     path::{Path, PathBuf},
 };
 
@@ -112,7 +111,7 @@ fn main() -> Result<()> {
 
             let ir = match detect_ir(&bytes) {
                 FileType::Text => {
-                    let string = std::fs::read_to_string(&input).into_diagnostic()?;
+                    let string = String::from_utf8_lossy(&bytes);
                     let file = input.to_string_lossy();
                     compile_source(&string, &file)?
                 }
