@@ -11,7 +11,7 @@ use crate::{
     },
 };
 
-type Val = Option<ILitType>;
+type Val = ILitType;
 
 #[derive(Debug)]
 pub struct Engine<'a> {
@@ -95,7 +95,7 @@ impl<'a> Engine<'a> {
 
                 self.funcs.insert(Rc::clone(name), func);
 
-                None
+                ILitType::Unit
             }
             IR::Grouping { inner, redirect } => self.eval_grouping(
                 inner,
@@ -105,29 +105,25 @@ impl<'a> Engine<'a> {
             ),
             IR::For { bind, iter, body } => self.eval_for_loop(bind, iter, body),
             IR::Let { name, ty: _, value } => {
-                let val = self.eval(value).expect("did not produce value!!!");
+                let val = self.eval(value);
                 self.set_var(Rc::clone(name), val.clone());
-                Some(val)
+                val
             }
             IR::Match { expr, arms } => self.eval_match(expr, arms),
             IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, args, *unwrap),
-            IR::Integer(i) => Some(ILitType::Integer(*i)),
-            IR::String(s) => Some(ILitType::String(Rc::clone(s))),
-            IR::Ident(ident) => Some(self.get_var(ident).cloned().expect("could not find ident")),
+            IR::Integer(i) => ILitType::Integer(*i),
+            IR::String(s) => ILitType::String(Rc::clone(s)),
+            IR::Ident(ident) => self.get_var(ident).cloned().expect("variable not found"),
             IR::Array(irs) => {
-                let elems = irs
-                    .iter()
-                    .map(|x| self.eval(x))
-                    .collect::<Option<Vec<_>>>()
-                    .expect("array did not return a value");
-                Some(ILitType::Array(elems.into()))
+                let elems = irs.iter().map(|x| self.eval(x)).collect::<Vec<_>>();
+                ILitType::Array(elems.into())
             }
-            IR::Unit => Some(ILitType::Unit),
-            IR::Result { ok, err } => todo!("result"),
-            IR::Expr(ir) => Some(self.eval(ir)?),
+            IR::Unit => ILitType::Unit,
+            IR::Result { ok: _, err: _ } => todo!("result"),
+            IR::Expr(ir) => self.eval(ir),
             IR::Stmt(ir) => {
-                self.eval(ir)?;
-                Some(ILitType::Unit)
+                self.eval(ir);
+                ILitType::Unit
             }
         }
     }
@@ -140,11 +136,7 @@ impl<'a> Engine<'a> {
             panic!("function `{name}` not found! Did you add the internal function yet?")
         });
 
-        let evaled_args = args
-            .into_iter()
-            .map(|x| self.eval(x))
-            .collect::<Option<Vec<_>>>()
-            .expect("arg produced no value");
+        let evaled_args = args.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
 
         let ret = match func {
             RuntimeFunc::Internal(f) => f(self, &evaled_args),
@@ -162,13 +154,13 @@ impl<'a> Engine<'a> {
                 self.pop_frame();
 
                 last
-            }?,
+            }
         };
 
         if unwrap {
             match ret {
                 ILitType::Result(iresult_branch) => match iresult_branch {
-                    IResultBranch::Ok(ilit_type) => Some(*ilit_type),
+                    IResultBranch::Ok(ilit_type) => *ilit_type,
                     IResultBranch::Err(ilit_type) => {
                         use crate::interpreter::functions::system::panic as internal_panic;
                         internal_panic(self, &[*ilit_type, ILitType::Array(Rc::new([]))]);
@@ -178,12 +170,12 @@ impl<'a> Engine<'a> {
                 err => panic!("expected `result`, but got `{:?}`", err),
             }
         } else {
-            Some(ret)
+            ret
         }
     }
 
     fn eval_match(&mut self, expr: &'a IR, arms: &'a [IRMatchArm]) -> Val {
-        let expr = self.eval(expr).expect("match expr did not produce value");
+        let expr = self.eval(expr);
 
         let ILitType::Result(result) = expr else {
             unreachable!("type checked");
@@ -213,13 +205,13 @@ impl<'a> Engine<'a> {
     }
 
     fn eval_for_loop(&mut self, bind: &str, iter: &'a IR, body: &'a IR) -> Val {
-        let iter = self.eval(iter).expect("iter did not produce value");
+        let iter = self.eval(iter);
 
         let ILitType::Array(iter) = iter else {
             unreachable!("arrays are the only iterable thing");
         };
 
-        let mut last = None;
+        let mut last = ILitType::Unit;
 
         for rust_idx in &*iter {
             self.push_frame();
@@ -237,13 +229,11 @@ impl<'a> Engine<'a> {
         self.push_frame();
 
         if let Some((redir_ir, bind)) = redirect {
-            let val = self
-                .eval(redir_ir)
-                .expect("redirect did not produce value!!!");
+            let val = self.eval(redir_ir);
             self.set_var(bind, val);
         }
 
-        let mut last_val = Some(ILitType::Unit);
+        let mut last_val = ILitType::Unit;
 
         for node in inner {
             last_val = self.eval(node);
