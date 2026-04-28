@@ -1,0 +1,8 @@
+use bincode::{Decode, Encode};
+use type_checker::{pass_one::FuncTable, strata::IR};
+
+#[derive(Decode, Encode)]
+pub struct Bundle {
+    pub ir: Vec<IR>,
+    pub funcs: FuncTable,
+}

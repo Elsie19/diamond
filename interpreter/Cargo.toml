@@ -1,0 +1,8 @@
+[package]
+name = "interpreter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sig_macro = { version = "0.1.0", path = "../sig_macro" }
+type-checker = { version = "0.1.0", path = "../type-checker" }

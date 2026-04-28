@@ -13,6 +13,11 @@ thiserror = "2.0.18"
 typed-builder = "0.23.2"
 sig_macro = { path = "sig_macro" }
 serde = { version = "1.0.228", features = ["derive", "rc"] }
+bincode = "2.0.0"
+type-checker = { version = "0.1.0", path = "type-checker" }
+parse = { version = "0.1.0", path = "parse" }
+interpreter = { version = "0.1.0", path = "interpreter" }
+shared = { version = "0.1.0", path = "shared" }
 
 [[bin]]
 name = "di"
@@ -21,3 +26,9 @@ path = "src/main.rs"
 [profile.release]
 lto = "fat"
 codegen-units = 1
+
+[build-dependencies]
+bincode = "2.0.0"
+parse = { path = "parse" }
+shared = { version = "0.1.0", path = "shared" }
+type-checker = { path = "type-checker" }

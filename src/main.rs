@@ -10,33 +10,27 @@
 //!
 //! You should check out the standard library [here](interpreter::functions).
 
-#[doc = include_str!("../docs/language.md")]
-pub mod parse;
-/// Type checker.
-pub mod typing;
-
-/// Interpreter, duh.
-pub mod interpreter;
-
 use std::path::PathBuf;
 
 use clap::Parser;
+use interpreter::engine::Engine;
 use miette::{IntoDiagnostic, Result};
-
 use parse::grammar::parse_di;
-
-use crate::{
-    interpreter::engine::Engine,
-    typing::{
-        core::AstWalker, pass_two::TypeChecker,
-        strata::vargen_strategies::interpreter::VarGenInterpreter,
-    },
+use shared::Bundle;
+use type_checker::{
+    core::AstWalker, pass_two::TypeChecker,
+    strata::vargen_strategies::interpreter::VarGenInterpreter,
 };
 
-#[doc(hidden)]
-const STDLIB_PATH: &str = "stdlib/headers.di";
-#[doc(hidden)]
-const STDLIB_HEADERS: &str = include_str!("stdlib/headers.di");
+const STDLIB_IR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/stdlib.ir"));
+
+fn load_stdlib() -> Bundle {
+    let (bundle, _): (Bundle, usize) =
+        bincode::decode_from_slice(STDLIB_IR, bincode::config::standard())
+            .expect("failed to load bundle");
+
+    bundle
+}
 
 /// A text-parsing DSL.
 #[doc(hidden)]
@@ -65,37 +59,21 @@ fn main() -> Result<()> {
 
     let file = args.input.to_string_lossy();
 
-    // PARSE STDLIB FIRST //
-
-    let stdlib_program =
-        parse_di(STDLIB_HEADERS, STDLIB_PATH).expect("failed parsing headers, fuck.");
-    let stdlib_walker = AstWalker::new(&stdlib_program);
-    let func_table = stdlib_walker.collect_function_defs();
-
-    let mut stdlib_checker = TypeChecker::<VarGenInterpreter>::new(&func_table, &file, &string);
-    stdlib_checker.check_program(&stdlib_program)?;
-
-    let mut total_ir = stdlib_checker.ir().to_vec();
-
-    // THEN PROGRAM //
+    let mut bundle = load_stdlib();
 
     let program = parse_di(&string, &file).map_err(|()| miette::miette!("parse failed"))?;
 
     let walker = AstWalker::new(&program);
-
     let mut funcs = walker.collect_function_defs();
-    funcs.extend(func_table);
+    funcs.extend(bundle.funcs);
 
     let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
+
     checker.check_program(&program)?;
 
-    let program_ir = checker.ir();
+    bundle.ir.extend_from_slice(checker.ir());
 
-    total_ir.extend_from_slice(program_ir);
-
-    let mut engine = Engine::new(&total_ir, &args.args);
-
-    engine.run();
+    Engine::new(&bundle.ir, &args.args).run();
 
     Ok(())
 }
