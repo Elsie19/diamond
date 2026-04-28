@@ -4,7 +4,8 @@
 //!
 //! ## Learning Diamond
 //!
-//! Check out the [parsing module](`parse`) for more information.
+//! 1. [The Basics](`parse`)
+//! 2. [Practice](`interpreter::engine`)
 //!
 //! ## Standard Library
 //!

@@ -27,7 +27,6 @@
         - [Groupings](#groupings)
         - [Expressions](#expressions)
         - [Statements](#statements)
-- [What's Next?](#whats-next)
 
 ## Introduction
 
@@ -205,9 +204,9 @@ let wrong(): [any] = {
 }
 ```
 
-However, some functions, namely [`enumerate`](crate::interpreter::functions::arrays::enumerate), do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated[^4], and can be considered safe to use.
+However, some functions, namely `enumerate`, do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated[^4], and can be considered safe to use.
 
-The original reason why I had to make this rule was for [`printf`](crate::interpreter::functions::printf::printf)'s second argument, which is an array that can take anything inside it, so you can do things like:
+The original reason why I had to make this rule was for `printf`'s second argument, which is an array that can take anything inside it, so you can do things like:
 
 ```rust
 printf("string => %s\nnumber => %d\n", ["hello", 420]);
@@ -235,7 +234,7 @@ let return_not_butter(): unit = puts("I can't believe it's not butter!\n");
 
 #### Result
 
-Result types are borrowed from Rust. They can contain either a success or an error value. You can use the [`ok`](crate::interpreter::functions::result::ok) and [`err`](crate::interpreter::functions::result::ok) functions to construct branches:
+Result types are borrowed from Rust. They can contain either a success or an error value. You can use the `ok` and `err` functions to construct branches:
 
 ```rust
 let ok_val = ok(1);
@@ -255,7 +254,7 @@ Later, I will show you how to [`match`](#match) them, so you can operate on the 
 
 #### File
 
-The `file` type can be thought of as an intermediary between `string` and `stream`, and is instantiated with the [`file`](crate::interpreter::functions::file::file) function.
+The `file` type can be thought of as an intermediary between `string` and `stream`, and is instantiated with the `file` function.
 
 ```rust
 let my_file = file("names.csv");
@@ -288,8 +287,6 @@ For functions that you haven't defined yourself that *do* return or accept `any`
 `unret` has the exact same semantics as `any`, except that the function will never return back control flow. Think of it as an early return from anywhere, that happens to match whatever type it needs to in order to pass type-checking.
 
 ### Syntax
-
-If you want the full syntax, you can look at the [grammar file](../../../../src/parse/grammar.pest), but that's probably super boring for you, so here goes.
 
 * Function definitions
 * Function calling
@@ -450,10 +447,6 @@ my_func(works);
 my_func(doesnt_work);
 ```
 
-## What's Next?
-
-Go check out some [practice problems](`crate::interpreter::engine`) to get more comfortable with Diamond!
-
 [^1]: Streams could be considered mutable, but for the purposes of learning, don't worry about it.
 
 [^2]: Diamond technically has two more types:
@@ -464,6 +457,6 @@ Go check out some [practice problems](`crate::interpreter::engine`) to get more 
 
     But these are type erased after type-checking, and thus only exist at the parsing and type-checking level, and not the interpreting level. So a more accurate wording of "Diamond only has 7 types" would be, "Diamond only has 7 types that are used when interpreting, but has 9 for type-checking"
 
-[^3]: Check out [`DoubleEndedIterator`] and [`rev`](`crate::interpreter::functions::arrays::rev`).
+[^3]: Check out [`DoubleEndedIterator`] and `rev`.
 
 [^4]: Because of the `~internal` attribute on `enumerate`, Diamond will skip type-checking the body of the function and assume that it is safe. This has to be done because the `enumerate` function cannot be defined in Diamond itself. That is why it is allowed to return non-homogenous arrays.
