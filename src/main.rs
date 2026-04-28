@@ -93,7 +93,7 @@ fn main() -> Result<()> {
 
     total_ir.extend(program_ir.to_vec());
 
-    let mut engine = Engine::new(&total_ir, &funcs, &args.args);
+    let mut engine = Engine::new(&total_ir, &args.args);
 
     engine.run();
 

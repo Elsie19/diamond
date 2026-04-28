@@ -5,10 +5,7 @@ use crate::{
         stdlib::{Functions, RuntimeFunc, UserFunc},
         types::{ILitType, IResultBranch},
     },
-    typing::{
-        pass_one::FuncTable,
-        strata::{IR, IRMatchArm},
-    },
+    typing::strata::{IR, IRMatchArm},
 };
 
 type Val = ILitType;
@@ -16,7 +13,6 @@ type Val = ILitType;
 #[derive(Debug)]
 pub struct Engine<'a> {
     ir: &'a [IR],
-    func_table: &'a FuncTable<'a>,
     // Even though the IR generator ensures that all variables have unique identifiers, we still
     // need to have stack frames for recursion in function calls.
     frames: Vec<StackFrame>,
@@ -30,14 +26,13 @@ pub struct StackFrame {
 }
 
 impl<'a> Engine<'a> {
-    pub fn new<I, T>(ir: &'a [IR], func_table: &'a FuncTable<'a>, args: I) -> Self
+    pub fn new<I, T>(ir: &'a [IR], args: I) -> Self
     where
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
         Self {
             ir,
-            func_table,
             frames: vec![StackFrame::default()],
             funcs: Functions::stdlib(),
             argv: args

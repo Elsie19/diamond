@@ -23,17 +23,7 @@ pub struct DIParser;
 
 pub fn parse_di<'a>(input_str: &'a str, file: &'a str) -> Result<UntypedAst<'a>, ()> {
     let inputs = DIParser::parse(Rule::program, input_str).map_err(|e| {
-        let e = e.with_path(file).renamed_rules(|rule| match *rule {
-            Rule::EOI => "end of file".to_string(),
-            Rule::stmt => "statement".to_string(),
-            Rule::type_name => "type".to_string(),
-            Rule::func_sigil_and_name => "function call".to_string(),
-            Rule::func_def_expr => "function definition".to_string(),
-            Rule::assign_expr => "assignment".to_string(),
-            Rule::match_expr => "match".to_string(),
-            Rule::for_expr => "for loop".to_string(),
-            bla => format!("{:?}", bla),
-        });
+        let e = e.with_path(file);
 
         eprintln!("{}", e);
     })?;
