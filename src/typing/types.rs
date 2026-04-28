@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 
 use enum_as_inner::EnumAsInner;
+use serde::{Deserialize, Serialize};
 
 use crate::parse::types::PType;
 
-#[derive(Debug, Clone, Default, EnumAsInner)]
+#[derive(Debug, Clone, Default, EnumAsInner, Serialize, Deserialize)]
 pub enum Type {
     String,
     Integer,

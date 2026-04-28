@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use serde::{Deserialize, Serialize};
+
 use crate::typing::types::Type;
 
 /// Various ways of generating variable names.
@@ -15,7 +17,7 @@ pub trait VarGenerator {
         S: AsRef<str>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IR {
     FuncLet {
         name: Rc<str>,
@@ -61,7 +63,7 @@ pub enum IR {
     Stmt(Rc<Self>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IRMatchArm {
     pub bind: Rc<str>,
     pub is_ok: bool,
