@@ -1,3 +1,5 @@
+pub mod bin_header;
+
 use bincode::{Decode, Encode};
 use type_checker::{pass_one::FuncTable, strata::IR};
 
