@@ -11,7 +11,7 @@ use crate::interpreter::{engine::Engine, functions::printf::sprintf, types::ILit
 /// let ~internal exit(code: integer): unret;
 /// ```
 #[signature(args => code: integer)]
-pub fn exit(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn exit(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     std::process::exit(*code as i32)
 }
 
@@ -21,10 +21,10 @@ pub fn exit(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```
 /// let ~internal panic(msg: string): unret;
 /// ```
-pub fn panic(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn panic(engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let ret = sprintf(engine, args);
 
-    let Some(ILitType::String(s)) = ret else {
+    let ILitType::String(s) = ret else {
         unreachable!("type checked");
     };
 
@@ -39,10 +39,8 @@ pub fn panic(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```
 /// let ~internal args(): [string];
 /// ```
-pub fn args(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    debug_assert!(args.is_empty());
-
+pub fn args(engine: &mut Engine<'_>, _args: &[ILitType]) -> ILitType {
     let args = engine.args();
 
-    Some(ILitType::Array(Rc::clone(args)))
+    ILitType::Array(Rc::clone(args))
 }

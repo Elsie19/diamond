@@ -30,13 +30,13 @@ use crate::{
 /// This is my world
 /// ```
 #[signature(args => arr: [any], nth: integer)]
-pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let elem = arr.get(*nth);
 
-    Some(ILitType::Result(match elem {
+    ILitType::Result(match elem {
         Some(found) => res!(Ok, any => found.clone()),
         None => res!(Err, str_dy => format!("invalid index `{nth}`")),
-    }))
+    })
 }
 
 /// Split an array by a pattern.
@@ -68,13 +68,10 @@ pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// lamb
 /// ```
 #[signature(args => string: string, char: string)]
-pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    let split = string
-        .split(char.as_ref())
-        .map(|s| ILitType::String(s.into()))
-        .collect();
+pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    let split = string.split(char.as_ref()).map(ILitType::string).collect();
 
-    Some(ILitType::Array(split))
+    ILitType::Array(split)
 }
 
 /// Split string into individual characters.
@@ -101,13 +98,8 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// o
 /// ```
 #[signature(args => string: string)]
-pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    let split = string
-        .chars()
-        .map(|s| ILitType::String(s.to_string().into()))
-        .collect();
-
-    Some(ILitType::Array(split))
+pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Array(string.chars().map(ILitType::string).collect())
 }
 
 /// Get length of parameter.
@@ -141,8 +133,8 @@ pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// 4
 /// ```
 #[signature(args => probs_arr: any)]
-pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Integer(match probs_arr {
+pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Integer(match probs_arr {
         ILitType::Array(arr) => arr.len(),
         ILitType::Integer(int) => *int,
         ILitType::String(str) => str.len(),
@@ -153,7 +145,7 @@ pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
             _ => unimplemented!("not yet kitten whiskers, daddy will discuss it later"),
         },
         ILitType::File(f) => f.as_os_str().len(),
-    }))
+    })
 }
 
 /// Enumerate through values, giving an index with the value.
@@ -188,14 +180,13 @@ pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// };
 /// ```
 #[signature(args => arr: [any])]
-pub fn enumerate(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    let combo = arr
-        .iter()
-        .enumerate()
-        .map(|(idx, elem)| ILitType::Array(Rc::new([ILitType::Integer(idx), elem.clone()])))
-        .collect();
-
-    Some(ILitType::Array(combo))
+pub fn enumerate(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Array(
+        arr.iter()
+            .enumerate()
+            .map(|(idx, elem)| ILitType::Array(Rc::new([ILitType::Integer(idx), elem.clone()])))
+            .collect(),
+    )
 }
 
 /// Get last element of array.
@@ -241,8 +232,8 @@ pub fn last(_lst: &[ILitType]) -> ILitType {
 /// had
 /// ```
 #[signature(args => arr: [any], up_to: integer)]
-pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let up_to = *up_to.min(&arr.len());
 
-    Some(ILitType::Array(Rc::from(&arr[..up_to])))
+    ILitType::Array(Rc::from(&arr[..up_to]))
 }

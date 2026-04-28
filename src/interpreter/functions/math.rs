@@ -19,8 +19,8 @@ use crate::interpreter::{engine::Engine, types::ILitType};
 /// max is 100
 /// ```
 #[signature(args => fst: integer, snd: integer)]
-pub fn max(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Integer(*fst.max(snd)))
+pub fn max(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Integer(*fst.max(snd))
 }
 
 /// Get min of two numbers.
@@ -40,8 +40,8 @@ pub fn max(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// min is 50
 /// ```
 #[signature(args => fst: integer, snd: integer)]
-pub fn min(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Integer(*fst.min(snd)))
+pub fn min(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Integer(*fst.min(snd))
 }
 
 /// Add two numbers.
@@ -64,8 +64,8 @@ pub fn min(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// 50 + 100 = 150
 /// ```
 #[signature(args => fst: integer, snd: integer)]
-pub fn add(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Integer(fst.wrapping_add(*snd)))
+pub fn add(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Integer(fst.wrapping_add(*snd))
 }
 
 /// Subtract two numbers.
@@ -88,6 +88,6 @@ pub fn add(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// 100 - 50 = 50
 /// ```
 #[signature(args => fst: integer, snd: integer)]
-pub fn sub(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Integer(fst.wrapping_sub(*snd)))
+pub fn sub(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Integer(fst.wrapping_sub(*snd))
 }

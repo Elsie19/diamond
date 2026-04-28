@@ -28,7 +28,7 @@ macro_rules! stdlib {
 #[derive(Debug, Clone)]
 pub enum RuntimeFunc<'a> {
     User(UserFunc<'a>),
-    Internal(fn(&mut Engine<'a>, &[ILitType]) -> Option<ILitType>),
+    Internal(fn(&mut Engine<'a>, &[ILitType]) -> ILitType),
 }
 
 #[derive(Debug, Clone)]

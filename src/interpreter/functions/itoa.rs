@@ -22,8 +22,8 @@ use crate::{
 /// My number as a string is: 99
 /// ```
 #[signature(args => num: integer)]
-pub fn itoa(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::String(num.to_string().into()))
+pub fn itoa(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(num.to_string().into())
 }
 
 /// Convert `string` to `integer`.
@@ -47,9 +47,9 @@ pub fn itoa(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// My number is: 99
 /// ```
 #[signature(args => num: string)]
-pub fn atoi(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Result(match num.parse::<usize>() {
+pub fn atoi(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Result(match num.parse::<usize>() {
         Ok(num) => res!(Ok, int_dy => num),
         Err(e) => res!(Err, str_dy => e.to_string()),
-    }))
+    })
 }

@@ -23,8 +23,8 @@ use crate::{
 /// 4
 /// ```
 #[signature(args => str: string)]
-pub fn trim(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::String(str.trim().into()))
+pub fn trim(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(str.trim().into())
 }
 
 /// Trim left side of string.
@@ -45,8 +45,8 @@ pub fn trim(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// 4
 /// ```
 #[signature(args => str: string)]
-pub fn trim_left(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::String(str.trim_start().into()))
+pub fn trim_left(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(str.trim_start().into())
 }
 
 /// Trim right side of string.
@@ -67,8 +67,8 @@ pub fn trim_left(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType
 /// 4
 /// ```
 #[signature(args => str: string)]
-pub fn trim_right(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::String(str.trim_end().into()))
+pub fn trim_right(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(str.trim_end().into())
 }
 
 /// Uppercase a string.
@@ -89,8 +89,8 @@ pub fn trim_right(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitTyp
 /// HELLO
 /// ```
 #[signature(args => str: string)]
-pub fn upper(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::String(str.to_uppercase().into()))
+pub fn upper(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(str.to_uppercase().into())
 }
 
 /// Lowercase a string.
@@ -111,8 +111,8 @@ pub fn upper(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// hello
 /// ```
 #[signature(args => str: string)]
-pub fn lower(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::String(str.to_lowercase().into()))
+pub fn lower(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(str.to_lowercase().into())
 }
 
 /// Replace a pattern with text.
@@ -133,8 +133,8 @@ pub fn lower(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// Hey Joe!
 /// ```
 #[signature(args => str: string, from: string, to: string)]
-pub fn replace(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::String(str.replace(&**from, to).into()))
+pub fn replace(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(str.replace(&**from, to).into())
 }
 
 /// Split at point in string.
@@ -157,11 +157,11 @@ pub fn replace(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
 /// Hey Bob!
 /// ```
 #[signature(args => str: string, mid: integer)]
-pub fn split_at(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn split_at(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let split_at = str.split_at_checked(*mid);
 
-    Some(ILitType::Result(match split_at {
+    ILitType::Result(match split_at {
         Some((a, b)) => res!(Ok, arr => [ILitType::String(a.into()), ILitType::String(b.into())]),
         None => res!(Err, str => "invalid byte offset"),
-    }))
+    })
 }

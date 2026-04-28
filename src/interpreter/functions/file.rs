@@ -29,8 +29,8 @@ use crate::{
 /// let file = file("some_file.txt");
 /// ```
 #[signature(args => path: string)]
-pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::File(PathBuf::from(path.as_ref())))
+pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::File(PathBuf::from(path.as_ref()))
 }
 
 /// Create a file.
@@ -49,11 +49,11 @@ pub fn file(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// let created = create(file)!;
 /// ```
 #[signature(args => path: file)]
-pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Result(match File::create(path) {
+pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Result(match File::create(path) {
         Ok(_) => res!(Ok, file => path.clone()),
         Err(err) => res!(Err, str_dy => err.to_string()),
-    }))
+    })
 }
 
 /// Open a file.
@@ -73,8 +73,8 @@ pub fn create(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// let stream = create(created)!;
 /// ```
 #[signature(args => path: file)]
-pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Result(
+pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Result(
         match OpenOptions::new()
             .read(true)
             .append(true)
@@ -84,7 +84,7 @@ pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
             Ok(stream) => res!(Ok, stream => stream),
             Err(err) => res!(Err, str_dy => err.to_string()),
         },
-    ))
+    )
 }
 
 /// Dump text to a stream.
@@ -105,14 +105,14 @@ pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// dump(stream, "here is the text inside `some_file.txt`")!;
 /// ```
 #[signature(args => stream: stream, contents: string)]
-pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Result(match stream {
+pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Result(match stream {
         IStreamHandle::File(file) => match file.borrow_mut().write_all(contents.as_bytes()) {
             Ok(()) => res!(Ok, unit),
             Err(err) => res!(Err, str_dy => err.to_string()),
         },
         _ => todo!("haven't done shit yet"),
-    }))
+    })
 }
 
 /// Get lines of stream.
@@ -133,10 +133,10 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// };
 /// ```
 #[signature(args => stream: stream)]
-pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let mut contents = String::new();
 
-    Some(ILitType::Result(match stream {
+    ILitType::Result(match stream {
         IStreamHandle::File(handle) => match handle.borrow_mut().read_to_string(&mut contents) {
             Ok(_) => {
                 res!(Ok, arr => contents.lines().map(|s| ILitType::String(s.into())).collect::<Vec<_>>())
@@ -144,7 +144,7 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
             Err(e) => res!(Err, str_dy => e.to_string()),
         },
         _ => todo!("not done yet"),
-    }))
+    })
 }
 
 /// Skip `n` amount of lines in stream.
@@ -170,7 +170,7 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// Sam,10-21-07,male
 /// ```
 #[signature(args => stream: stream, n: integer)]
-pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     match stream {
         IStreamHandle::File(handle) => {
             let file = &*handle.borrow_mut();
@@ -178,12 +178,12 @@ pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
             let lines = buf
                 .lines()
                 .skip(*n)
-                .map(|line| line.map(|s| ILitType::String(s.into())))
+                .map(|line| line.map(ILitType::string))
                 .collect::<Result<Vec<_>, _>>();
-            Some(ILitType::Result(match lines {
+            ILitType::Result(match lines {
                 Ok(lines) => res!(Ok, arr => lines),
                 Err(err) => res!(Err, str_dy => err.to_string()),
-            }))
+            })
         }
         _ => todo!("not done yet"),
     }
@@ -209,11 +209,11 @@ pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// path/to
 /// ```
 #[signature(args => path: file)]
-pub fn fpop(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn fpop(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let mut path = path.clone();
-    Some(ILitType::Result(if path.pop() {
+    ILitType::Result(if path.pop() {
         res!(Ok, file => path)
     } else {
         res!(Err, str => "file has no parent")
-    }))
+    })
 }

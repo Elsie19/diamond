@@ -17,8 +17,8 @@ use crate::{
 /// let ok_val = ok([1, 2, 3]);
 /// ```
 #[signature(args => val: any)]
-pub fn ok(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Result(res!(Ok, any => val.clone())))
+pub fn ok(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Result(res!(Ok, any => val.clone()))
 }
 
 /// Return an `err` value.
@@ -33,6 +33,6 @@ pub fn ok(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// let oops = err("failed to do something");
 /// ```
 #[signature(args => val: any)]
-pub fn err(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    Some(ILitType::Result(res!(Err, any => val.clone())))
+pub fn err(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Result(res!(Err, any => val.clone()))
 }

@@ -105,7 +105,7 @@ impl<'a> Engine<'a> {
             ),
             IR::For { bind, iter, body } => self.eval_for_loop(bind, iter, body),
             IR::Let { name, ty: _, value } => {
-                let val = self.eval(&value).expect("did not produce value!!!");
+                let val = self.eval(value).expect("did not produce value!!!");
                 self.set_var(Rc::clone(name), val.clone());
                 Some(val)
             }
@@ -162,11 +162,11 @@ impl<'a> Engine<'a> {
                 self.pop_frame();
 
                 last
-            }
+            }?,
         };
 
         if unwrap {
-            match ret.expect("return failed") {
+            match ret {
                 ILitType::Result(iresult_branch) => match iresult_branch {
                     IResultBranch::Ok(ilit_type) => Some(*ilit_type),
                     IResultBranch::Err(ilit_type) => {
@@ -178,12 +178,12 @@ impl<'a> Engine<'a> {
                 err => panic!("expected `result`, but got `{:?}`", err),
             }
         } else {
-            ret
+            Some(ret)
         }
     }
 
     fn eval_match(&mut self, expr: &'a IR, arms: &'a [IRMatchArm]) -> Val {
-        let expr = self.eval(&expr).expect("match expr did not produce value");
+        let expr = self.eval(expr).expect("match expr did not produce value");
 
         let ILitType::Result(result) = expr else {
             unreachable!("type checked");
@@ -213,7 +213,7 @@ impl<'a> Engine<'a> {
     }
 
     fn eval_for_loop(&mut self, bind: &str, iter: &'a IR, body: &'a IR) -> Val {
-        let iter = self.eval(&iter).expect("iter did not produce value");
+        let iter = self.eval(iter).expect("iter did not produce value");
 
         let ILitType::Array(iter) = iter else {
             unreachable!("arrays are the only iterable thing");

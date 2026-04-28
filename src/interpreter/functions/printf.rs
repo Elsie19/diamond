@@ -15,10 +15,10 @@ use std::fmt::Write;
 /// puts("hello, console!");
 /// ```
 #[signature(args => format: string)]
-pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     print!("{format}");
 
-    Some(ILitType::Unit)
+    ILitType::Unit
 }
 
 /// Prints out unformatted text.
@@ -49,15 +49,15 @@ pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```
 /// printf("%s, %s!\n", ["Hello", "World"]);
 /// ```
-pub fn printf(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
+pub fn printf(engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let ret = sprintf(engine, args);
-    let Some(ILitType::String(s)) = ret else {
-        unreachable!("oopsies");
+    let ILitType::String(s) = ret else {
+        unreachable!("type checked");
     };
 
     print!("{s}");
 
-    Some(ILitType::Integer(s.len()))
+    ILitType::Integer(s.len())
 }
 
 /// Returns formatted text.
@@ -74,25 +74,14 @@ pub fn printf(engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
 /// ```
 /// let formatted = sprintf("%s, %s!\n", ["Hello", "World"]);
 /// ```
-pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> {
-    let (fmt, args) = match args {
-        [fmt] => (fmt, None),
-        [fmt, args @ ..] => (fmt, Some(args)),
-        [] => unreachable!("how did we get here?"),
-    };
-
-    let fmt = fmt.as_string_rep();
-
-    let ILitType::Array(args) = &args.unwrap()[0] else {
-        unreachable!("type check failed. Make sure you are passing an array.")
-    };
-
+#[signature(args => format: string, args: [any])]
+pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     // We know at least this much is true.
-    let mut buf = String::with_capacity(fmt.len());
+    let mut buf = String::with_capacity(format.len());
 
     let mut cur_arg = 0;
 
-    let mut it = fmt.chars().peekable();
+    let mut it = format.chars().peekable();
     while let Some(char) = it.next() {
         if char == '\\' {
             match it.next() {
@@ -150,5 +139,5 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> Option<ILitType> 
         cur_arg += 1;
     }
 
-    Some(ILitType::String(buf.into()))
+    ILitType::String(buf.into())
 }
