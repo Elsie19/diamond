@@ -75,21 +75,33 @@ enum Commands {
     },
 }
 
-impl Commands {
-    fn input(&self) -> &Path {
-        match self {
-            Commands::Run { input, .. } => input,
-            Commands::Compile { input, .. } => input,
-        }
-    }
+fn compile_source(string: &str, file: &str) -> miette::Result<Vec<IR>> {
+    let mut bundle = load_stdlib();
+
+    let program = parse_di(string, file).map_err(|()| miette::miette!("parse failed"))?;
+
+    let walker = AstWalker::new(&program);
+    let mut funcs = walker.collect_function_defs();
+    funcs.extend(bundle.funcs);
+
+    let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, file, &string);
+
+    checker.check_program(&program)?;
+
+    bundle.ir.extend_from_slice(checker.ir());
+
+    Ok(bundle.ir)
 }
 
-/*
-* How this works is we parse the standard library and turn that into IR, then we parse the users
-* code, turn that into IR, then join the two, with the stdlib coming first, then executing it all.
-* Could this be made so it doesn't have to parse the standard library every time? Sure. Do I have
-* the time to do that? Not really.
-*/
+fn decode_bin_ir(bytes: &[u8]) -> miette::Result<Vec<IR>> {
+    let bin = get_ir(bytes);
+
+    let (ir, _): (Vec<IR>, usize) =
+        bincode::decode_from_slice(bin, bincode::config::standard()).into_diagnostic()?;
+
+    Ok(ir)
+}
+
 #[doc(hidden)]
 fn main() -> Result<()> {
     let args = Args::parse();
@@ -97,62 +109,32 @@ fn main() -> Result<()> {
     match args.commands {
         Commands::Run { input, args } => {
             let bytes = std::fs::read(&input).into_diagnostic()?;
-            match detect_ir(&bytes) {
-                FileType::Binary => {
-                    let bin = get_ir(&bytes);
-                    let (ir, _): (Vec<IR>, usize) =
-                        bincode::decode_from_slice(bin, bincode::config::standard())
-                            .into_diagnostic()?;
-                    Engine::new(&ir, &args).run();
-                }
+
+            let ir = match detect_ir(&bytes) {
                 FileType::Text => {
                     let string = std::fs::read_to_string(&input).into_diagnostic()?;
-
                     let file = input.to_string_lossy();
-
-                    let mut bundle = load_stdlib();
-
-                    let program =
-                        parse_di(&string, &file).map_err(|()| miette::miette!("parse failed"))?;
-
-                    let walker = AstWalker::new(&program);
-                    let mut funcs = walker.collect_function_defs();
-                    funcs.extend(bundle.funcs);
-
-                    let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
-
-                    checker.check_program(&program)?;
-
-                    bundle.ir.extend_from_slice(checker.ir());
-                    Engine::new(&bundle.ir, &args).run();
+                    compile_source(&string, &file)?
                 }
-            }
+                FileType::Binary => decode_bin_ir(&bytes)?,
+            };
+
+            Engine::new(&ir, &args).run();
         }
         Commands::Compile { input, output } => {
             let string = std::fs::read_to_string(&input).into_diagnostic()?;
-
             let file = input.to_string_lossy();
 
-            let mut bundle = load_stdlib();
+            let ir = compile_source(&string, &file)?;
 
-            let program = parse_di(&string, &file).map_err(|()| miette::miette!("parse failed"))?;
-
-            let walker = AstWalker::new(&program);
-            let mut funcs = walker.collect_function_defs();
-            funcs.extend(bundle.funcs);
-
-            let mut checker = TypeChecker::<VarGenInterpreter>::new(&funcs, &file, &string);
-
-            checker.check_program(&program)?;
-
-            bundle.ir.extend_from_slice(checker.ir());
-            let bin = encode(&bundle.ir);
+            let bin = encode(&ir);
             let final_blob = binary_ir(&bin);
-            if *output == *"-" {
-                io::stdout().write_all(&final_blob).unwrap();
-                io::stdout().flush().unwrap();
+
+            if output == Path::new("-") {
+                std::io::stdout().write_all(&final_blob).unwrap();
+                std::io::stdout().flush().unwrap();
             } else {
-                fs::write(output, &final_blob).unwrap();
+                std::fs::write(output, final_blob).unwrap();
             }
         }
     }
