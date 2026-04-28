@@ -67,7 +67,10 @@ pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => string: string, char: string)]
 pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    let split = string.split(char.as_ref()).map(ILitType::string).collect();
+    let split = string
+        .split(char.as_ref())
+        .map(|s| ILitType::String(s.into()))
+        .collect();
 
     ILitType::Array(split)
 }
@@ -97,7 +100,12 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => string: string)]
 pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    ILitType::Array(string.chars().map(ILitType::string).collect())
+    ILitType::Array(
+        string
+            .chars()
+            .map(|s| ILitType::String(s.to_string().into()))
+            .collect(),
+    )
 }
 
 /// Get length of parameter.

@@ -64,11 +64,4 @@ impl ILitType {
             ILitType::File(path) => path.as_os_str().to_string_lossy(),
         }
     }
-
-    pub fn string<S>(s: S) -> Self
-    where
-        S: Into<String>,
-    {
-        Self::String(s.into().into())
-    }
 }

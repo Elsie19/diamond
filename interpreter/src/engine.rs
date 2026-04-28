@@ -104,7 +104,7 @@ impl<'a> Engine<'a> {
                 val
             }
             IR::Match { expr, arms } => self.eval_match(expr, arms),
-            IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, args, *unwrap),
+            IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, &args, *unwrap),
             IR::Integer(i) => ILitType::Integer(*i),
             IR::String(s) => ILitType::String(Rc::clone(s)),
             IR::Ident(ident) => self.get_var(ident).cloned().expect("variable not found"),
@@ -122,15 +122,12 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval_funccall<I>(&mut self, name: &str, args: I, unwrap: bool) -> Val
-    where
-        I: IntoIterator<Item = &'a IR>,
-    {
+    fn eval_funccall(&mut self, name: &str, args: &'a [IR], unwrap: bool) -> Val {
         let func = self.funcs.resolve(name).cloned().unwrap_or_else(|| {
             panic!("function `{name}` not found! Did you add the internal function yet?")
         });
 
-        let evaled_args = args.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
+        let evaled_args = args.iter().map(|x| self.eval(x)).collect::<Vec<_>>();
 
         let ret = match func {
             RuntimeFunc::Internal(f) => f(self, &evaled_args),

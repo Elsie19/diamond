@@ -132,15 +132,17 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => stream: stream)]
 pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    let mut contents = String::new();
-
     ILitType::Result(match stream {
-        IStreamHandle::File(handle) => match handle.borrow_mut().read_to_string(&mut contents) {
-            Ok(_) => {
-                res!(Ok, arr => contents.lines().map(|s| ILitType::String(s.into())).collect::<Vec<_>>())
+        IStreamHandle::File(handle) => {
+            let size = unsafe { handle.borrow().metadata().unwrap_unchecked().len() };
+            let mut contents = String::with_capacity(size as usize);
+            match handle.borrow_mut().read_to_string(&mut contents) {
+                Ok(_) => {
+                    res!(Ok, arr => contents.lines().map(|s| ILitType::String(s.into())).collect::<Vec<_>>())
+                }
+                Err(e) => res!(Err, str_dy => e.to_string()),
             }
-            Err(e) => res!(Err, str_dy => e.to_string()),
-        },
+        }
         _ => todo!("not done yet"),
     })
 }
@@ -176,7 +178,7 @@ pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
             let lines = buf
                 .lines()
                 .skip(*n)
-                .map(|line| line.map(ILitType::string))
+                .map(|line| line.map(|s| ILitType::String(s.into())))
                 .collect::<Result<Vec<_>, _>>();
             ILitType::Result(match lines {
                 Ok(lines) => res!(Ok, arr => lines),
