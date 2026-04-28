@@ -229,14 +229,10 @@ where
 
         let bind_name = for_.loop_raw().bind_raw();
 
-        let unique = self.var_gen.fresh(**bind_name);
+        let unique = self.var_gen.fresh();
 
-        self.scopes.insert(
-            bind_name.node,
-            bind_name.span(),
-            elem_ty,
-            Rc::clone(&unique),
-        );
+        self.scopes
+            .insert(bind_name.node, bind_name.span(), elem_ty, unique);
 
         let body_res = self.inner(for_.body_raw())?;
 
@@ -284,10 +280,10 @@ where
                 PMatchCase::Err(_) => (err_ty.clone(), false),
             };
 
-            let unique = self.var_gen.fresh(arm.res.name());
+            let unique = self.var_gen.fresh();
 
             self.scopes
-                .insert(&arm.inner, arm.inner.span(), bind_ty, &*unique);
+                .insert(&arm.inner, arm.inner.span(), bind_ty, unique);
 
             let arm_res = self.inner(&arm.expr)?;
 
@@ -331,10 +327,10 @@ where
         let expr_res = self.inner(let_.expr_raw())?;
 
         let name = let_.name_raw();
-        let unique = self.var_gen.fresh(**name);
+        let unique = self.var_gen.fresh();
 
         self.scopes
-            .insert(name, name.span(), expr_res.ty.clone(), &*unique);
+            .insert(name, name.span(), expr_res.ty.clone(), unique);
 
         Ok(TypeAndIR {
             ty: expr_res.ty.clone(),
@@ -367,10 +363,10 @@ where
 
         if let Some(args) = args {
             for arg in &args.node {
-                let unique = self.var_gen.fresh(*arg.name);
+                let unique = self.var_gen.fresh();
 
                 self.scopes
-                    .insert(&arg.name, arg.name.span(), arg.ty.clone().into(), &*unique);
+                    .insert(&arg.name, arg.name.span(), arg.ty.clone().into(), unique);
 
                 lowered_args.push((unique, arg.ty.clone().into()));
             }
@@ -427,10 +423,10 @@ where
             }
 
             let stream_name = "STREAM";
-            let unique = self.var_gen.fresh(stream_name);
+            let unique = self.var_gen.fresh();
 
             self.scopes
-                .insert(stream_name, expr.span(), Type::Stream, &*unique);
+                .insert(stream_name, expr.span(), Type::Stream, unique);
 
             Some((Box::new(got.ir), unique))
         } else {

@@ -21,7 +21,7 @@ pub struct Engine<'a> {
 
 #[derive(Debug, Clone, Default)]
 pub struct StackFrame {
-    vars: HashMap<Rc<str>, ILitType>,
+    vars: HashMap<usize, ILitType>,
 }
 
 impl<'a> Engine<'a> {
@@ -46,16 +46,16 @@ impl<'a> Engine<'a> {
         &self.argv
     }
 
-    fn get_var(&self, name: &str) -> Option<&ILitType> {
-        self.frames.iter().rev().find_map(|f| f.vars.get(name))
+    fn get_var(&self, name: usize) -> Option<&ILitType> {
+        self.frames.iter().rev().find_map(|f| f.vars.get(&name))
     }
 
-    fn set_var<T: Into<Rc<str>>>(&mut self, name: T, val: ILitType) {
+    fn set_var(&mut self, name: usize, val: ILitType) {
         self.frames
             .last_mut()
             .expect("popped top frame, ruh roh")
             .vars
-            .insert(name.into(), val);
+            .insert(name, val);
     }
 
     fn push_frame(&mut self) {
@@ -93,21 +93,19 @@ impl<'a> Engine<'a> {
             }
             IR::Grouping { inner, redirect } => self.eval_grouping(
                 inner,
-                redirect
-                    .as_ref()
-                    .map(|(ir, bind)| (ir.as_ref(), bind.as_ref())),
+                redirect.as_ref().map(|(ir, bind)| (ir.as_ref(), *bind)),
             ),
-            IR::For { bind, iter, body } => self.eval_for_loop(bind, iter, body),
+            IR::For { bind, iter, body } => self.eval_for_loop(*bind, iter, body),
             IR::Let { name, ty: _, value } => {
                 let val = self.eval(value);
-                self.set_var(Rc::clone(name), val.clone());
+                self.set_var(*name, val.clone());
                 val
             }
             IR::Match { expr, arms } => self.eval_match(expr, arms),
             IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, &args, *unwrap),
             IR::Integer(i) => ILitType::Integer(*i),
             IR::String(s) => ILitType::String(Rc::clone(s)),
-            IR::Ident(ident) => self.get_var(ident).cloned().expect("variable not found"),
+            IR::Ident(ident) => self.get_var(*ident).cloned().expect("variable not found"),
             IR::Array(irs) => {
                 let elems = irs.iter().map(|x| self.eval(x)).collect::<Vec<_>>();
                 ILitType::Array(elems.into())
@@ -137,7 +135,7 @@ impl<'a> Engine<'a> {
                 for (i, (arg_name, _)) in func.args.iter().enumerate() {
                     let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
 
-                    self.set_var(Rc::clone(arg_name), val);
+                    self.set_var(*arg_name, val);
                 }
 
                 let last = self.eval(func.body);
@@ -183,7 +181,7 @@ impl<'a> Engine<'a> {
 
             if let Some(val) = active {
                 self.push_frame();
-                self.set_var(Rc::clone(bind), *val);
+                self.set_var(*bind, *val);
 
                 let last = self.eval(body);
 
@@ -195,7 +193,7 @@ impl<'a> Engine<'a> {
         unreachable!("match didn't find an arm");
     }
 
-    fn eval_for_loop(&mut self, bind: &str, iter: &'a IR, body: &'a IR) -> Val {
+    fn eval_for_loop(&mut self, bind: usize, iter: &'a IR, body: &'a IR) -> Val {
         let iter = self.eval(iter);
 
         let ILitType::Array(iter) = iter else {
@@ -216,7 +214,7 @@ impl<'a> Engine<'a> {
         last
     }
 
-    fn eval_grouping(&mut self, inner: &'a [IR], redirect: Option<(&'a IR, &'a str)>) -> Val {
+    fn eval_grouping(&mut self, inner: &'a [IR], redirect: Option<(&'a IR, usize)>) -> Val {
         self.push_frame();
 
         if let Some((redir_ir, bind)) = redirect {

@@ -12,16 +12,14 @@ pub trait VarGenerator {
     fn init() -> Self;
 
     /// Generate fresh variable name.
-    fn fresh<S>(&mut self, str: S) -> Rc<str>
-    where
-        S: AsRef<str>;
+    fn fresh(&mut self) -> usize;
 }
 
 #[derive(Debug, Clone, Encode, Decode)]
 pub enum IR {
     FuncLet {
         name: Rc<str>,
-        args: Vec<(Rc<str>, Type)>,
+        args: Vec<(usize, Type)>,
         internal: bool,
         ret: Type,
         body: Rc<Self>,
@@ -29,15 +27,15 @@ pub enum IR {
     Grouping {
         inner: Vec<Self>,
         /// Expression and binding name.
-        redirect: Option<(Box<Self>, Rc<str>)>,
+        redirect: Option<(Box<Self>, usize)>,
     },
     For {
-        bind: Rc<str>,
+        bind: usize,
         iter: Rc<Self>,
         body: Rc<Self>,
     },
     Let {
-        name: Rc<str>,
+        name: usize,
         ty: Type,
         value: Rc<Self>,
     },
@@ -52,7 +50,7 @@ pub enum IR {
     },
     Integer(usize),
     String(Rc<str>),
-    Ident(Rc<str>),
+    Ident(usize),
     Array(Vec<Self>),
     Unit,
     Result {
@@ -65,7 +63,7 @@ pub enum IR {
 
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct IRMatchArm {
-    pub bind: Rc<str>,
+    pub bind: usize,
     pub is_ok: bool,
     pub body: Box<IR>,
 }
