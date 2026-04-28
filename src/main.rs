@@ -91,7 +91,7 @@ fn main() -> Result<()> {
 
     let program_ir = checker.ir();
 
-    total_ir.extend(program_ir.to_vec());
+    total_ir.extend_from_slice(program_ir);
 
     let mut engine = Engine::new(&total_ir, &args.args);
 
