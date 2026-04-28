@@ -293,7 +293,8 @@ impl DIParser {
             [expr(expr),
              match_arm(arm),
              match_arm(rest)..] => {
-                let mut v = vec![arm];
+                let mut v = Vec::with_capacity(rest.size_hint().0 + 1);
+                v.push(arm);
                 v.extend(rest);
 
                 Match::builder()
@@ -358,7 +359,8 @@ impl DIParser {
                 Spanned::new(Box::new([single]), span)
             },
             [func_arg(first), func_arg(rest)..] => {
-                let mut v = vec![first];
+                let mut v = Vec::with_capacity(rest.size_hint().0 + 1);
+                v.push(first);
                 v.extend(rest);
                 Spanned::new(v.into_boxed_slice(), span)
             }
