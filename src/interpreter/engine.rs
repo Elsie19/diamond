@@ -88,7 +88,7 @@ impl<'a> Engine<'a> {
                     ret: ret.clone(),
                 });
 
-                self.funcs.insert(Rc::clone(name), func);
+                self.funcs.insert(name, func);
 
                 ILitType::Unit
             }

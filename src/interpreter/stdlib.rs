@@ -12,12 +12,12 @@ macro_rules! stdlib {
         ),* $(,)?
     ) => {{
         ::std::collections::HashMap::<
-            ::std::rc::Rc<str>,
+            &str,
             $crate::interpreter::stdlib::RuntimeFunc
         >::from([
             $(
                 (
-                    ::std::rc::Rc::from(stringify!($name)),
+                    stringify!($name),
                     $crate::interpreter::stdlib::RuntimeFunc::Internal($path),
                 ),
             )*
@@ -40,7 +40,7 @@ pub struct UserFunc<'a> {
 
 #[derive(Debug)]
 pub struct Functions<'a> {
-    funcs: HashMap<Rc<str>, RuntimeFunc<'a>>,
+    funcs: HashMap<&'a str, RuntimeFunc<'a>>,
 }
 
 impl<'a> Functions<'a> {
@@ -95,8 +95,8 @@ impl<'a> Functions<'a> {
         }
     }
 
-    pub fn insert<T: Into<Rc<str>>>(&mut self, name: T, func: RuntimeFunc<'a>) {
-        self.funcs.insert(name.into(), func);
+    pub fn insert(&mut self, name: &'a str, func: RuntimeFunc<'a>) {
+        self.funcs.insert(name, func);
     }
 
     pub fn resolve<S: AsRef<str>>(&self, name: S) -> Option<&RuntimeFunc<'a>> {
