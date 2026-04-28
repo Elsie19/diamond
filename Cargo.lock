@@ -203,18 +203,11 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "clap",
- "enum-as-inner",
  "interpreter",
  "miette",
  "parse",
- "pest",
- "pest_consume",
- "serde",
  "shared",
- "sig_macro",
- "thiserror",
  "type-checker",
- "typed-builder",
 ]
 
 [[package]]
