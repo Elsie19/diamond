@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use collect_into_rc_slice::CollectIntoRcSlice;
 use sig_macro::signature;
 
 use crate::{
@@ -70,7 +71,7 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let split = string
         .split(char.as_ref())
         .map(|s| ILitType::String(s.into()))
-        .collect();
+        .collect_into_rc_slice();
 
     ILitType::Array(split)
 }
@@ -104,7 +105,7 @@ pub fn chars(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
         string
             .chars()
             .map(|s| ILitType::String(s.to_string().into()))
-            .collect(),
+            .collect_into_rc_slice(),
     )
 }
 
@@ -191,7 +192,7 @@ pub fn enumerate(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
         arr.iter()
             .enumerate()
             .map(|(idx, elem)| ILitType::Array(Rc::new([ILitType::Integer(idx), elem.clone()])))
-            .collect(),
+            .collect_into_rc_slice(),
     )
 }
 
@@ -268,6 +269,5 @@ pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => arr: [any])]
 pub fn rev(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    let arr = arr.iter().cloned().rev().collect::<Vec<_>>().into();
-    ILitType::Array(arr)
+    ILitType::Array(arr.iter().cloned().rev().collect_into_rc_slice())
 }
