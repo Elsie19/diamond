@@ -23,9 +23,6 @@ use syn::{
 /// ```
 ///
 /// Where `args` refers to the actual rust function's argument list.
-///
-/// # Current Issues
-/// * Arrays do not type check internally. `[integer]` is the same as `[any]`.
 #[proc_macro_attribute]
 pub fn signature(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sig = parse_macro_input!(attr as SignatureInput);
@@ -37,11 +34,17 @@ pub fn signature(attr: TokenStream, item: TokenStream) -> TokenStream {
     let destructure = sig.to_pattern();
     let array_checking = sig.array_checking();
 
-    let stmt: syn::Stmt = syn::parse2(destructure).unwrap();
+    let stmt: syn::Stmt = match syn::parse2(destructure) {
+        Ok(stmt) => stmt,
+        Err(e) => return e.into_compile_error().into(),
+    };
     func.block.stmts.insert(0, stmt);
 
     if !array_checking.is_empty() {
-        let stmt: syn::Stmt = syn::parse2(array_checking).unwrap();
+        let stmt: syn::Stmt = match syn::parse2(array_checking) {
+            Ok(stmt) => stmt,
+            Err(e) => return e.into_compile_error().into(),
+        };
         func.block.stmts.insert(1, stmt);
     }
 
