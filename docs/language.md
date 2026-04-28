@@ -163,7 +163,12 @@ let return_integer(): integer = {
 
 #### Array
 
-Arrays are typically homogenous elements, however, in very specific circumstances, they can be non-homogenous.
+Arrays are typically homogenous elements, however, in very specific circumstances, they can be non-homogenous. Think of them as *mostly* like [Python's tuples](https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences), thus the features of Diamond arrays are:
+
+* Random index accessible
+* Doubly-ended iterable[^3]
+* Capable of heterogeneity
+* Immutable
 
 ```rust
 let my_str_arr = ["Hello", ",", " ", "World", "!"];
@@ -200,7 +205,7 @@ let wrong(): [any] = {
 }
 ```
 
-However, some functions, namely [`enumerate`](crate::interpreter::functions::arrays::enumerate), do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated[^3], and can be considered safe to use.
+However, some functions, namely [`enumerate`](crate::interpreter::functions::arrays::enumerate), do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated[^4], and can be considered safe to use.
 
 The original reason why I had to make this rule was for [`printf`](crate::interpreter::functions::printf::printf)'s second argument, which is an array that can take anything inside it, so you can do things like:
 
@@ -459,4 +464,6 @@ Go check out some [practice problems](`crate::interpreter::engine`) to get more 
 
     But these are type erased after type-checking, and thus only exist at the parsing and type-checking level, and not the interpreting level. So a more accurate wording of "Diamond only has 7 types" would be, "Diamond only has 7 types that are used when interpreting, but has 9 for type-checking"
 
-[^3]: Because of the `~internal` attribute on `enumerate`, Diamond will skip type-checking the body of the function and assume that it is safe. This has to be done because the `enumerate` function cannot be defined in Diamond itself. That is why it is allowed to return non-homogenous arrays.
+[^3]: Check out [`DoubleEndedIterator`] and [`rev`](`crate::interpreter::functions::arrays::rev`).
+
+[^4]: Because of the `~internal` attribute on `enumerate`, Diamond will skip type-checking the body of the function and assume that it is safe. This has to be done because the `enumerate` function cannot be defined in Diamond itself. That is why it is allowed to return non-homogenous arrays.

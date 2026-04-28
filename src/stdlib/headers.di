@@ -32,6 +32,7 @@ let ~internal chars(string: string): [string] = ();
 let ~internal only(arr: [any], up_to: integer): [any] = ();
 let ~internal len(probs_arr: any): integer = ();
 let ~internal enumerate(arr: [any]): [[any]] = ();
+let ~internal rev(arr: [any]): [any] = ();
 
 ###################
 #    SYSTEM       #

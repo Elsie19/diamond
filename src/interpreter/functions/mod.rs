@@ -8,6 +8,7 @@
 //!     - [`last`](arrays::last)
 //!     - [`chars`](arrays::chars)
 //!     - [`only`](arrays::only)
+//!     - [`rev`](arrays::rev)
 //! * files
 //!     - [`file`](file::file)
 //!     - [`create`](file::create)

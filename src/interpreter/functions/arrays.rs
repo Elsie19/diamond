@@ -237,3 +237,31 @@ pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 
     ILitType::Array(Rc::from(&arr[..up_to]))
 }
+
+/// Reverse an array.
+///
+/// # Signature
+/// ```
+/// let ~internal rev(arr: [any]): [any];
+/// ```
+///
+/// # Example
+/// ```
+/// let my_string = "Mary had a little lamb";
+/// let split = split(my_string, " ");
+/// let arr = reverse(split);
+/// for (i in arr) printf("%s\n", [i]);
+/// ```
+///
+/// ```text
+/// lamb
+/// little
+/// a
+/// had
+/// Mary
+/// ```
+#[signature(args => arr: [any])]
+pub fn rev(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    let arr = arr.iter().cloned().rev().collect::<Vec<_>>().into();
+    ILitType::Array(arr)
+}
