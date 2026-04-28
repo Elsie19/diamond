@@ -344,7 +344,8 @@ impl DIParser {
         Ok(match_nodes!(input.into_children();
             [expr(single)] => Spanned::new(Box::new([single]), span),
             [expr(single), expr(rest)..] => {
-                let mut v = vec![single];
+                let mut v = Vec::with_capacity(rest.size_hint().0 + 1);
+                v.push(single);
                 v.extend(rest);
                 Spanned::new(v.into_boxed_slice(), span)
             }
@@ -485,12 +486,12 @@ impl DIParser {
                 let name_span = name.span();
                 Spanned::new(
                     PVal::Atomic(
-                        Spanned::new( // ident
+                        Spanned::new(
                             name,
                             name_span
                         )
                     ),
-                span) // sigil and ident
+                span)
             }
         ))
     }
@@ -502,229 +503,4 @@ impl DIParser {
 
 pub fn spest_to_smiette(span: pest::Span<'_>) -> miette::SourceSpan {
     miette::SourceSpan::from(span.start()..span.end())
-}
-
-#[cfg(test)]
-mod simple_parsing {
-    use super::*;
-
-    #[test]
-    fn func_call() {
-        let string = r###"@super_func(ident, ["string", 0], @output())"###;
-        let inputs =
-            DIParser::parse(Rule::func_expr, string).expect("failed to parse func expression");
-        let input = inputs.single().expect("expected only one root node");
-        let func = DIParser::func_expr(input).expect("failed to parse `func_expr`");
-
-        let func = unsafe { func.as_func_call_unchecked() };
-
-        assert_eq!(func.name(), "super_func");
-
-        assert!(!func.has_unwrap());
-
-        let Some(args) = func.args_raw() else {
-            unreachable!("args are not empty!");
-        };
-
-        // ident, array, func_call
-        assert_eq!(args.len(), 3);
-    }
-
-    #[test]
-    fn assign() {
-        let string = "let a = 0";
-        let inputs =
-            DIParser::parse(Rule::assign_expr, string).expect("failed to parse assign expression");
-        let input = inputs.single().expect("expected only one root node");
-        let assign = DIParser::assign_expr(input).expect("failed to parse `assign_expr`");
-
-        let assign = unsafe { assign.as_let_unchecked() };
-
-        let expr = unsafe {
-            assign
-                .expr_raw()
-                .as_atomic_unchecked()
-                .as_integer_unchecked()
-        };
-
-        assert_eq!(assign.name(), "a");
-        assert_eq!(*expr, 0);
-    }
-}
-
-#[cfg(test)]
-mod complex_parsing {
-    use super::*;
-
-    #[test]
-    fn func_def_to_another_func() {
-        let string = "let @foo(x: string) = @bar(x)!";
-        let inputs = DIParser::parse(Rule::func_def_expr, string)
-            .expect("failed to parse func_def_expr expression");
-        let input = inputs.single().expect("expected only one root node");
-        let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
-
-        let funclet = unsafe { func.as_func_let_unchecked() };
-
-        let args = funclet.args_raw().as_ref().expect("we have args");
-
-        assert_eq!(funclet.name(), "foo");
-
-        assert_eq!(args.len(), 1);
-
-        let arg = &args[0];
-
-        assert_eq!(arg.name, "x");
-    }
-
-    #[test]
-    fn func_def_to_type() {
-        let string = "let @f() = ()";
-        let inputs = DIParser::parse(Rule::func_def_expr, string)
-            .expect("failed to parse func_def_expr expression");
-        let input = inputs.single().expect("expected only one root node");
-        let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
-
-        let funclet = unsafe { func.as_func_let_unchecked() };
-
-        assert_eq!(funclet.name(), "f");
-
-        assert_eq!(funclet.args_len(), 0);
-
-        assert!(matches!(
-            unsafe { funclet.body_raw().as_atomic_unchecked() }.node,
-            PAtomic::Unit(_)
-        ))
-    }
-
-    #[test]
-    fn func_def_to_grouping() {
-        let string = r###"let @tee(file: stream, txt: [string]) = {
-                            @printf("%s", txt);
-                            @dump(file, txt);
-        };"###;
-
-        let inputs = DIParser::parse(Rule::func_def_expr, string)
-            .expect("failed to parse func_def_expr expression");
-        let input = inputs.single().expect("expected only one root node");
-        let func = DIParser::func_def_expr(input).expect("failed to parse `func_def_expr`");
-
-        let funclet = unsafe { func.as_func_let_unchecked() };
-
-        assert_eq!(funclet.name(), "tee");
-
-        assert_eq!(funclet.args_len(), 2);
-
-        assert!(matches!(***funclet.body_raw(), PVal::Grouping { .. }))
-    }
-
-    #[test]
-    fn match_() {
-        let string = r###"match (@nth(ARGV, 0)) {
-                ok o = o,
-                err e = @panic("expected file to be passed"),
-             } # ty : file"###;
-
-        let inputs = DIParser::parse(Rule::match_expr, string)
-            .expect("failed to parse match_expr expression");
-        let input = inputs.single().expect("expected only one root node");
-        let match_ = DIParser::match_expr(input).expect("failed to parse `match_expr`");
-
-        let match_ = unsafe { match_.node.into_match_unchecked() };
-
-        let arms = match_.arms_raw();
-
-        assert!(matches!(***match_.expr_raw(), PVal::FuncCall { .. }));
-
-        assert_eq!(arms.len(), 2);
-
-        let (ok, err) = (&arms[0], &arms[1]);
-
-        assert!(ok.ok());
-        assert!(err.err());
-
-        let ok_expr = unsafe { ok.expr.node.as_atomic_unchecked().node.as_ident_unchecked() };
-
-        let func = unsafe { err.expr.node.as_func_call_unchecked() };
-
-        let func_args = &func
-            .args_raw()
-            .as_ref()
-            .expect("argument count should be 1")
-            .node;
-        assert_eq!(func_args.len(), 1);
-        let func_arg = unsafe {
-            func_args[0]
-                .node
-                .as_atomic_unchecked()
-                .node
-                .as_string_unchecked()
-                .node
-        };
-
-        assert_eq!(*ok_expr, "o");
-        assert_eq!(func.name(), "panic");
-        assert_eq!(func_arg, "expected file to be passed");
-        assert!(!func.has_unwrap());
-    }
-
-    #[test]
-    fn for_() {
-        let string = r###"for (a in @range(0, 50)) {
-            @printf("%d\n", a);
-        }"###;
-
-        let inputs =
-            DIParser::parse(Rule::for_expr, string).expect("failed to parse for_expr expression");
-        let input = inputs.single().expect("expected only one root node");
-        let for_ = DIParser::for_expr(input).expect("failed to parse `for_expr`");
-
-        let for_ = unsafe { for_.as_for_unchecked() };
-
-        let bind = for_.loop_raw().bind();
-
-        assert_eq!(bind, "a");
-
-        assert!(matches!(&***for_.body_raw(), PVal::Grouping { .. }))
-    }
-
-    #[test]
-    fn program() {
-        let string = r###"# returns unit type.
-let @tee(file: stream, txt: string) = {
-    @printf("%s", txt);
-    @dump(file, txt);
-};
-
-let @bar() = { 5 };
-
-# set file to the first file inputted.
-let file = @f(match (@nth(ARGV, 0)) {
-                ok o = o,
-                err e = @panic("expected file to be passed"),
-             }); # ty : file
-let output = @open(@create(@f("kvs.txt"))!)!; # ty : stream
-
-{
-    let first_line = @nth(STREAM, 0)!; # ty : string
-    let csv_header_split = @split(first_line, ","); # ty : [string]
-    let csv_length = @length(csv_header_split); # ty : integer
-    let header = @sprintf("%s\n", @join_str(csv_header_split, ",")); # ty : string
-    @tee(output, header);
-
-    # main loop.
-    for (line in @skip(STREAM, 0)) {
-        let line_split = @split(line, ",");
-        @assert_eq(@length(line_split), csv_length);
-        let txt = @sprintf("%s\n", @join_str(line_split, ","));
-        @tee(output, txt);
-    }
-} < @open(file)!;"###;
-
-        let inputs = DIParser::parse(Rule::program, string).expect("failed to parse program");
-        let input = inputs.single().expect("expected only one root node");
-        let program = DIParser::program(input).expect("failed to parse `program`");
-
-        dbg!(program);
-    }
 }

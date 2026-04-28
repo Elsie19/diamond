@@ -120,7 +120,8 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
             #[allow(clippy::cast_precision_loss)]
             ('f', ILitType::Integer(i)) => (*i as f64).to_string().into(),
             ('a', ILitType::Array(a)) => {
-                let mut mini_buf = String::from("[");
+                let mut mini_buf = String::with_capacity(a.len());
+                mini_buf.push('[');
 
                 for (idx, v) in a.iter().enumerate() {
                     if idx > 0 {
