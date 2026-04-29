@@ -30,8 +30,10 @@ use type_checker::{
     strata::{IR, vargen_strategies::interpreter::VarGenInterpreter},
 };
 
+#[doc(hidden)]
 const STDLIB_IR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/stdlib.ir"));
 
+#[doc(hidden)]
 fn load_stdlib() -> Bundle {
     let (bundle, _): (Bundle, usize) =
         bincode::decode_from_slice(STDLIB_IR, bincode::config::standard())
@@ -40,6 +42,7 @@ fn load_stdlib() -> Bundle {
     bundle
 }
 
+#[doc(hidden)]
 fn encode(ir: &[IR]) -> Vec<u8> {
     bincode::encode_to_vec(ir, bincode::config::standard()).unwrap()
 }
@@ -53,6 +56,7 @@ struct Args {
     commands: Commands,
 }
 
+#[doc(hidden)]
 #[derive(Subcommand)]
 enum Commands {
     /// Run program.
@@ -74,6 +78,7 @@ enum Commands {
     },
 }
 
+#[doc(hidden)]
 fn compile_source(string: &str, file: &str) -> miette::Result<Vec<IR>> {
     let mut bundle = load_stdlib();
 
@@ -92,6 +97,7 @@ fn compile_source(string: &str, file: &str) -> miette::Result<Vec<IR>> {
     Ok(bundle.ir)
 }
 
+#[doc(hidden)]
 fn decode_bin_ir(bytes: &[u8]) -> miette::Result<Vec<IR>> {
     let bin = get_ir(bytes);
 
@@ -111,7 +117,7 @@ fn main() -> Result<()> {
 
             let ir = match detect_ir(&bytes) {
                 FileType::Text => {
-                    let string = String::from_utf8_lossy(&bytes);
+                    let string = String::from_utf8(bytes).into_diagnostic()?;
                     let file = input.to_string_lossy();
                     compile_source(&string, &file)?
                 }
@@ -130,10 +136,10 @@ fn main() -> Result<()> {
             let final_blob = binary_ir(&bin);
 
             if output == Path::new("-") {
-                std::io::stdout().write_all(&final_blob).unwrap();
-                std::io::stdout().flush().unwrap();
+                std::io::stdout().write_all(&final_blob).into_diagnostic()?;
+                let _ = std::io::stdout().flush();
             } else {
-                std::fs::write(output, final_blob).unwrap();
+                std::fs::write(output, final_blob).into_diagnostic()?;
             }
         }
     }

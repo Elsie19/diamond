@@ -50,7 +50,7 @@ Putting all of this into a list (+ some extra stuff I'll talk about later):
 The Diamond command-line is very simple. It takes a program to run, and optionally, as many arguments that you want to pass to it. For instance:
 
 ```bash
-di parse_csv.di names.csv
+di run parse_csv.di names.csv
 ```
 
 ### Hello, World!
