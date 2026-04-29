@@ -1,6 +1,8 @@
 use std::{borrow::Cow, cell::RefCell, fmt::Write, fs::File, path::PathBuf, rc::Rc};
 
-#[derive(Debug, Clone)]
+use enum_as_inner::EnumAsInner;
+
+#[derive(Debug, Clone, EnumAsInner)]
 pub enum ILitType {
     Integer(usize),
     String(Rc<str>),

@@ -6,7 +6,6 @@ let ~internal create(path: file): result(file, string) = ();
 let ~internal open(path: file): result(stream, string) = ();
 let ~internal dump(stream: stream, contents: string): result(unit, string) = ();
 let ~internal lines(stream: stream): result([string], string) = ();
-let ~internal skip(stream: stream, n: integer): result([string], string) = ();
 let ~internal fpop(path: file): result(file, string) = ();
 
 ################
@@ -33,6 +32,7 @@ let ~internal only(arr: [any], up_to: integer): [any] = ();
 let ~internal len(probs_arr: any): integer = ();
 let ~internal enumerate(arr: [any]): [[any]] = ();
 let ~internal rev(arr: [any]): [any] = ();
+let ~internal skip(lines: [string], n: integer): result([string], string) = ();
 
 ###################
 #    SYSTEM       #
@@ -61,5 +61,6 @@ let ~internal upper(str: string): string = ();
 let ~internal lower(str: string): string = ();
 let ~internal replace(str: string, from: string, to: string): string = ();
 let ~internal split_at(str: string, mid: integer): result([string], string) = ();
+let ~internal join(arr: [string], join: string): string = ();
 
 let last(lst: [any]): any = for (i in lst) i;

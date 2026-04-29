@@ -71,7 +71,7 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let split = string
         .split(char.as_ref())
         .map(|s| ILitType::String(s.into()))
-        .collect_into_rc_slice();
+        .collect();
 
     ILitType::Array(split)
 }
@@ -270,4 +270,37 @@ pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 #[signature(args => arr: [any])]
 pub fn rev(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     ILitType::Array(arr.iter().cloned().rev().collect_into_rc_slice())
+}
+
+/// Skip `n` amount of lines in stream.
+///
+/// # Signature
+/// ```
+/// let ~internal skip(lines: [string], n: integer): result([string], string);
+/// ```
+///
+/// # Details
+/// Returns lines on success, or error on failure.
+///
+/// # Example
+/// ```
+/// let list = split("Ainsley,5-29-05,female", ",");
+/// for (i in skip(list, 1)!) {
+///     printf("%s\n", [i]);
+/// };
+/// ```
+///
+/// ```csv
+/// 5-29-05
+/// female
+/// ```
+#[signature(args => lines: [string], n: integer)]
+pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    let lines = lines.iter().skip(*n).cloned().collect::<Vec<_>>();
+
+    ILitType::Result(if lines.is_empty() {
+        res!(Err, str => "empty array")
+    } else {
+        res!(Ok, arr => lines)
+    })
 }

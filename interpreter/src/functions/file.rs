@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{BufRead, BufReader, Read, Write},
+    io::{Read, Write},
     path::PathBuf,
 };
 
@@ -145,48 +145,6 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
         }
         _ => todo!("not done yet"),
     })
-}
-
-/// Skip `n` amount of lines in stream.
-///
-/// # Signature
-/// ```
-/// let ~internal skip(stream: stream, n: integer): result([string], string);
-/// ```
-///
-/// # Details
-/// Returns lines on success, or error on failure.
-///
-/// # Example
-/// ```
-/// let stream = open(file("people.csv"))!;
-/// for (i in skip(stream, 1)!) {
-///     printf("%s\n", [i]);
-/// };
-/// ```
-///
-/// ```csv
-/// Ainsley,5-29-05,female
-/// Sam,10-21-07,male
-/// ```
-#[signature(args => stream: stream, n: integer)]
-pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    match stream {
-        IStreamHandle::File(handle) => {
-            let file = &*handle.borrow_mut();
-            let buf = BufReader::new(file);
-            let lines = buf
-                .lines()
-                .skip(*n)
-                .map(|line| line.map(|s| ILitType::String(s.into())))
-                .collect::<Result<Vec<_>, _>>();
-            ILitType::Result(match lines {
-                Ok(lines) => res!(Ok, arr => lines),
-                Err(err) => res!(Err, str_dy => err.to_string()),
-            })
-        }
-        _ => todo!("not done yet"),
-    }
 }
 
 /// Pop last path from path.

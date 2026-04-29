@@ -9,13 +9,13 @@
 //!     - [`chars`](arrays::chars)
 //!     - [`only`](arrays::only)
 //!     - [`rev`](arrays::rev)
+//!     - [`skip`](arrays::skip)
 //! * files
 //!     - [`file`](file::file)
 //!     - [`create`](file::create)
 //!     - [`open`](file::open)
 //!     - [`dump`](file::dump)
 //!     - [`lines`](file::lines)
-//!     - [`skip`](file::skip)
 //!     - [`fpop`](file::fpop)
 //! * printf and friends
 //!     - [`printf`](printf::printf)
@@ -44,6 +44,7 @@
 //!     - [`lower`](strings::lower)
 //!     - [`replace`](strings::replace)
 //!     - [`split_at`](strings::split_at)
+//!     - [`join`](strings::join)
 
 /// Array functions.
 pub mod arrays;

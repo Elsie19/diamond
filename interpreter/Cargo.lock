@@ -172,6 +172,7 @@ name = "interpreter"
 version = "0.1.0"
 dependencies = [
  "collect_into_rc_slice",
+ "enum-as-inner",
  "sig_macro",
  "type-checker",
 ]

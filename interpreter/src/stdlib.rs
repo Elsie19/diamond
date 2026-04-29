@@ -69,13 +69,13 @@ impl<'a> Functions<'a> {
                 chars =>     functions::arrays::chars,
                 only =>      functions::arrays::only,
                 rev =>       functions::arrays::rev,
+                skip =>      functions::arrays::skip,
 
                 file =>   functions::file::file,
                 create => functions::file::create,
                 open =>   functions::file::open,
                 dump =>   functions::file::dump,
                 lines =>  functions::file::lines,
-                skip =>   functions::file::skip,
                 fpop =>   functions::file::fpop,
 
                 panic => functions::system::panic,
@@ -92,6 +92,7 @@ impl<'a> Functions<'a> {
                 lower =>      functions::strings::lower,
                 replace =>    functions::strings::replace,
                 split_at =>   functions::strings::split_at,
+                join =>       functions::strings::join,
             },
         }
     }

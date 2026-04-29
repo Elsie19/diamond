@@ -1,3 +1,4 @@
+use collect_into_rc_slice::CollectIntoRcSlice;
 use sig_macro::signature;
 
 use crate::{engine::Engine, res, types::ILitType};
@@ -161,4 +162,34 @@ pub fn split_at(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
         Some((a, b)) => res!(Ok, arr => [ILitType::String(a.into()), ILitType::String(b.into())]),
         None => res!(Err, str => "invalid byte offset"),
     })
+}
+
+/// Join a string array with a character.
+///
+/// # Signature
+/// ```
+/// let ~internal join(arr: [string], join: string): string;
+/// ```
+///
+/// # Example
+/// ```
+/// let string = "Hey Bob!";
+/// let replaced = split_at(string, 3)!;
+/// let fst = nth(replaced, 0)!;
+/// let snd = nth(replaced, 1)!;
+/// printf("%s%s\n", [fst, snd]);
+/// ```
+///
+/// ```text
+/// Hey Bob!
+/// ```
+#[signature(args => arr: [string], join: string)]
+pub fn join(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::String(
+        arr.iter()
+            .map(|arg| unsafe { arg.clone().into_string_unchecked() })
+            .collect_into_rc_slice()
+            .join(join)
+            .into(),
+    )
 }
