@@ -127,7 +127,7 @@ pub fn sprintf(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
                     if idx > 0 {
                         mini_buf.push_str(", ");
                     }
-                    let _ = write!(buf, "{v:?}");
+                    let _ = write!(mini_buf, "{v:?}");
                 }
 
                 mini_buf.push(']');

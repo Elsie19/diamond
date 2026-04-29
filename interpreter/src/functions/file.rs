@@ -134,9 +134,10 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     ILitType::Result(match stream {
         IStreamHandle::File(handle) => {
-            let size = unsafe { handle.borrow().metadata().unwrap_unchecked().len() };
+            let mut file = handle.borrow_mut();
+            let size = unsafe { file.metadata().unwrap_unchecked().len() };
             let mut contents = String::with_capacity(size as usize);
-            match handle.borrow_mut().read_to_string(&mut contents) {
+            match file.read_to_string(&mut contents) {
                 Ok(_) => {
                     res!(Ok, arr => contents.lines().map(|s| ILitType::String(s.into())).collect::<Vec<_>>())
                 }

@@ -269,7 +269,9 @@ pub fn only(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => arr: [any])]
 pub fn rev(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    ILitType::Array(arr.iter().cloned().rev().collect_into_rc_slice())
+    let mut v = arr.to_vec();
+    v.reverse();
+    ILitType::Array(v.into())
 }
 
 /// Skip `n` amount of lines in stream.
@@ -296,11 +298,13 @@ pub fn rev(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => lines: [string], n: integer)]
 pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    let lines = lines.iter().skip(*n).cloned().collect::<Vec<_>>();
+    // Little performace optimization, so we don't allocate unless we return.
+    let start = (*n).min(lines.len());
+    let sliced = &lines[start..];
 
-    ILitType::Result(if lines.is_empty() {
+    ILitType::Result(if sliced.is_empty() {
         res!(Err, str => "empty array")
     } else {
-        res!(Ok, arr => lines)
+        res!(Ok, arr => sliced)
     })
 }

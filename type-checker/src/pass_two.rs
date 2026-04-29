@@ -68,10 +68,6 @@ impl TypeAndIR {
         &self.ty
     }
 
-    fn ir(&self) -> &IR {
-        &self.ir
-    }
-
     fn into_ty(self) -> Type {
         self.ty
     }
@@ -195,10 +191,10 @@ where
             PVal::Stmt(spanned) => {
                 let ir_and_val = self.check_inner(&spanned.node, spanned.span())?;
 
-                Ok(TypeAndIR {
-                    ty: Type::Unit,
-                    ir: IR::Stmt(Rc::new(ir_and_val.into_ir())),
-                })
+                Ok(TypeAndIR::new(
+                    Type::Unit,
+                    IR::Stmt(Rc::new(ir_and_val.into_ir())),
+                ))
             }
         }
     }
@@ -238,14 +234,14 @@ where
 
         self.scopes.pop();
 
-        Ok(TypeAndIR {
-            ty: body_res.ty,
-            ir: IR::For {
+        Ok(TypeAndIR::new(
+            body_res.ty,
+            IR::For {
                 bind: unique,
                 iter: Rc::new(iter_res.ir),
                 body: Rc::new(body_res.ir),
             },
-        })
+        ))
     }
 
     fn check_match(&mut self, match_: &'a Match<'a>) -> Result<TypeAndIR, TypeCheckError> {
@@ -254,7 +250,7 @@ where
         let expr_res = self.inner(expr_raw)?;
 
         let (ok_ty, err_ty) = match expr_res.ty {
-            Type::Result(ok, err) => (*ok, *err),
+            Type::Result(ref ok, ref err) => (ok, err),
             _ => {
                 return Err(TypeCheckError::VerifyError(
                     pass_one::VerifyError::UnwrapNonResult {
@@ -283,7 +279,7 @@ where
             let unique = self.var_gen.fresh();
 
             self.scopes
-                .insert(&arm.inner, arm.inner.span(), bind_ty, unique);
+                .insert(&arm.inner, arm.inner.span(), *bind_ty, unique);
 
             let arm_res = self.inner(&arm.expr)?;
 
@@ -314,13 +310,13 @@ where
             }
         }
 
-        Ok(TypeAndIR {
-            ty: result_ty.unwrap_or_default(),
-            ir: IR::Match {
-                expr: Rc::new(expr_res.ir),
+        Ok(TypeAndIR::new(
+            result_ty.unwrap_or_default(),
+            IR::Match {
+                expr: Rc::new(expr_res.into_ir()),
                 arms: arms_ir,
             },
-        })
+        ))
     }
 
     fn check_let(&mut self, let_: &'a Let<'a>) -> Result<TypeAndIR, TypeCheckError> {
@@ -332,24 +328,21 @@ where
         self.scopes
             .insert(name, name.span(), expr_res.ty.clone(), unique);
 
-        Ok(TypeAndIR {
-            ty: expr_res.ty.clone(),
-            ir: IR::Let {
+        Ok(TypeAndIR::new(
+            expr_res.ty.clone(),
+            IR::Let {
                 name: unique,
                 ty: expr_res.ty,
                 value: Rc::new(expr_res.ir),
             },
-        })
+        ))
     }
 
     fn check_funclet(&mut self, funclet: &'a FuncLet<'a>) -> Result<TypeAndIR, TypeCheckError> {
         let expected = funclet.ret().cloned().map_or(Type::Unit, Type::from);
 
         if funclet.is_internal() {
-            return Ok(TypeAndIR {
-                ty: expected,
-                ir: IR::Unit,
-            });
+            return Ok(TypeAndIR::new(expected, IR::Unit));
         }
 
         self.scopes.push();
@@ -390,16 +383,16 @@ where
 
         self.scopes.pop();
 
-        Ok(TypeAndIR {
-            ty: expected.clone(),
-            ir: IR::FuncLet {
+        Ok(TypeAndIR::new(
+            expected.clone(),
+            IR::FuncLet {
                 name: funclet.name().into(),
                 args: lowered_args,
                 internal: false,
                 ret: expected,
-                body: Rc::new(got.ir),
+                body: Rc::new(got.into_ir()),
             },
-        })
+        ))
     }
 
     fn check_grouping(&mut self, group: &'a Grouping<'a>) -> Result<TypeAndIR, TypeCheckError> {
@@ -441,13 +434,13 @@ where
 
         self.scopes.pop();
 
-        Ok(TypeAndIR {
-            ty: last_val_ty,
-            ir: IR::Grouping {
+        Ok(TypeAndIR::new(
+            last_val_ty,
+            IR::Grouping {
                 inner: inner_ir,
                 redirect: redirect_ir,
             },
-        })
+        ))
     }
 
     fn check_funccall(
@@ -506,7 +499,7 @@ where
                 ));
             }
 
-            args_ir.push(got.ir);
+            args_ir.push(got.into_ir());
         }
 
         let mut ret_ty = def.ret.clone();
@@ -529,37 +522,31 @@ where
             }
         }
 
-        Ok(TypeAndIR {
-            ty: ret_ty,
-            ir: IR::FuncCall {
+        Ok(TypeAndIR::new(
+            ret_ty,
+            IR::FuncCall {
                 name: func.name().into(),
                 args: args_ir,
                 unwrap,
             },
-        })
+        ))
     }
 
     fn check_atomic(&mut self, atom: &'a PAtomic<'a>) -> Result<TypeAndIR, TypeCheckError> {
         match atom {
-            PAtomic::Integer(i) => Ok(TypeAndIR {
-                ty: Type::Integer,
-                ir: IR::Integer(**i),
-            }),
+            PAtomic::Integer(i) => Ok(TypeAndIR::new(Type::Integer, IR::Integer(**i))),
             PAtomic::String(s) => {
                 let str = **s;
-                Ok(TypeAndIR {
-                    ty: Type::String,
-                    ir: IR::String(str.into()),
-                })
+                Ok(TypeAndIR::new(Type::String, IR::String(str.into())))
             }
             PAtomic::Array(spanned) => {
                 let elems = &spanned.node.node;
 
                 match elems.iter().as_slice() {
-                    [] => Ok(TypeAndIR {
-                        ty: Type::Array(Box::new(Type::Any)),
-                        ir: IR::Array(Vec::with_capacity(0)),
-                    }),
+                    [] => Ok(TypeAndIR::new(
+                        Type::Array(Box::new(Type::Any)),
+                        IR::Array(Vec::with_capacity(0)),
+                    )),
                     [first, rest @ ..] => {
                         let heterorrays = self.attrs.hetero_arrays_allowed();
 
@@ -584,13 +571,13 @@ where
                                 ));
                             }
 
-                            ir.push(got.ir);
+                            ir.push(got.into_ir());
                         }
 
-                        Ok(TypeAndIR {
-                            ty: Type::Array(Box::new(expected)),
-                            ir: IR::Array(ir),
-                        })
+                        Ok(TypeAndIR::new(
+                            Type::Array(Box::new(expected)),
+                            IR::Array(ir),
+                        ))
                     }
                 }
             }
@@ -605,10 +592,7 @@ where
                     }
                 })?;
 
-                Ok(TypeAndIR {
-                    ty,
-                    ir: IR::Ident(unique),
-                })
+                Ok(TypeAndIR::new(ty, IR::Ident(unique)))
             }
             PAtomic::Unit(_) => Ok(TypeAndIR {
                 ty: Type::Unit,
@@ -618,13 +602,13 @@ where
                 let ok_res = self.check_atomic(&spanned.0)?;
                 let err_res = self.check_atomic(&spanned.1)?;
 
-                Ok(TypeAndIR {
-                    ty: Type::Result(Box::new(ok_res.ty), Box::new(err_res.ty)),
-                    ir: IR::Result {
+                Ok(TypeAndIR::new(
+                    Type::Result(Box::new(ok_res.ty), Box::new(err_res.ty)),
+                    IR::Result {
                         ok: Box::new(ok_res.ir.clone()),
                         err: Box::new(err_res.ir.clone()),
                     },
-                })
+                ))
             }
         }
     }
