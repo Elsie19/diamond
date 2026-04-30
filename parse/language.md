@@ -53,6 +53,16 @@ The Diamond command-line is very simple. It takes a program to run, and optional
 di run parse_csv.di names.csv
 ```
 
+Or, if you wish to precompile your program into IR, you can run:
+
+```bash
+di compile file.di -o output.dic
+```
+
+Where `-o` can take either a file path, or `-` to dump to `stdout`. Once that binary is generated, you can run it like usual, and you may notice a *very tiny* improvement to the speed.
+
+Note that when running a compiled program, the interpreter speed does not change. The only part that will change is that it will skip parsing your program, which is why it is faster.
+
 ### Hello, World!
 
 There are a couple ways of doing a `Hello, World!` program, so I will go through them in no particular order:
