@@ -131,7 +131,7 @@ Internally, `string` is stored as an [`Rc<str>`](`std::rc::Rc<str>`). This has a
 
 ###### Sizing
 
-A Rust `String` has three components, which you can check [here](std::string::String#representation), but because I know you didn't click, they are the pointer to the data, the capacity, and the length (*hint, it's literally just a dynamic array*). This is not ideal for a DSL that statically stores known values, without mutability. Thus, if we can get rid of the capacity field alone (because we will never be modifying that string), we can save 8 bytes, for the [`usize`] that we are no longer going to need. If you don't believe me, you can run this code to check:
+A Rust `String` has three components, which you can check [here](std::string::String#representation), but because I know you didn't click that link, they are the pointer to the data, the capacity, and the length (*hint, it's literally just a dynamic array*). This is not ideal for a DSL that statically stores known values, without mutability. Thus, if we can get rid of the capacity field alone (because we will never be modifying that string), we can save 8 bytes, for the [`usize`] that we are no longer going to need. If you don't believe me, you can run this code to check:
 
     let size_of_rc_str = size_of::<Rc<str>>();
     let size_of_string = size_of::<String>();
