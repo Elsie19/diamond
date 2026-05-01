@@ -117,7 +117,9 @@ fn main() -> Result<()> {
 
             let ir = match detect_ir(&bytes) {
                 FileType::Text => {
-                    let string = String::from_utf8(bytes).into_diagnostic()?;
+                    // SAFETY: We hope that nobody put broken UTF-8 in the file. If they did, not
+                    // our fault.
+                    let string = unsafe { String::from_utf8_unchecked(bytes) };
                     let file = input.to_string_lossy();
                     compile_source(&string, &file)?
                 }
