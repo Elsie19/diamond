@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use type_checker::strata::{IR, IRMatchArm};
 
@@ -22,10 +22,18 @@ pub struct Engine<'a> {
 
 #[derive(Debug, Clone, Default)]
 pub struct StackFrame {
-    vars: HashMap<usize, ILitType>,
+    vars: Vec<Option<ILitType>>,
 }
 
-impl<'a> Engine<'a> {
+impl StackFrame {
+    fn with_capacity(capacity: usize) -> Self {
+        Self {
+            vars: Vec::with_capacity(capacity),
+        }
+    }
+}
+
+impl Engine<'_> {
     pub fn new<I, T>(args: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -47,19 +55,32 @@ impl<'a> Engine<'a> {
     }
 
     fn get_var(&self, name: usize) -> Option<&ILitType> {
-        self.frames.iter().rev().find_map(|f| f.vars.get(&name))
+        for frame in self.frames.iter().rev() {
+            if let Some(slot) = frame.vars.get(name)
+                && let Some(val) = slot
+            {
+                return Some(val);
+            }
+        }
+        None
     }
 
     fn set_var(&mut self, name: usize, val: ILitType) {
-        self.frames
-            .last_mut()
-            .expect("popped top frame, ruh roh")
-            .vars
-            .insert(name, val);
+        let frame = self.frames.last_mut().expect("popped top frame, ruh roh");
+
+        if frame.vars.len() <= name {
+            frame.vars.resize_with(name + 1, || None);
+        }
+
+        frame.vars[name] = Some(val);
     }
 
     fn push_frame(&mut self) {
         self.frames.push(StackFrame::default());
+    }
+
+    fn push_frame_with_capacity(&mut self, capacity: usize) {
+        self.frames.push(StackFrame::with_capacity(capacity));
     }
 
     fn pop_frame(&mut self) {
@@ -70,7 +91,7 @@ impl<'a> Engine<'a> {
     where
         I: IntoIterator<Item = IR>,
     {
-        for node in ir.into_iter() {
+        for node in ir {
             self.eval(node);
         }
     }
@@ -136,9 +157,11 @@ impl<'a> Engine<'a> {
         let ret = match func {
             RuntimeFunc::Internal(f) => f(self, &evaled_args),
             RuntimeFunc::User(user_func) => {
-                self.push_frame();
+                let func_args = user_func.args;
 
-                for (i, (arg_name, _)) in user_func.args.iter().enumerate() {
+                self.push_frame_with_capacity(func_args.len());
+
+                for (i, (arg_name, _)) in func_args.iter().enumerate() {
                     let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
 
                     self.set_var(*arg_name, val);
@@ -205,20 +228,17 @@ impl<'a> Engine<'a> {
     }
 
     fn eval_for_loop(&mut self, bind: usize, iter: IR, body: IR) -> Val {
-        let iter = self.eval(iter);
-
-        let ILitType::Array(iter) = iter else {
+        let ILitType::Array(iter) = self.eval(iter) else {
             unreachable_unchecked!()
         };
 
         let mut last = ILitType::Unit;
 
         for rust_idx in iter.iter() {
-            let inner_body = body.clone();
             self.push_frame();
 
             self.set_var(bind, rust_idx.clone());
-            last = self.eval(inner_body);
+            last = self.eval(body.clone());
 
             self.pop_frame();
         }
