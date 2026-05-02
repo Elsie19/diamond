@@ -197,9 +197,7 @@ impl Engine<'_> {
     where
         I: IntoIterator<Item = IRMatchArm>,
     {
-        let expr = self.eval(expr);
-
-        let ILitType::Result(result) = expr else {
+        let ILitType::Result(result) = self.eval(expr) else {
             unreachable_unchecked!()
         };
 
