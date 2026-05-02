@@ -12,6 +12,12 @@ pub trait MietteSpan {
     fn as_miette_span(&self) -> miette::SourceSpan;
 }
 
+macro_rules! optimal_size {
+    ($v:expr) => {
+        $v.size_hint().1.unwrap_or($v.size_hint().0)
+    };
+}
+
 pub type UntypedAst<'a> = Vec<SpannedPVal<'a>>;
 
 type DResult<T> = std::result::Result<T, Error<Rule>>;
@@ -293,7 +299,7 @@ impl DIParser {
             [expr(expr),
              match_arm(arm),
              match_arm(rest)..] => {
-                let mut v = Vec::with_capacity(rest.size_hint().0 + 1);
+                let mut v = Vec::with_capacity(optimal_size!(rest) + 1);
                 v.push(arm);
                 v.extend(rest);
 
@@ -344,7 +350,7 @@ impl DIParser {
         Ok(match_nodes!(input.into_children();
             [expr(single)] => Spanned::new(Box::new([single]), span),
             [expr(single), expr(rest)..] => {
-                let mut v = Vec::with_capacity(rest.size_hint().0 + 1);
+                let mut v = Vec::with_capacity(optimal_size!(rest) + 1);
                 v.push(single);
                 v.extend(rest);
                 Spanned::new(v.into_boxed_slice(), span)
@@ -360,7 +366,7 @@ impl DIParser {
                 Spanned::new(Box::new([single]), span)
             },
             [func_arg(first), func_arg(rest)..] => {
-                let mut v = Vec::with_capacity(rest.size_hint().0 + 1);
+                let mut v = Vec::with_capacity(optimal_size!(rest) + 1);
                 v.push(first);
                 v.extend(rest);
                 Spanned::new(v.into_boxed_slice(), span)
