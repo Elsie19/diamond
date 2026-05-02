@@ -51,7 +51,7 @@ pub fn signature(attr: TokenStream, item: TokenStream) -> TokenStream {
     func.block.stmts.insert(
         0,
         syn::parse_quote! {
-            debug_assert_eq!(#args_name.len(), #arg_len);
+            unsafe { ::std::hint::assert_unchecked(#args_name.len() == #arg_len); }
         },
     );
 
