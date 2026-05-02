@@ -10,6 +10,7 @@
 //!     - [`only`](arrays::only)
 //!     - [`rev`](arrays::rev)
 //!     - [`skip`](arrays::skip)
+//!     - [`range`](arrays::range)
 //! * files
 //!     - [`file`](file::file)
 //!     - [`create`](file::create)

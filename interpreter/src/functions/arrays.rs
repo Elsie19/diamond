@@ -299,3 +299,26 @@ pub fn skip(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
         res!(Ok, arr => sliced)
     })
 }
+
+/// Generate range of numbers.
+///
+/// # Signature
+/// ```
+/// let ~internal range(bot: integer, top: integer): [integer];
+/// ```
+///
+/// # Example
+/// ```
+/// let list = range(0, 5);
+/// printf("%d\n", [len(list)]);
+/// ```
+///
+/// ```
+/// 6
+/// ```
+#[signature(args => bot: integer, top: integer)]
+pub fn range(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    let range = *bot..*top;
+
+    ILitType::Array(range.map(ILitType::Integer).collect_into_rc_slice())
+}

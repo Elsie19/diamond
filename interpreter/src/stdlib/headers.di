@@ -33,6 +33,7 @@ let ~internal len(probs_arr: any): integer = ();
 let ~internal enumerate(arr: [any]): [[any]] = ();
 let ~internal rev(arr: [any]): [any] = ();
 let ~internal skip(lines: [string], n: integer): result([string], string) = ();
+let ~internal range(bot: integer, top: integer): [integer] = ();
 
 ###################
 #    SYSTEM       #

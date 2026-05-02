@@ -70,6 +70,7 @@ impl<'a> Functions<'a> {
                 only =>      functions::arrays::only,
                 rev =>       functions::arrays::rev,
                 skip =>      functions::arrays::skip,
+                range =>     functions::arrays::range,
 
                 file =>   functions::file::file,
                 create => functions::file::create,
