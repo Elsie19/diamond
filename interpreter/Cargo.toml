@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 collect_into_rc_slice = "1.0.0"
 enum-as-inner = "0.7.0"
+rustc-hash = "2.1.2"
 shared = { version = "0.1.0", path = "../shared" }
 sig_macro = { version = "0.1.0", path = "../sig_macro" }
 type-checker = { version = "0.1.0", path = "../type-checker" }

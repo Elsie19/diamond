@@ -1,6 +1,7 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use collect_into_rc_slice::CollectIntoRcSlice;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use type_checker::strata::{IR, IRMatchArm};
 
 use shared::unreachable_unchecked;
@@ -23,13 +24,13 @@ pub struct Engine<'a> {
 
 #[derive(Debug, Clone, Default)]
 pub struct StackFrame {
-    vars: Vec<Option<ILitType>>,
+    vars: HashMap<usize, ILitType, FxBuildHasher>,
 }
 
 impl StackFrame {
     fn with_capacity(capacity: usize) -> Self {
         Self {
-            vars: Vec::with_capacity(capacity),
+            vars: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
         }
     }
 }
@@ -55,24 +56,15 @@ impl Engine<'_> {
     }
 
     fn get_var(&self, name: usize) -> Option<&ILitType> {
-        for frame in self.frames.iter().rev() {
-            if let Some(slot) = frame.vars.get(name)
-                && let Some(val) = slot
-            {
-                return Some(val);
-            }
-        }
-        None
+        self.frames.iter().rev().find_map(|f| f.vars.get(&name))
     }
 
     fn set_var(&mut self, name: usize, val: ILitType) {
-        let frame = self.frames.last_mut().expect("popped top frame, ruh roh");
-
-        if frame.vars.len() <= name {
-            frame.vars.resize_with(name + 1, || None);
-        }
-
-        frame.vars[name] = Some(val);
+        self.frames
+            .last_mut()
+            .expect("popped top frame, ruh roh")
+            .vars
+            .insert(name, val);
     }
 
     fn push_frame(&mut self) {
