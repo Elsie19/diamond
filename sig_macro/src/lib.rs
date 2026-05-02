@@ -212,7 +212,7 @@ impl SignatureInput {
 
                 Some(quote! {
                     if !#name.iter().all(|v| #check) {
-                        unreachable!("type checked");
+                        unsafe { ::std::hint::unreachable_unchecked() }
                     }
                 })
             } else {
