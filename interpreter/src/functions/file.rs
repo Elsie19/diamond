@@ -135,7 +135,7 @@ pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     ILitType::Result(match stream {
         IStreamHandle::File(handle) => {
             let mut file = handle.borrow_mut();
-            let size = unsafe { file.metadata().unwrap_unchecked().len() };
+            let size = file.metadata().unwrap().len();
             let mut contents = String::with_capacity(size as usize);
             match file.read_to_string(&mut contents) {
                 Ok(_) => {

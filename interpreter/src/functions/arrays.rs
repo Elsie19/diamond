@@ -30,9 +30,7 @@ use crate::{
 /// ```
 #[signature(args => arr: [any], nth: integer)]
 pub fn nth(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    let elem = arr.get(*nth);
-
-    ILitType::Result(match elem {
+    ILitType::Result(match arr.get(*nth) {
         Some(found) => res!(Ok, any => found.clone()),
         None => res!(Err, str_dy => format!("invalid index `{nth}`")),
     })

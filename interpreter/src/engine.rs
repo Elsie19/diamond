@@ -103,7 +103,9 @@ impl<'a> Engine<'a> {
             IR::FuncCall { name, args, unwrap } => self.eval_funccall(&name, args, unwrap),
             IR::Integer(i) => ILitType::Integer(i),
             IR::String(s) => ILitType::String(s),
-            IR::Ident(ident) => self.get_var(ident).cloned().expect("variable not found"),
+            // SAFETY: If a variable cannot be found here, it somehow got past both type-checking
+            // and vargen, and I fucked up really badly.
+            IR::Ident(ident) => unsafe { self.get_var(ident).cloned().unwrap_unchecked() },
             IR::Array(irs) => {
                 let elems = irs.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
                 ILitType::Array(elems.into())

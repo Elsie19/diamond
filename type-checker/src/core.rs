@@ -101,7 +101,7 @@ impl<'a> ScopeStack<'a> {
     }
 
     pub fn insert(&mut self, name: &'a str, span: pest::Span<'a>, ty: Type, id: usize) {
-        let scope = self.scopes.last_mut().unwrap();
+        let scope = unsafe { self.scopes.last_mut().unwrap_unchecked() };
         scope.insert(name, (span, ty, id));
     }
 
