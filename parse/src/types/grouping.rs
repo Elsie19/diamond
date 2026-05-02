@@ -14,8 +14,8 @@ impl<'a> Grouping<'a> {
         &self.stmts
     }
 
-    pub fn redirect_raw(&self) -> &Option<BPVal<'a>> {
-        &self.redirect
+    pub fn redirect_raw(&self) -> Option<&BPVal<'a>> {
+        self.redirect.as_ref()
     }
 
     pub fn redirect(&self) -> Option<&BPVal<'a>> {

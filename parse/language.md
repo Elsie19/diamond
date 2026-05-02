@@ -206,7 +206,7 @@ printf("%d and %s\n", [1, "two"]);
 
 Will work just fine.
 
-User-made functions are not allowed to return non-homogenous arrays, for instance:
+User-made functions are not allowed to return non-homogenous arrays with elements inside, for instance:
 
 ```compile_fail
 let wrong(): [any] = {
@@ -214,7 +214,15 @@ let wrong(): [any] = {
 }
 ```
 
-However, some functions, namely `enumerate`, do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated[^4], and can be considered safe to use.
+However, an `[any]` can be made with an empty array:
+
+```rust
+let right(): [any] = {
+    []
+}
+```
+
+Some functions, namely `enumerate`, do actually return non-homogenous arrays (*non-homogenous arrays within an array in fact*), but these are not user generated[^4], and can be considered safe to use.
 
 The original reason why I had to make this rule was for `printf`'s second argument, which is an array that can take anything inside it, so you can do things like:
 

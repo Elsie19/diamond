@@ -47,6 +47,10 @@ impl<'a> FuncLet<'a> {
         &self.args
     }
 
+    pub fn args(&self) -> Option<&Spanned<'a, Box<[FuncArg<'a>]>>> {
+        self.args.as_ref()
+    }
+
     pub fn args_len(&self) -> usize {
         match &self.args {
             Some(args) => args.len(),

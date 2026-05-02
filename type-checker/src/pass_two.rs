@@ -454,9 +454,11 @@ where
                     bad_bit: self.span(span),
                 })?;
 
-        let args = func.args_raw().as_ref().map(|a| &a.node[..]).unwrap_or(&[]);
+        let (got, args): (_, &[Spanned<'a, PVal<'a>>]) = match func.args_raw() {
+            Some(a) => (a.node.len(), &a.node[..]),
+            None => (0, &[]),
+        };
 
-        let got = args.len();
         let expected = def.args.len();
 
         if got != expected {
@@ -499,28 +501,23 @@ where
             args_ir.push(got.into_ir());
         }
 
-        let mut ret_ty = def.ret.clone();
-
         let unwrap = func.has_unwrap();
 
-        if let Some(unwrap_span) = func.get_unwrap() {
-            match ret_ty {
-                Type::Result(ok, _) => {
-                    ret_ty = *ok;
-                }
-                _ => {
-                    return Err(TypeCheckError::VerifyError(
-                        pass_one::VerifyError::UnwrapNonResult {
-                            src: self.src(),
-                            bad_bit: unwrap_span.as_miette_span(),
-                        },
-                    ));
-                }
+        let ret_ty = match (func.get_unwrap(), &def.ret) {
+            (Some(_), Type::Result(ok, _)) => ok,
+            (Some(span), _) => {
+                return Err(TypeCheckError::VerifyError(
+                    pass_one::VerifyError::UnwrapNonResult {
+                        src: self.src(),
+                        bad_bit: span.as_miette_span(),
+                    },
+                ));
             }
-        }
+            (None, ty) => ty,
+        };
 
         Ok(TypeAndIR::new(
-            ret_ty,
+            ret_ty.clone(),
             IR::FuncCall {
                 name: func.name().into(),
                 args: args_ir,

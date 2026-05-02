@@ -20,12 +20,12 @@ impl<'a> FuncCall<'a> {
         }
     }
 
-    pub fn get_unwrap(&self) -> &Option<Spanned<'a, bool>> {
-        &self.unwrap
+    pub fn get_unwrap(&self) -> Option<&Spanned<'a, bool>> {
+        self.unwrap.as_ref()
     }
 
-    pub fn args_raw(&self) -> &Option<BPArr<'a>> {
-        &self.args
+    pub fn args_raw(&self) -> Option<&BPArr<'a>> {
+        self.args.as_ref()
     }
 
     pub fn name_raw(&self) -> &BPVal<'a> {
