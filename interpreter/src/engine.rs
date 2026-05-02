@@ -102,7 +102,7 @@ impl<'a> Engine<'a> {
                 val
             }
             IR::Match { expr, arms } => self.eval_match(expr, arms),
-            IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, &args, *unwrap),
+            IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, args, *unwrap),
             IR::Integer(i) => ILitType::Integer(*i),
             IR::String(s) => ILitType::String(Rc::clone(s)),
             IR::Ident(ident) => self.get_var(*ident).cloned().expect("variable not found"),
@@ -156,7 +156,7 @@ impl<'a> Engine<'a> {
                         unreachable!("panicked above???");
                     }
                 },
-                err => panic!("expected `result`, but got `{:?}`", err),
+                err => panic!("expected `result`, but got `{err:?}`"),
             }
         } else {
             ret
@@ -174,8 +174,7 @@ impl<'a> Engine<'a> {
             let IRMatchArm { bind, is_ok, body } = arm;
 
             let active = match (&result, is_ok) {
-                (IResultBranch::Ok(v), true) => Some(v.clone()),
-                (IResultBranch::Err(v), false) => Some(v.clone()),
+                (IResultBranch::Ok(v), true) | (IResultBranch::Err(v), false) => Some(v.clone()),
                 _ => None,
             };
 

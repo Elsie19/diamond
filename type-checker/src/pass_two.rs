@@ -249,16 +249,13 @@ where
 
         let expr_res = self.inner(expr_raw)?;
 
-        let (ok_ty, err_ty) = match expr_res.ty {
-            Type::Result(ref ok, ref err) => (ok, err),
-            _ => {
-                return Err(TypeCheckError::VerifyError(
-                    pass_one::VerifyError::UnwrapNonResult {
-                        src: self.src(),
-                        bad_bit: expr_raw.as_miette_span(),
-                    },
-                ));
-            }
+        let Type::Result(ref ok_ty, ref err_ty) = expr_res.ty else {
+            return Err(TypeCheckError::VerifyError(
+                pass_one::VerifyError::UnwrapNonResult {
+                    src: self.src(),
+                    bad_bit: expr_raw.as_miette_span(),
+                },
+            ));
         };
 
         let mut result_ty: Option<Type> = None;
@@ -476,7 +473,7 @@ where
         let mut args_ir = Vec::with_capacity(args.len());
 
         for (slot, (arg_expr, expected)) in args.iter().zip(&def.args).enumerate() {
-            let old_homo = self.attrs.array_homogeneity_required;
+            let old_homo = self.attrs.homo_arrays_allowed();
             if expected.is_any_array() {
                 self.attrs.array_homogeneity_required = false;
             }
