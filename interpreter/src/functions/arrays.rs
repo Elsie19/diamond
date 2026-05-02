@@ -3,11 +3,7 @@ use std::rc::Rc;
 use collect_into_rc_slice::CollectIntoRcSlice;
 use sig_macro::signature;
 
-use crate::{
-    engine::Engine,
-    res,
-    types::{ILitType, IStreamHandle},
-};
+use crate::{engine::Engine, res, types::ILitType};
 
 /// Get value from array based on index.
 ///
@@ -69,7 +65,7 @@ pub fn split(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let split = string
         .split(char.as_ref())
         .map(|s| ILitType::String(s.into()))
-        .collect();
+        .collect_into_rc_slice();
 
     ILitType::Array(split)
 }
@@ -145,10 +141,7 @@ pub fn len(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
         ILitType::String(str) => str.len(),
         ILitType::Unit => 0,
         ILitType::Result(_) => 1,
-        ILitType::Stream(f) => match f {
-            IStreamHandle::File(handle) => handle.borrow().metadata().unwrap().len() as usize,
-            _ => unimplemented!("not yet kitten whiskers, daddy will discuss it later"),
-        },
+        ILitType::Stream(f) => f.borrow().metadata().unwrap().len() as usize,
         ILitType::File(f) => f.as_os_str().len(),
     })
 }

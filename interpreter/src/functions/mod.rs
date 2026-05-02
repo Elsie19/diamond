@@ -97,9 +97,12 @@ macro_rules! res {
     ($kind:ident, arr => $i:expr) => {
         $crate::types::IResultBranch::$kind(Box::new($crate::types::ILitType::Array($i.into())))
     };
+    ($kind:ident, arr_alr_rc => $i:expr) => {
+        $crate::types::IResultBranch::$kind(Box::new($crate::types::ILitType::Array($i)))
+    };
     ($kind:ident, stream => $i:expr) => {
         $crate::types::IResultBranch::$kind(Box::new($crate::types::ILitType::Stream(
-            $crate::types::IStreamHandle::File(::std::rc::Rc::new(::std::cell::RefCell::new($i))),
+            ::std::rc::Rc::new(::std::cell::RefCell::new($i)),
         )))
     };
     ($kind:ident, any => $i:expr) => {

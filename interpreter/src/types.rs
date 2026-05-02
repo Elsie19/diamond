@@ -9,7 +9,7 @@ pub enum ILitType {
     Unit,
     Result(IResultBranch),
     Array(Rc<[Self]>),
-    Stream(IStreamHandle),
+    Stream(Rc<RefCell<File>>),
     File(PathBuf),
 }
 
@@ -17,14 +17,6 @@ pub enum ILitType {
 pub enum IResultBranch {
     Ok(Box<ILitType>),
     Err(Box<ILitType>),
-}
-
-#[derive(Debug, Clone)]
-pub enum IStreamHandle {
-    File(Rc<RefCell<File>>),
-    Stdout,
-    Stdin,
-    Buffer(Vec<u8>),
 }
 
 impl ILitType {
@@ -54,15 +46,10 @@ impl ILitType {
                 mini_buf.push(']');
                 mini_buf.into()
             }
-            ILitType::Stream(handle) => match handle {
-                IStreamHandle::File(file_handle) => {
-                    let ptr: *const _ = &raw const file_handle;
-                    Cow::Owned(format!("{ptr:p}"))
-                }
-                IStreamHandle::Stdout => todo!(),
-                IStreamHandle::Stdin => todo!(),
-                IStreamHandle::Buffer(_items) => todo!(),
-            },
+            ILitType::Stream(file) => {
+                let ptr: *const _ = &raw const file;
+                Cow::Owned(format!("{ptr:p}"))
+            }
             ILitType::File(path) => path.as_os_str().to_string_lossy(),
         }
     }

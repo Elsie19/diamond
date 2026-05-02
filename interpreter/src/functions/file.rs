@@ -4,13 +4,10 @@ use std::{
     path::PathBuf,
 };
 
+use collect_into_rc_slice::CollectIntoRcSlice;
 use sig_macro::signature;
 
-use crate::{
-    engine::Engine,
-    res,
-    types::{ILitType, IStreamHandle},
-};
+use crate::{engine::Engine, res, types::ILitType};
 
 /// File type wrapper.
 ///
@@ -104,12 +101,9 @@ pub fn open(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => stream: stream, contents: string)]
 pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    ILitType::Result(match stream {
-        IStreamHandle::File(file) => match file.borrow_mut().write_all(contents.as_bytes()) {
-            Ok(()) => res!(Ok, unit),
-            Err(err) => res!(Err, str_dy => err.to_string()),
-        },
-        _ => todo!("haven't done shit yet"),
+    ILitType::Result(match stream.borrow_mut().write_all(contents.as_bytes()) {
+        Ok(()) => res!(Ok, unit),
+        Err(err) => res!(Err, str_dy => err.to_string()),
     })
 }
 
@@ -132,19 +126,16 @@ pub fn dump(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// ```
 #[signature(args => stream: stream)]
 pub fn lines(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    ILitType::Result(match stream {
-        IStreamHandle::File(handle) => {
-            let mut file = handle.borrow_mut();
-            let size = file.metadata().unwrap().len();
-            let mut contents = String::with_capacity(size as usize);
-            match file.read_to_string(&mut contents) {
-                Ok(_) => {
-                    res!(Ok, arr => contents.lines().map(|s| ILitType::String(s.into())).collect::<Vec<_>>())
-                }
-                Err(e) => res!(Err, str_dy => e.to_string()),
+    ILitType::Result({
+        let mut file = stream.borrow_mut();
+        let size = file.metadata().unwrap().len();
+        let mut contents = String::with_capacity(size as usize);
+        match file.read_to_string(&mut contents) {
+            Ok(_) => {
+                res!(Ok, arr_alr_rc => contents.lines().map(|s| ILitType::String(s.into())).collect_into_rc_slice())
             }
+            Err(e) => res!(Err, str_dy => e.to_string()),
         }
-        _ => todo!("not done yet"),
     })
 }
 
