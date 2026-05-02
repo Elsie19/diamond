@@ -120,10 +120,9 @@ impl<'a> ScopeStack<'a> {
     }
 
     pub fn get_unique_ident(&self, name: &str) -> Option<(Type, usize)> {
-        self.scopes.iter().rev().find_map(|scope| {
-            scope
-                .get(name)
-                .map(|(_, ty, unique)| (ty.clone(), unique.clone()))
-        })
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.get(name).map(|(_, ty, unique)| (ty.clone(), *unique)))
     }
 }

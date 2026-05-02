@@ -146,18 +146,17 @@ pub struct FuncDef {
 
 impl From<FuncLet<'_>> for FuncDef {
     fn from(value: FuncLet<'_>) -> Self {
+        let (possible_args, ret) = value.into_args_ret();
+
         Self {
-            args: value
-                .args_raw()
-                .as_ref()
+            args: possible_args
                 .map(|args| {
-                    args.clone()
-                        .into_iter()
+                    args.into_iter()
                         .map(|arg_pair| arg_pair.ty.into())
                         .collect()
                 })
                 .unwrap_or_default(),
-            ret: value.ret_raw().clone().map_or(Type::default(), Into::into),
+            ret: ret.map_or(Type::default(), Into::into),
         }
     }
 }

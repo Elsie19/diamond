@@ -51,9 +51,9 @@ impl<'a> FuncLet<'a> {
         self.args.as_ref()
     }
 
-    pub fn args_len(&self) -> usize {
-        match &self.args {
-            Some(args) => args.len(),
+    pub const fn args_len(&self) -> usize {
+        match self.args {
+            Some(ref args) => args.node.len(),
             None => 0,
         }
     }
@@ -68,5 +68,9 @@ impl<'a> FuncLet<'a> {
 
     pub fn ret(&self) -> Option<&PType<'a>> {
         self.ret.as_ref()
+    }
+
+    pub fn into_args_ret(self) -> (Option<Spanned<'a, Box<[FuncArg<'a>]>>>, Option<PType<'a>>) {
+        (self.args, self.ret)
     }
 }
