@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use collect_into_rc_slice::CollectIntoRcSlice;
 use type_checker::strata::{IR, IRMatchArm};
 
 use shared::unreachable_unchecked;
@@ -45,8 +46,7 @@ impl Engine<'_> {
             argv: args
                 .into_iter()
                 .map(|s| ILitType::String(s.into().into()))
-                .collect::<Vec<_>>()
-                .into(),
+                .collect_into_rc_slice(),
         }
     }
 
@@ -130,8 +130,11 @@ impl Engine<'_> {
             // and vargen, and I fucked up really badly.
             IR::Ident(ident) => unsafe { self.get_var(ident).cloned().unwrap_unchecked() },
             IR::Array(irs) => {
-                let elems = irs.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
-                ILitType::Array(elems.into())
+                let elems = irs
+                    .into_iter()
+                    .map(|x| self.eval(x))
+                    .collect_into_rc_slice();
+                ILitType::Array(elems)
             }
             IR::Unit => ILitType::Unit,
             IR::Result { ok: _, err: _ } => todo!("result"),
@@ -152,7 +155,10 @@ impl Engine<'_> {
             None => panic!("function `{name}` not found! Did you add the internal function yet?"),
         };
 
-        let evaled_args = args.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
+        let evaled_args = args
+            .into_iter()
+            .map(|x| self.eval(x))
+            .collect_into_rc_slice();
 
         let ret = match func {
             RuntimeFunc::Internal(f) => f(self, &evaled_args),
