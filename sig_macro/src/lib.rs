@@ -198,7 +198,7 @@ impl SignatureInput {
 
         quote! {
             let [#(#patterns),*] = #var_name else {
-                unreachable!("type checked");
+                unsafe { ::std::hint::unreachable_unchecked() }
             };
         }
     }

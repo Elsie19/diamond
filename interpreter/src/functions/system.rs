@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use shared::unreachable_unchecked;
 use sig_macro::signature;
 
 use crate::{engine::Engine, functions::printf::sprintf, types::ILitType};
@@ -22,13 +23,11 @@ pub fn exit(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 /// let ~internal panic(msg: string): unret;
 /// ```
 pub fn panic(engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
-    let ret = sprintf(engine, args);
-
-    let ILitType::String(s) = ret else {
-        unreachable!("type checked");
+    let ILitType::String(s) = sprintf(engine, args) else {
+        unreachable_unchecked!()
     };
 
-    eprint!("thread 'main' ({}) panicked: {}", std::process::id(), s);
+    eprintln!("thread 'main' ({}) panicked: {}", std::process::id(), s);
 
     std::process::exit(1)
 }

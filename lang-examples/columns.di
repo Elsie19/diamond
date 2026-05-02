@@ -1,7 +1,7 @@
 # set file to the first file inputted.
 let file = file(match (nth(args(), 0)) {
                 ok o = o,
-                err e = panic("expected file to be passed\n", []),
+                err e = panic("expected file to be passed", []),
              }); # ty : file
 
 {

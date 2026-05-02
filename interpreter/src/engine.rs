@@ -2,6 +2,8 @@ use std::{collections::HashMap, rc::Rc};
 
 use type_checker::strata::{IR, IRMatchArm};
 
+use shared::unreachable_unchecked;
+
 use crate::{
     stdlib::{Functions, RuntimeFunc, UserFunc},
     types::{ILitType, IResultBranch},
@@ -124,24 +126,25 @@ impl<'a> Engine<'a> {
     where
         I: IntoIterator<Item = IR>,
     {
-        let func = self.funcs.resolve(name).cloned().unwrap_or_else(|| {
-            panic!("function `{name}` not found! Did you add the internal function yet?")
-        });
+        let func = match self.funcs.resolve(name) {
+            Some(func_name) => func_name.clone(),
+            None => panic!("function `{name}` not found! Did you add the internal function yet?"),
+        };
 
         let evaled_args = args.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
 
         let ret = match func {
             RuntimeFunc::Internal(f) => f(self, &evaled_args),
-            RuntimeFunc::User(func) => {
+            RuntimeFunc::User(user_func) => {
                 self.push_frame();
 
-                for (i, (arg_name, _)) in func.args.iter().enumerate() {
+                for (i, (arg_name, _)) in user_func.args.iter().enumerate() {
                     let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
 
                     self.set_var(*arg_name, val);
                 }
 
-                let last = self.eval(func.body);
+                let last = self.eval(user_func.body);
 
                 self.pop_frame();
 
@@ -150,16 +153,19 @@ impl<'a> Engine<'a> {
         };
 
         if unwrap {
-            match ret {
-                ILitType::Result(iresult_branch) => match iresult_branch {
-                    IResultBranch::Ok(ilit_type) => *ilit_type,
-                    IResultBranch::Err(ilit_type) => {
-                        use crate::functions::system::panic as internal_panic;
-                        internal_panic(self, &[*ilit_type, ILitType::Array(Rc::new([]))]);
-                        unreachable!("panicked above???");
-                    }
-                },
-                err => panic!("expected `result`, but got `{err:?}`"),
+            // SAFETY: If we've gotten this far, the type-checker has proven that any time `unwrap`
+            // is true, the type alongside must be [`ILitType::Result`].
+            let ILitType::Result(iresult_branch) = ret else {
+                unreachable_unchecked!()
+            };
+
+            match iresult_branch {
+                IResultBranch::Ok(ilit_type) => *ilit_type,
+                IResultBranch::Err(ilit_type) => {
+                    use crate::functions::system::panic as internal_panic;
+                    internal_panic(self, &[*ilit_type, ILitType::Array(Rc::new([]))]);
+                    unreachable_unchecked!()
+                }
             }
         } else {
             ret
@@ -173,7 +179,7 @@ impl<'a> Engine<'a> {
         let expr = self.eval(expr);
 
         let ILitType::Result(result) = expr else {
-            unreachable!("type checked");
+            unreachable_unchecked!()
         };
 
         for arm in arms {
@@ -195,19 +201,19 @@ impl<'a> Engine<'a> {
             }
         }
 
-        unreachable!("match didn't find an arm");
+        unreachable_unchecked!()
     }
 
     fn eval_for_loop(&mut self, bind: usize, iter: IR, body: IR) -> Val {
         let iter = self.eval(iter);
 
         let ILitType::Array(iter) = iter else {
-            unreachable!("arrays are the only iterable thing");
+            unreachable_unchecked!()
         };
 
         let mut last = ILitType::Unit;
 
-        for rust_idx in iter.into_iter() {
+        for rust_idx in iter.iter() {
             let inner_body = body.clone();
             self.push_frame();
 

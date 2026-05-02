@@ -173,6 +173,7 @@ version = "0.1.0"
 dependencies = [
  "collect_into_rc_slice",
  "enum-as-inner",
+ "shared",
  "sig_macro",
  "type-checker",
 ]
@@ -436,6 +437,14 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "type-checker",
 ]
 
 [[package]]

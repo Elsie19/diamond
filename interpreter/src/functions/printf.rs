@@ -1,5 +1,7 @@
 use sig_macro::signature;
 
+use shared::unreachable_unchecked;
+
 use crate::{engine::Engine, types::ILitType};
 use std::fmt::Write;
 
@@ -52,7 +54,7 @@ pub fn puts(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 pub fn printf(engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     let ret = sprintf(engine, args);
     let ILitType::String(s) = ret else {
-        unreachable!("type checked");
+        unreachable_unchecked!()
     };
 
     print!("{s}");

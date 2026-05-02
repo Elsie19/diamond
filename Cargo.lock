@@ -282,6 +282,7 @@ version = "0.1.0"
 dependencies = [
  "collect_into_rc_slice",
  "enum-as-inner",
+ "shared",
  "sig_macro",
  "type-checker",
 ]
