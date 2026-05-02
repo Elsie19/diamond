@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
@@ -193,7 +191,7 @@ where
 
                 Ok(TypeAndIR::new(
                     Type::Unit,
-                    IR::Stmt(Rc::new(ir_and_val.into_ir())),
+                    IR::Stmt(Box::new(ir_and_val.into_ir())),
                 ))
             }
         }
@@ -238,8 +236,8 @@ where
             body_res.ty,
             IR::For {
                 bind: unique,
-                iter: Rc::new(iter_res.ir),
-                body: Rc::new(body_res.ir),
+                iter: Box::new(iter_res.ir),
+                body: Box::new(body_res.ir),
             },
         ))
     }
@@ -310,7 +308,7 @@ where
         Ok(TypeAndIR::new(
             result_ty.unwrap_or_default(),
             IR::Match {
-                expr: Rc::new(expr_res.into_ir()),
+                expr: Box::new(expr_res.into_ir()),
                 arms: arms_ir,
             },
         ))
@@ -330,7 +328,7 @@ where
             IR::Let {
                 name: unique,
                 ty: expr_res.ty,
-                value: Rc::new(expr_res.ir),
+                value: Box::new(expr_res.ir),
             },
         ))
     }
@@ -387,7 +385,7 @@ where
                 args: lowered_args,
                 internal: false,
                 ret: expected,
-                body: Rc::new(got.into_ir()),
+                body: Box::new(got.into_ir()),
             },
         ))
     }

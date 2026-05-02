@@ -11,7 +11,6 @@ type Val = ILitType;
 
 #[derive(Debug)]
 pub struct Engine<'a> {
-    ir: &'a [IR],
     // Even though the IR generator ensures that all variables have unique identifiers, we still
     // need to have stack frames for recursion in function calls.
     frames: Vec<StackFrame>,
@@ -25,13 +24,12 @@ pub struct StackFrame {
 }
 
 impl<'a> Engine<'a> {
-    pub fn new<I, T>(ir: &'a [IR], args: I) -> Self
+    pub fn new<I, T>(args: I) -> Self
     where
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
         Self {
-            ir,
             frames: vec![StackFrame::default()],
             funcs: Functions::stdlib(),
             argv: args
@@ -66,13 +64,16 @@ impl<'a> Engine<'a> {
         self.frames.pop();
     }
 
-    pub fn run(&mut self) {
-        for node in self.ir {
+    pub fn run<I>(&mut self, ir: I)
+    where
+        I: IntoIterator<Item = IR>,
+    {
+        for node in ir.into_iter() {
             self.eval(node);
         }
     }
 
-    fn eval(&mut self, node: &'a IR) -> Val {
+    fn eval(&mut self, node: IR) -> Val {
         match node {
             IR::FuncLet {
                 name,
@@ -82,50 +83,50 @@ impl<'a> Engine<'a> {
                 body,
             } => {
                 let func = RuntimeFunc::User(UserFunc {
-                    args: args.clone().into_boxed_slice(),
-                    body,
-                    ret: ret.clone(),
+                    args: args.into_boxed_slice(),
+                    body: *body,
+                    ret,
                 });
 
-                self.funcs.insert(name, func);
+                self.funcs.insert(name.to_string(), func);
 
                 ILitType::Unit
             }
-            IR::Grouping { inner, redirect } => self.eval_grouping(
-                inner,
-                redirect.as_ref().map(|(ir, bind)| (ir.as_ref(), *bind)),
-            ),
-            IR::For { bind, iter, body } => self.eval_for_loop(*bind, iter, body),
+            IR::Grouping { inner, redirect } => self.eval_grouping(inner, redirect),
+            IR::For { bind, iter, body } => self.eval_for_loop(bind, *iter, *body),
             IR::Let { name, ty: _, value } => {
-                let val = self.eval(value);
-                self.set_var(*name, val.clone());
+                let val = self.eval(*value);
+                self.set_var(name, val.clone());
                 val
             }
-            IR::Match { expr, arms } => self.eval_match(expr, arms),
-            IR::FuncCall { name, args, unwrap } => self.eval_funccall(name, args, *unwrap),
-            IR::Integer(i) => ILitType::Integer(*i),
-            IR::String(s) => ILitType::String(Rc::clone(s)),
-            IR::Ident(ident) => self.get_var(*ident).cloned().expect("variable not found"),
+            IR::Match { expr, arms } => self.eval_match(*expr, arms),
+            IR::FuncCall { name, args, unwrap } => self.eval_funccall(&name, args, unwrap),
+            IR::Integer(i) => ILitType::Integer(i),
+            IR::String(s) => ILitType::String(s),
+            IR::Ident(ident) => self.get_var(ident).cloned().expect("variable not found"),
             IR::Array(irs) => {
-                let elems = irs.iter().map(|x| self.eval(x)).collect::<Vec<_>>();
+                let elems = irs.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
                 ILitType::Array(elems.into())
             }
             IR::Unit => ILitType::Unit,
             IR::Result { ok: _, err: _ } => todo!("result"),
-            IR::Expr(ir) => self.eval(ir),
+            IR::Expr(ir) => self.eval(*ir),
             IR::Stmt(ir) => {
-                self.eval(ir);
+                self.eval(*ir);
                 ILitType::Unit
             }
         }
     }
 
-    fn eval_funccall(&mut self, name: &str, args: &'a [IR], unwrap: bool) -> Val {
+    fn eval_funccall<I>(&mut self, name: &str, args: I, unwrap: bool) -> Val
+    where
+        I: IntoIterator<Item = IR>,
+    {
         let func = self.funcs.resolve(name).cloned().unwrap_or_else(|| {
             panic!("function `{name}` not found! Did you add the internal function yet?")
         });
 
-        let evaled_args = args.iter().map(|x| self.eval(x)).collect::<Vec<_>>();
+        let evaled_args = args.into_iter().map(|x| self.eval(x)).collect::<Vec<_>>();
 
         let ret = match func {
             RuntimeFunc::Internal(f) => f(self, &evaled_args),
@@ -163,7 +164,10 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn eval_match(&mut self, expr: &'a IR, arms: &'a [IRMatchArm]) -> Val {
+    fn eval_match<I>(&mut self, expr: IR, arms: I) -> Val
+    where
+        I: IntoIterator<Item = IRMatchArm>,
+    {
         let expr = self.eval(expr);
 
         let ILitType::Result(result) = expr else {
@@ -180,9 +184,9 @@ impl<'a> Engine<'a> {
 
             if let Some(val) = active {
                 self.push_frame();
-                self.set_var(*bind, *val);
+                self.set_var(bind, *val);
 
-                let last = self.eval(body);
+                let last = self.eval(*body);
 
                 self.pop_frame();
                 return last;
@@ -192,7 +196,7 @@ impl<'a> Engine<'a> {
         unreachable!("match didn't find an arm");
     }
 
-    fn eval_for_loop(&mut self, bind: usize, iter: &'a IR, body: &'a IR) -> Val {
+    fn eval_for_loop(&mut self, bind: usize, iter: IR, body: IR) -> Val {
         let iter = self.eval(iter);
 
         let ILitType::Array(iter) = iter else {
@@ -201,11 +205,12 @@ impl<'a> Engine<'a> {
 
         let mut last = ILitType::Unit;
 
-        for rust_idx in &*iter {
+        for rust_idx in iter.into_iter() {
+            let inner_body = body.clone();
             self.push_frame();
 
             self.set_var(bind, rust_idx.clone());
-            last = self.eval(body);
+            last = self.eval(inner_body);
 
             self.pop_frame();
         }
@@ -213,11 +218,14 @@ impl<'a> Engine<'a> {
         last
     }
 
-    fn eval_grouping(&mut self, inner: &'a [IR], redirect: Option<(&'a IR, usize)>) -> Val {
+    fn eval_grouping<I>(&mut self, inner: I, redirect: Option<(Box<IR>, usize)>) -> Val
+    where
+        I: IntoIterator<Item = IR>,
+    {
         self.push_frame();
 
         if let Some((redir_ir, bind)) = redirect {
-            let val = self.eval(redir_ir);
+            let val = self.eval(*redir_ir);
             self.set_var(bind, val);
         }
 

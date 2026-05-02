@@ -13,12 +13,12 @@ macro_rules! stdlib {
         ),* $(,)?
     ) => {{
         ::std::collections::HashMap::<
-            &str,
+            String,
             $crate::stdlib::RuntimeFunc
         >::from([
             $(
                 (
-                    stringify!($name),
+                    String::from(stringify!($name)),
                     $crate::stdlib::RuntimeFunc::Internal($path),
                 ),
             )*
@@ -28,20 +28,20 @@ macro_rules! stdlib {
 
 #[derive(Debug, Clone)]
 pub enum RuntimeFunc<'a> {
-    User(UserFunc<'a>),
+    User(UserFunc),
     Internal(fn(&mut Engine<'a>, &[ILitType]) -> ILitType),
 }
 
 #[derive(Debug, Clone)]
-pub struct UserFunc<'a> {
+pub struct UserFunc {
     pub args: Box<[(usize, Type)]>,
-    pub body: &'a IR,
+    pub body: IR,
     pub ret: Type,
 }
 
 #[derive(Debug)]
 pub struct Functions<'a> {
-    funcs: HashMap<&'a str, RuntimeFunc<'a>>,
+    funcs: HashMap<String, RuntimeFunc<'a>>,
 }
 
 impl<'a> Functions<'a> {
@@ -97,8 +97,8 @@ impl<'a> Functions<'a> {
         }
     }
 
-    pub fn insert(&mut self, name: &'a str, func: RuntimeFunc<'a>) {
-        self.funcs.insert(name, func);
+    pub fn insert<T: Into<String>>(&mut self, name: T, func: RuntimeFunc<'a>) {
+        self.funcs.insert(name.into(), func);
     }
 
     pub fn resolve<S: AsRef<str>>(&self, name: S) -> Option<&RuntimeFunc<'a>> {

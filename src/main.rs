@@ -126,7 +126,7 @@ fn main() -> Result<()> {
                 FileType::Binary => decode_bin_ir(&bytes)?,
             };
 
-            Engine::new(&ir, &args).run();
+            Engine::new(&args).run(ir);
         }
         Commands::Compile { input, output } => {
             let string = std::fs::read_to_string(&input).into_diagnostic()?;
