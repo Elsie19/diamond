@@ -335,7 +335,7 @@ impl DIParser {
         match input.as_str() {
             txt @ "ok" => Ok(PMatchCase::Ok(Spanned::new(txt, span))),
             txt @ "err" => Ok(PMatchCase::Err(Spanned::new(txt, span))),
-            _ => unreachable!("add result_branch new fields"),
+            err => Err(input.error(err)),
         }
     }
 
