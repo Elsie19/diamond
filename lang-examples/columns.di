@@ -5,15 +5,18 @@ let file = file(match (nth(args(), 0)) {
              }); # ty : file
 
 {
-    let lines = lines(STREAM)!; # ty : [string]
-    let first_line = nth(lines, 0)!; # ty : string
-    let csv_header_split = split(first_line, ","); # ty : [string]
-    printf("%s\n", [join(csv_header_split, ",")]); # ty : unit
-
-    # main loop.
-    for (line in skip(lines, 1)!) {
-        let line_split = split(line, ","); # ty : [string]
-        printf("%s\n", [join(line_split, ",")]); # ty : unit
+    for (lines in enumerate(lines(STREAM)!)) {
+        let idx = nth(lines, 0)!;
+        let line = nth(lines, 1)!;
+        match (eq(idx, 0)) {
+            ok o = {
+                let csv_header_split = split(line, ",");
+                printf("%s\n", [join(csv_header_split, "|")]);
+            },
+            err e = {
+                let line_split = split(line, ",");
+                printf("%s\n", [join(line_split, "ZZZ")]);
+            },
+        }
     }
-
 } < open(file)!;

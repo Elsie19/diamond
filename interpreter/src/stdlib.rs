@@ -85,6 +85,7 @@ impl<'a> Functions<'a> {
 
                 ok =>  functions::result::ok,
                 err => functions::result::err,
+                eq =>  functions::result::eq,
 
                 trim =>       functions::strings::trim,
                 trim_left =>  functions::strings::trim_left,
