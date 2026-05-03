@@ -68,6 +68,7 @@ enum Commands {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+    /// Compile IR.
     Compile {
         /// Diamond program file.
         input: PathBuf,

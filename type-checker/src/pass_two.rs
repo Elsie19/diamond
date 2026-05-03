@@ -499,8 +499,6 @@ where
             args_ir.push(got.into_ir());
         }
 
-        let unwrap = func.has_unwrap();
-
         let ret_ty = match (func.get_unwrap(), &def.ret) {
             (Some(_), Type::Result(ok, _)) => ok,
             (Some(span), _) => {
@@ -519,7 +517,7 @@ where
             IR::FuncCall {
                 name: func.name().into(),
                 args: args_ir,
-                unwrap,
+                unwrap: func.has_unwrap(),
             },
         ))
     }
