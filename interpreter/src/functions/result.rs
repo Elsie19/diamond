@@ -33,3 +33,28 @@ pub fn ok(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
 pub fn err(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     ILitType::Result(res!(Err, any => val.clone()))
 }
+
+/// Checks for equality.
+///
+/// # Signature
+/// ```
+/// let ~internal eq(lhs: any, rhs: any): result(unit, unit);
+/// ```
+///
+/// # Example
+/// ```
+/// let a = "a";
+/// let b = "b";
+/// match (eq(a, b)) {
+///   ok o => printf("Equal!\n", []),
+///   err e => printf("Not equal!\n", []),
+/// }
+/// ```
+#[signature(args => lhs: any, rhs: any)]
+pub fn eq(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    ILitType::Result(if *lhs == *rhs {
+        res!(Ok, unit)
+    } else {
+        res!(Err, unit)
+    })
+}

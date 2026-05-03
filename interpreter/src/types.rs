@@ -13,7 +13,22 @@ pub enum ILitType {
     File(PathBuf),
 }
 
-#[derive(Debug, Clone)]
+impl PartialEq for ILitType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Integer(a), Self::Integer(b)) => a == b,
+            (Self::String(a), Self::String(b)) => *a == *b,
+            (Self::Unit, Self::Unit) => true,
+            (Self::Result(a), Self::Result(b)) => a == b,
+            (Self::Array(a), Self::Array(b)) => *a == *b,
+            (Self::Stream(a), Self::Stream(b)) => std::ptr::eq(a.as_ptr(), b.as_ptr()),
+            (Self::File(a), Self::File(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum IResultBranch {
     Ok(Box<ILitType>),
     Err(Box<ILitType>),

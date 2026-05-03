@@ -30,7 +30,7 @@ pub struct StackFrame {
 impl StackFrame {
     fn with_capacity(capacity: usize) -> Self {
         Self {
-            vars: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
+            vars: FxHashMap::with_capacity_and_hasher(capacity, FxBuildHasher),
         }
     }
 }

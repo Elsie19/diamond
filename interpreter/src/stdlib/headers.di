@@ -54,6 +54,7 @@ let ~internal sub(fst: integer, snd: integer): integer = ();
 ################
 let ~internal ok(val: any): result(any, any) = ();
 let ~internal err(val: any): result(any, any) = ();
+let ~internal eq(lhs: any, rhs: any): result(unit, unit) = ();
 
 let ~internal trim(str: string): string = ();
 let ~internal trim_left(str: string): string = ();

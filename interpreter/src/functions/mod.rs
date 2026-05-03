@@ -37,6 +37,7 @@
 //! * result
 //!     - [`ok`](result::ok)
 //!     - [`err`](result::err)
+//!     - [`eq`](result::eq)
 //! * strings
 //!     - [`trim`](strings::trim)
 //!     - [`trim_left`](strings::trim_left)
