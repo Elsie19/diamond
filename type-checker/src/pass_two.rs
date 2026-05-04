@@ -215,6 +215,7 @@ where
                     src: self.src(),
                     bad_bit: loop_expr.as_miette_span(),
                     defined_here,
+                    got: iter_res.ty,
                 },
             ));
         };

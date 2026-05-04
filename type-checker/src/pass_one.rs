@@ -72,7 +72,7 @@ pub enum VerifyError {
         prev_branch: SourceSpan,
     },
 
-    #[error("non-iterable expression used in iterable context")]
+    #[error("non-iterable expression (a `{}`) used in iterable context", got.as_display_ty())]
     #[diagnostic(code(type_checking::iter::iterable::verify))]
     #[diagnostic(help("ensure that expressions passed to loops are iterable"))]
     NonIterable {
@@ -84,6 +84,8 @@ pub enum VerifyError {
 
         #[label("defined here")]
         defined_here: Option<SourceSpan>,
+
+        got: Type,
     },
 
     #[error("expected `{}`, found `{}`", expected.as_display_ty(), got.as_display_ty())]
