@@ -265,7 +265,7 @@ pub fn rev(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
     ILitType::Array(v.into())
 }
 
-/// Skip `n` amount of lines in stream.
+/// Skip `n` amount of lines in array.
 ///
 /// # Signature
 /// ```
