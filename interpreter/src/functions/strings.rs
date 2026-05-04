@@ -193,3 +193,41 @@ pub fn join(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
             .into(),
     )
 }
+
+/// Check if, in a string, at position `at`, any `patterns` exist.
+///
+/// # Signature
+/// ```
+/// let ~internal pattern_pos(str: string, at: integer, patterns: [string]): result(integer,
+/// integer);
+/// ```
+///
+/// # Example
+/// ```
+/// let string = "Hey Jill!";
+/// let check = pattern_pos(string, 0, ["Hey"]);
+/// match (check) {
+///   ok o = puts("string starts with 'Hey'"),
+///   err e = puts("string does not start with 'Hey'"),
+/// }
+/// ```
+///
+/// ```text
+/// string starts with 'Hey'
+/// ```
+#[signature(args => str: string, at: integer, patterns: [string])]
+pub fn pattern_pos(_engine: &mut Engine<'_>, args: &[ILitType]) -> ILitType {
+    // SAFETY: We already checked with [`signature`] that `patterns` is all strings underneath.
+    let mut patterns = patterns.iter().map(|s| unsafe { s.as_string_unchecked() });
+
+    ILitType::Result(
+        if str
+            .get(*at..)
+            .is_some_and(|rest| patterns.any(|pat| rest.starts_with(&**pat)))
+        {
+            res!(Ok, int_dy => *at)
+        } else {
+            res!(Err, int_dy => *at)
+        },
+    )
+}

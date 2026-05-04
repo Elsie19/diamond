@@ -87,14 +87,15 @@ impl<'a> Functions<'a> {
                 err => functions::result::err,
                 eq =>  functions::result::eq,
 
-                trim =>       functions::strings::trim,
-                trim_left =>  functions::strings::trim_left,
-                trim_right => functions::strings::trim_right,
-                upper =>      functions::strings::upper,
-                lower =>      functions::strings::lower,
-                replace =>    functions::strings::replace,
-                split_at =>   functions::strings::split_at,
-                join =>       functions::strings::join,
+                trim =>        functions::strings::trim,
+                trim_left =>   functions::strings::trim_left,
+                trim_right =>  functions::strings::trim_right,
+                upper =>       functions::strings::upper,
+                lower =>       functions::strings::lower,
+                replace =>     functions::strings::replace,
+                split_at =>    functions::strings::split_at,
+                join =>        functions::strings::join,
+                pattern_pos => functions::strings::pattern_pos,
             },
         }
     }

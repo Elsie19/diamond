@@ -66,3 +66,4 @@ let ~internal split_at(str: string, mid: integer): result([string], string) = ()
 let ~internal join(arr: [string], join: string): string = ();
 
 let last(lst: [any]): any = for (i in lst) i;
+let ~internal pattern_pos(str: string, at: integer, patterns: [string]): result(integer, integer) = ();

@@ -47,6 +47,7 @@
 //!     - [`replace`](strings::replace)
 //!     - [`split_at`](strings::split_at)
 //!     - [`join`](strings::join)
+//!     - [`pattern_pos`](strings::pattern_pos)
 
 /// Array functions.
 pub mod arrays;

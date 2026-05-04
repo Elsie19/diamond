@@ -1,5 +1,6 @@
 let record_header_str = sprintf("[[record]]\n", []);
 let nline = sprintf("\n", []);
+let pats = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 let file = file(match (nth(args(), 0)) {
     ok o = o,
@@ -24,7 +25,12 @@ let keys = split(header_line, ",");
             let key = nth(pair, 1)!;
             let val = nth(vals, idx)!;
 
-            let line = sprintf("%s = '%s'\n", [key, val]);
+            let check = pattern_pos(val, 0, pats);
+            let line = match (check) {
+                ok o  = sprintf("%s = %s\n", [key, val]),
+                err e = sprintf("%s = '%s'\n", [key, val]),
+            };
+
             dump(out, line);
         }
 
