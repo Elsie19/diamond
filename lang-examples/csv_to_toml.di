@@ -1,6 +1,6 @@
 let record_header_str = sprintf("[[record]]\n", []);
 let nline = sprintf("\n", []);
-let pats = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+let pats = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "true", "false"];
 
 let file = file(match (nth(args(), 0)) {
     ok o = o,
