@@ -15,4 +15,8 @@ impl VarGenerator for VarGenInterpreter {
         self.id += 1;
         num
     }
+
+    fn total(&self) -> usize {
+        self.id
+    }
 }

@@ -138,6 +138,10 @@ where
         &self.ir
     }
 
+    pub fn unique_vars(&self) -> usize {
+        self.var_gen.total()
+    }
+
     pub fn check_program(&mut self, program: &'a UntypedAst<'a>) -> Result<(), TypeCheckError> {
         // We don't know exactly how much it'll generate, but at least one per AST branch is a good
         // guess.

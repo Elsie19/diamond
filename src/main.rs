@@ -43,8 +43,8 @@ fn load_stdlib() -> Bundle {
 }
 
 #[doc(hidden)]
-fn encode(ir: &[IR]) -> Vec<u8> {
-    bincode::encode_to_vec(ir, bincode::config::standard()).unwrap()
+fn encode(bin: (&[IR], usize)) -> Vec<u8> {
+    bincode::encode_to_vec(bin, bincode::config::standard()).unwrap()
 }
 
 /// A text-parsing DSL.
@@ -80,7 +80,7 @@ enum Commands {
 }
 
 #[doc(hidden)]
-fn compile_source(string: &str, file: &str) -> miette::Result<Vec<IR>> {
+fn compile_source(string: &str, file: &str) -> miette::Result<(Vec<IR>, usize)> {
     let mut bundle = load_stdlib();
 
     let program = parse_di(string, file).map_err(|()| miette::miette!("parse failed"))?;
@@ -95,7 +95,7 @@ fn compile_source(string: &str, file: &str) -> miette::Result<Vec<IR>> {
 
     bundle.ir.extend_from_slice(checker.ir());
 
-    Ok(bundle.ir)
+    Ok((bundle.ir, checker.unique_vars()))
 }
 
 #[doc(hidden)]
@@ -116,18 +116,24 @@ fn main() -> Result<()> {
         Commands::Run { input, args } => {
             let bytes = std::fs::read(&input).into_diagnostic()?;
 
-            let ir = match detect_ir(&bytes) {
+            let (mut engine, ir) = match detect_ir(&bytes) {
                 FileType::Text => {
                     // SAFETY: We hope that nobody put broken UTF-8 in the file. If they did, not
                     // our fault.
                     let string = unsafe { String::from_utf8_unchecked(bytes) };
                     let file = input.to_string_lossy();
-                    compile_source(&string, &file)?
+                    let src = compile_source(&string, &file)?;
+                    let engine = Engine::new_precomp(&args, src.1);
+                    (engine, src.0)
                 }
-                FileType::Binary => decode_bin_ir(&bytes)?,
+                FileType::Binary => {
+                    let src = decode_bin_ir(&bytes)?;
+                    let engine = Engine::new(&args);
+                    (engine, src)
+                }
             };
 
-            Engine::new(&args).run(ir);
+            engine.run(ir);
         }
         Commands::Compile { input, output } => {
             let string = std::fs::read_to_string(&input).into_diagnostic()?;
@@ -135,7 +141,7 @@ fn main() -> Result<()> {
 
             let ir = compile_source(&string, &file)?;
 
-            let bin = encode(&ir);
+            let bin = encode((&ir.0, ir.1));
             let final_blob = binary_ir(&bin);
 
             if output == Path::new("-") {

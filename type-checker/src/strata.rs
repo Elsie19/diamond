@@ -13,6 +13,9 @@ pub trait VarGenerator {
 
     /// Generate fresh variable name.
     fn fresh(&mut self) -> usize;
+
+    /// Get total amount of unique variables.
+    fn total(&self) -> usize;
 }
 
 #[derive(Debug, Clone, Encode, Decode)]

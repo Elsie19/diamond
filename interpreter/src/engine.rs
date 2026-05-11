@@ -1,7 +1,6 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use collect_into_rc_slice::CollectIntoRcSlice;
-use rustc_hash::{FxBuildHasher, FxHashMap};
 use type_checker::strata::{IR, IRMatchArm};
 
 use shared::unreachable_unchecked;
@@ -15,24 +14,9 @@ type Val = ILitType;
 
 #[derive(Debug)]
 pub struct Engine<'a> {
-    // Even though the IR generator ensures that all variables have unique identifiers, we still
-    // need to have stack frames for recursion in function calls.
-    frames: Vec<StackFrame>,
+    frames: Vec<ILitType>,
     funcs: Functions<'a>,
     argv: Rc<[ILitType]>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct StackFrame {
-    vars: HashMap<usize, ILitType, FxBuildHasher>,
-}
-
-impl StackFrame {
-    fn with_capacity(capacity: usize) -> Self {
-        Self {
-            vars: FxHashMap::with_capacity_and_hasher(capacity, FxBuildHasher),
-        }
-    }
 }
 
 impl Engine<'_> {
@@ -41,8 +25,16 @@ impl Engine<'_> {
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
+        Self::new_precomp(args, 0)
+    }
+
+    pub fn new_precomp<I, T>(args: I, size: usize) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<String>,
+    {
         Self {
-            frames: vec![StackFrame::default()],
+            frames: vec![ILitType::Unit; size],
             funcs: Functions::stdlib(),
             argv: args
                 .into_iter()
@@ -55,28 +47,12 @@ impl Engine<'_> {
         &self.argv
     }
 
-    fn get_var(&self, name: usize) -> Option<&ILitType> {
-        self.frames.iter().rev().find_map(|f| f.vars.get(&name))
+    fn get_var(&self, name: usize) -> &ILitType {
+        &self.frames[name]
     }
 
     fn set_var(&mut self, name: usize, val: ILitType) {
-        self.frames
-            .last_mut()
-            .expect("popped top frame, ruh roh")
-            .vars
-            .insert(name, val);
-    }
-
-    fn push_frame(&mut self) {
-        self.frames.push(StackFrame::default());
-    }
-
-    fn push_frame_with_capacity(&mut self, capacity: usize) {
-        self.frames.push(StackFrame::with_capacity(capacity));
-    }
-
-    fn pop_frame(&mut self) {
-        self.frames.pop();
+        self.frames[name] = val;
     }
 
     pub fn run<I>(&mut self, ir: I)
@@ -118,9 +94,7 @@ impl Engine<'_> {
             IR::FuncCall { name, args, unwrap } => self.eval_funccall(&name, args, unwrap),
             IR::Integer(i) => ILitType::Integer(i),
             IR::String(s) => ILitType::String(s),
-            // SAFETY: If a variable cannot be found here, it somehow got past both type-checking
-            // and vargen, and I fucked up really badly.
-            IR::Ident(ident) => unsafe { self.get_var(ident).cloned().unwrap_unchecked() },
+            IR::Ident(ident) => self.get_var(ident).clone(),
             IR::Array(irs) => {
                 let elems = irs
                     .into_iter()
@@ -157,8 +131,6 @@ impl Engine<'_> {
             RuntimeFunc::User(user_func) => {
                 let func_args = user_func.args;
 
-                self.push_frame_with_capacity(func_args.len());
-
                 for (i, (arg_name, _)) in func_args.iter().enumerate() {
                     let val = evaled_args.get(i).cloned().unwrap_or(ILitType::Unit);
 
@@ -166,8 +138,6 @@ impl Engine<'_> {
                 }
 
                 let last = self.eval(user_func.body);
-
-                self.pop_frame();
 
                 last
             }
@@ -210,12 +180,10 @@ impl Engine<'_> {
             };
 
             if let Some(val) = active {
-                self.push_frame();
                 self.set_var(bind, *val);
 
                 let last = self.eval(*body);
 
-                self.pop_frame();
                 return last;
             }
         }
@@ -231,12 +199,8 @@ impl Engine<'_> {
         let mut last = ILitType::Unit;
 
         for rust_idx in iter.iter() {
-            self.push_frame();
-
             self.set_var(bind, rust_idx.clone());
             last = self.eval(body.clone());
-
-            self.pop_frame();
         }
 
         last
@@ -246,8 +210,6 @@ impl Engine<'_> {
     where
         I: IntoIterator<Item = IR>,
     {
-        self.push_frame();
-
         if let Some((redir_ir, bind)) = redirect {
             let val = self.eval(*redir_ir);
             self.set_var(bind, val);
@@ -258,8 +220,6 @@ impl Engine<'_> {
         for node in inner {
             last_val = self.eval(node);
         }
-
-        self.pop_frame();
 
         last_val
     }
